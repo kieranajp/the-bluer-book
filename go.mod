@@ -3,6 +3,7 @@ module github.com/kieranajp/the-bluer-book
 go 1.23.8
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.34.0
 	github.com/urfave/cli/v2 v2.27.6
 )

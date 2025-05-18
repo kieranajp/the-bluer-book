@@ -1,4 +1,4 @@
-package domain
+package recipe
 
 import "time"
 
@@ -8,8 +8,6 @@ type Recipe struct {
 	Description string
 	Timing      time.Duration
 	ServingSize int16
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
 	Steps       []Step
 	Ingredients []RecipeIngredient
 }
@@ -19,23 +17,17 @@ type Step struct {
 	RecipeID    string
 	StepIndex   int16
 	Description string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
 }
 
 type Ingredient struct {
-	UUID      string
-	Name      string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	UUID string
+	Name string
 }
 
 type Unit struct {
 	UUID         string
 	Name         string
 	Abbreviation string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
 }
 
 type RecipeIngredient struct {
@@ -43,6 +35,4 @@ type RecipeIngredient struct {
 	Ingredient Ingredient
 	Unit       Unit
 	Quantity   float64
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
 }

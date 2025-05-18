@@ -1,5 +1,3 @@
-version: '3.8'
-
 volumes:
   postgres-data:
 
@@ -7,7 +5,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: .devcontainer/Dockerfile
     env_file:
         # Ensure that the variables in .env match the same variables in devcontainer.json
         - .env
@@ -26,8 +24,8 @@ services:
 
   db:
     build:
-      context: ./postgres
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: .devcontainer/postgres/Dockerfile
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data

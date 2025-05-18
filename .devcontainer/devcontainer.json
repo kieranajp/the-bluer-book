@@ -2,9 +2,14 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/go-postgres
 {
 	"name": "Go & PostgreSQL",
-	"dockerComposeFile": "docker-compose.yml",
+	"dockerComposeFile": "../docker-compose.yml",
 	"service": "app",
-	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"features": {
+		"ghcr.io/nucleuscloud/devcontainer-features/sqlc:1": {
+			"version": "latest"
+		}
+	}
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},

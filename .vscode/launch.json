@@ -1,4 +1,5 @@
 {
+    "version": "0.2.0",
     "configurations": [
         {
             "name": "Import",
@@ -8,6 +9,14 @@
             "program": "${workspaceFolder}",
             "args": ["import"],
             "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "name": "Generate Stubs",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "preLaunchTask": "sqlc generate"
         }
     ]
 }

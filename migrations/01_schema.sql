@@ -1,26 +1,13 @@
--- Drop existing schema objects
-DROP TABLE IF EXISTS photos CASCADE;
-DROP TABLE IF EXISTS recipe_label CASCADE;
-DROP TABLE IF EXISTS recipe_ingredient CASCADE;
-DROP TABLE IF EXISTS steps CASCADE;
-DROP TABLE IF EXISTS labels CASCADE;
-DROP TABLE IF EXISTS units CASCADE;
-DROP TABLE IF EXISTS ingredients CASCADE;
-DROP TABLE IF EXISTS recipes CASCADE;
-
--- Install pgcrypto for UUID generation
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 -- Create lookup tables
 CREATE TABLE ingredients (
-  uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR UNIQUE NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT now(),
   updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE units (
-  uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR NOT NULL,
   abbreviation VARCHAR,
   created_at TIMESTAMP NOT NULL DEFAULT now(),
@@ -28,7 +15,7 @@ CREATE TABLE units (
 );
 
 CREATE TABLE labels (
-  uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR NOT NULL,
   color VARCHAR,
   created_at TIMESTAMP NOT NULL DEFAULT now(),
@@ -50,7 +37,7 @@ CREATE TABLE recipes (
 
 -- Create dependent tables
 CREATE TABLE steps (
-  uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   recipe_id TEXT REFERENCES recipes(id),
   step_order SMALLINT NOT NULL,
   description TEXT,
@@ -77,7 +64,7 @@ CREATE TABLE recipe_label (
 );
 
 CREATE TABLE photos (
-  uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   url VARCHAR NOT NULL,
   entity_type VARCHAR NOT NULL, -- 'recipe', 'step', or 'ingredient'
   entity_id TEXT NOT NULL,      -- foreign key target (text or UUID)

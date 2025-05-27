@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "sqlc generate",
+            "type": "shell",
+            "command": "sqlc generate",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Generate Go code from SQL queries using sqlc"
+        }
+    ]
+}

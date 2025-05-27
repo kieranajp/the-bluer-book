@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe"
@@ -12,6 +14,7 @@ import (
 type RecipeRepository interface {
 	GetRecipeWithSteps(ctx context.Context, uuid string) (recipe.Recipe, error)
 	ListRecipesWithIngredients(ctx context.Context) ([]recipe.Recipe, error)
+	CreateRecipe(ctx context.Context, recipe recipe.Recipe) error
 	// ... other methods
 }
 
@@ -100,4 +103,80 @@ func (r *recipeRepository) ListRecipesWithIngredients(ctx context.Context) ([]re
 		recipes = append(recipes, *rec)
 	}
 	return recipes, nil
+}
+
+func (r *recipeRepository) CreateRecipe(ctx context.Context, recipe recipe.Recipe) error {
+	// Start a transaction
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Create recipe
+	recipeUUID, err := uuid.Parse(recipe.UUID)
+	if err != nil {
+		return err
+	}
+
+	// Insert recipe
+	_, err = r.db.CreateRecipe(ctx, db.CreateRecipeParams{
+		Uuid:        recipeUUID,
+		Name:        recipe.Name,
+		Description: sql.NullString{String: recipe.Description, Valid: recipe.Description != ""},
+		Timing:      sql.NullInt64{Int64: int64(recipe.Timing.Minutes()), Valid: true},
+		ServingSize: sql.NullInt16{Int16: recipe.ServingSize, Valid: true},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Insert steps
+	for _, step := range recipe.Steps {
+		stepUUID, err := uuid.Parse(step.UUID)
+		if err != nil {
+			return err
+		}
+		_, err = r.db.CreateStep(ctx, db.CreateStepParams{
+			Uuid:        stepUUID,
+			RecipeID:    recipeUUID,
+			StepIndex:   step.StepIndex,
+			Description: sql.NullString{String: step.Description, Valid: step.Description != ""},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	// Insert ingredients
+	for _, ing := range recipe.Ingredients {
+		// First ensure ingredient exists
+		ingUUID, err := uuid.Parse(ing.Ingredient.UUID)
+		if err != nil {
+			return err
+		}
+		_, err = r.db.CreateIngredient(ctx, db.CreateIngredientParams{
+			Uuid: ingUUID,
+			Name: ing.Ingredient.Name,
+		})
+		if err != nil {
+			// Ignore unique violation errors
+			if !strings.Contains(err.Error(), "unique_violation") {
+				return err
+			}
+		}
+
+		// Then create recipe-ingredient relationship
+		_, err = r.db.CreateRecipeIngredient(ctx, db.CreateRecipeIngredientParams{
+			RecipeID:     recipeUUID,
+			IngredientID: ingUUID,
+			Quantity:     sql.NullFloat64{Float64: ing.Quantity, Valid: true},
+			Unit:         sql.NullString{String: ing.Unit.Name, Valid: ing.Unit.Name != ""},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }

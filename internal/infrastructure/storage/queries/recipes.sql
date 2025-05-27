@@ -43,3 +43,42 @@ FROM recipes r
 LEFT JOIN recipe_ingredients ri ON r.uuid = ri.recipe_id
 LEFT JOIN ingredients i ON ri.ingredient_id = i.uuid
 ORDER BY r.created_at DESC;
+
+-- name: CreateRecipe :one
+INSERT INTO recipes (
+    uuid,
+    name,
+    description,
+    timing,
+    serving_size
+) VALUES (
+    $1, $2, $3, $4, $5
+) RETURNING *;
+
+-- name: CreateStep :one
+INSERT INTO steps (
+    uuid,
+    recipe_id,
+    step_index,
+    description
+) VALUES (
+    $1, $2, $3, $4
+) RETURNING *;
+
+-- name: CreateIngredient :one
+INSERT INTO ingredients (
+    uuid,
+    name
+) VALUES (
+    $1, $2
+) RETURNING *;
+
+-- name: CreateRecipeIngredient :one
+INSERT INTO recipe_ingredient (
+    recipe_id,
+    ingredient_id,
+    unit_id,
+    quantity
+) VALUES (
+    $1, $2, $3, $4
+) RETURNING *;

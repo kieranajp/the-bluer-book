@@ -24,7 +24,7 @@ CREATE TABLE labels (
 
 -- Create main recipe table
 CREATE TABLE recipes (
-  id TEXT PRIMARY KEY,
+  uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR NOT NULL,
   description TEXT,
   cook_time INTERVAL,
@@ -38,7 +38,7 @@ CREATE TABLE recipes (
 -- Create dependent tables
 CREATE TABLE steps (
   uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  recipe_id TEXT REFERENCES recipes(id),
+  recipe_id UUID REFERENCES recipes(uuid),
   step_order SMALLINT NOT NULL,
   description TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT now(),
@@ -46,7 +46,7 @@ CREATE TABLE steps (
 );
 
 CREATE TABLE recipe_ingredient (
-  recipe_id TEXT REFERENCES recipes(id),
+  recipe_id UUID REFERENCES recipes(id),
   ingredient_id UUID REFERENCES ingredients(uuid),
   unit_id UUID REFERENCES units(uuid),
   quantity DOUBLE PRECISION,
@@ -56,18 +56,19 @@ CREATE TABLE recipe_ingredient (
 );
 
 CREATE TABLE recipe_label (
-  recipe_id TEXT REFERENCES recipes(id),
+  recipe_id UUID REFERENCES recipes(id),
   label_id UUID REFERENCES labels(uuid),
   created_at TIMESTAMP NOT NULL DEFAULT now(),
   updated_at TIMESTAMP NOT NULL DEFAULT now(),
   PRIMARY KEY (recipe_id, label_id)
 );
 
+CREATE TYPE entity_type AS ENUM ('recipe', 'step', 'ingredient');
 CREATE TABLE photos (
   uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   url VARCHAR NOT NULL,
-  entity_type VARCHAR NOT NULL, -- 'recipe', 'step', or 'ingredient'
-  entity_id TEXT NOT NULL,      -- foreign key target (text or UUID)
+  entity_type entity_type NOT NULL, -- 'recipe', 'step', or 'ingredient'
+  entity_id UUID NOT NULL,      -- foreign key target
   created_at TIMESTAMP NOT NULL DEFAULT now(),
   updated_at TIMESTAMP NOT NULL DEFAULT now()
 );

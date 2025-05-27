@@ -46,7 +46,7 @@ CREATE TABLE steps (
 );
 
 CREATE TABLE recipe_ingredient (
-  recipe_id UUID REFERENCES recipes(id),
+  recipe_id UUID REFERENCES recipes(uuid),
   ingredient_id UUID REFERENCES ingredients(uuid),
   unit_id UUID REFERENCES units(uuid),
   quantity DOUBLE PRECISION,
@@ -56,7 +56,7 @@ CREATE TABLE recipe_ingredient (
 );
 
 CREATE TABLE recipe_label (
-  recipe_id UUID REFERENCES recipes(id),
+  recipe_id UUID REFERENCES recipes(uuid),
   label_id UUID REFERENCES labels(uuid),
   created_at TIMESTAMP NOT NULL DEFAULT now(),
   updated_at TIMESTAMP NOT NULL DEFAULT now(),

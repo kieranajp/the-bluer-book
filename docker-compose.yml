@@ -20,7 +20,5 @@ services:
       context: .
       dockerfile: .devcontainer/postgres/Dockerfile
     restart: unless-stopped
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
     env_file:
       - .env

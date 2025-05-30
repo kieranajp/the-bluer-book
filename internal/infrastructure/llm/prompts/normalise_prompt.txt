@@ -5,7 +5,8 @@ Instructions:
 - The output must match the following JSON Schema, using the exact field names and structure as shown (including all nested fields and arrays).
 - If the recipe contains a URL to the original source, include it in the `url` field.
 - If there are comments, notes, or other information that do not fit as steps, ingredients, or labels, add them to the `description` field.
-- If steps or ingredients are missing, leave those arrays empty.
+- If there's an ingredients list and the ingredient names are also in the steps, default to using the ingredient list
+- Deduplicate ingredients, i.e. if a recipe lists carrots (100g) for a sauce and carrots (200g) for another component, combine them into 300g carrots. If units differ, normalise them as metric.
 - Only return the JSON object, with no extra explanation or text.
 
 JSON Schema:
@@ -16,8 +17,8 @@ JSON Schema:
   "properties": {
     "name": { "type": "string" },
     "description": { "type": "string" },
-    "cookTime": { "type": "string", "description": "Duration in Go duration format, e.g., '1h30m', '45m'" },
-    "prepTime": { "type": "string", "description": "Duration in Go duration format, e.g., '1h30m', '45m'" },
+    "cookTime": { "type": "integer", "description": "Duration in minutes" },
+    "prepTime": { "type": "integer", "description": "Duration in minutes" },
     "servings": { "type": "integer" },
     "mainPhoto": {
       "type": ["object", "null"],

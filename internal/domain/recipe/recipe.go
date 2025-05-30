@@ -1,64 +1,18 @@
 package recipe
 
 import (
-	"encoding/json"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
-
-// Duration is a wrapper for time.Duration that supports JSON unmarshalling from strings.
-type Duration struct {
-	time.Duration
-}
-
-func (d *Duration) UnmarshalJSON(b []byte) error {
-	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
-		return err
-	}
-	// Try Go duration format first
-	dur, err := time.ParseDuration(s)
-	if err == nil {
-		d.Duration = dur
-		return nil
-	}
-	// Try to parse common English formats (e.g., "45 minutes", "2 hours")
-	s = strings.ToLower(strings.TrimSpace(s))
-	if strings.Contains(s, "hour") {
-		var hours int
-		_, err := fmt.Sscanf(s, "%d hour", &hours)
-		if err != nil {
-			_, err = fmt.Sscanf(s, "%d hours", &hours)
-		}
-		if err == nil {
-			d.Duration = time.Duration(hours) * time.Hour
-			return nil
-		}
-	}
-	if strings.Contains(s, "minute") {
-		var minutes int
-		_, err := fmt.Sscanf(s, "%d minute", &minutes)
-		if err != nil {
-			_, err = fmt.Sscanf(s, "%d minutes", &minutes)
-		}
-		if err == nil {
-			d.Duration = time.Duration(minutes) * time.Minute
-			return nil
-		}
-	}
-	return fmt.Errorf("could not parse duration: %s", s)
-}
 
 // Recipe is the aggregate root for a recipe and its related data.
 type Recipe struct {
 	UUID        uuid.UUID          `json:"uuid,omitempty"`
 	Name        string             `json:"name"`
 	Description string             `json:"description"`
-	CookTime    Duration           `json:"cookTime"`
-	PrepTime    Duration           `json:"prepTime"`
+	CookTime    int32              `json:"cookTime"`
+	PrepTime    int32              `json:"prepTime"`
 	Servings    int16              `json:"servings"`
 	MainPhoto   *Photo             `json:"mainPhoto"`
 	Url         string             `json:"url"`

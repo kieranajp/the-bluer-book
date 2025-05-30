@@ -25,7 +25,6 @@ func NewImportHandler(loader *trello.TrelloLoader, normaliser service.Normaliser
 	}
 }
 
-// RunImport loads Trello cards, normalizes, and saves them.
 func (h *ImportHandler) RunImport(ctx context.Context) error {
 	h.logger.Info().Msg("Loading Trello cards")
 	cards, err := h.loader.LoadAllCards()
@@ -35,10 +34,10 @@ func (h *ImportHandler) RunImport(ctx context.Context) error {
 	}
 
 	for _, card := range cards {
-		h.logger.Info().Str("name", card.Name).Msg("Normalizing card")
+		h.logger.Info().Str("name", card.Name).Msg("Normalising card")
 		err := h.normaliser.NormaliseRecipe(ctx, card)
 		if err != nil {
-			h.logger.Error().Str("name", card.Name).Err(err).Msg("Failed to normalize card")
+			h.logger.Error().Str("name", card.Name).Err(err).Msg("Failed to normalise card")
 			continue
 		}
 	}

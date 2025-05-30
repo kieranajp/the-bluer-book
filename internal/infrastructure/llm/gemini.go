@@ -51,8 +51,55 @@ func (g *GeminiClient) NormaliseRecipe(ctx context.Context, card trello.Card) (r
 		return recipe.Recipe{}, err
 	}
 
-	_ = resp // TODO: Parse resp into recipe.Recipe
-	return recipe.Recipe{}, nil
+	jsonStr, err := g.extractJson(resp)
+	if err != nil {
+		return recipe.Recipe{}, err
+	}
+
+	var rec recipe.Recipe
+	err = json.Unmarshal([]byte(jsonStr), &rec)
+	if err != nil {
+		return recipe.Recipe{}, fmt.Errorf("failed to unmarshal Gemini response: %w", err)
+	}
+
+	return rec, nil
+}
+
+func (g *GeminiClient) extractJson(input string) (string, error) {
+	// Find the first { or [ and the last } or ]
+	start := -1
+	end := -1
+
+	// Look for object start/end
+	objStart := strings.Index(input, "{")
+	objEnd := strings.LastIndex(input, "}")
+
+	// Look for array start/end
+	arrStart := strings.Index(input, "[")
+	arrEnd := strings.LastIndex(input, "]")
+
+	// Determine which comes first and is a complete pair
+	if objStart != -1 && objEnd != -1 && (arrStart == -1 || objStart < arrStart) {
+		start = objStart
+		end = objEnd
+	} else if arrStart != -1 && arrEnd != -1 {
+		start = arrStart
+		end = arrEnd
+	}
+
+	if start == -1 || end == -1 || start > end {
+		return "", fmt.Errorf("no valid JSON found in response")
+	}
+
+	jsonStr := input[start : end+1]
+
+	// Validate that it's actually valid JSON
+	var js json.RawMessage
+	if err := json.Unmarshal([]byte(jsonStr), &js); err != nil {
+		return "", fmt.Errorf("extracted content is not valid JSON: %w", err)
+	}
+
+	return jsonStr, nil
 }
 
 func (g *GeminiClient) prompt(ctx context.Context, prompt string) (string, error) {

@@ -16,8 +16,8 @@ JSON Schema:
   "properties": {
     "name": { "type": "string" },
     "description": { "type": "string" },
-    "cookTime": { "type": "string" },
-    "prepTime": { "type": "string" },
+    "cookTime": { "type": "string", "description": "Duration in Go duration format, e.g., '1h30m', '45m'" },
+    "prepTime": { "type": "string", "description": "Duration in Go duration format, e.g., '1h30m', '45m'" },
     "servings": { "type": "integer" },
     "mainPhoto": {
       "type": ["object", "null"],
@@ -93,9 +93,11 @@ JSON Schema:
         },
         "required": ["url"]
       }
-    }
+    },
+    "createdAt": { "type": "string", "description": "Timestamp in RFC3339 format, e.g., '2024-06-01T12:34:56Z'" },
+    "updatedAt": { "type": "string", "description": "Timestamp in RFC3339 format, e.g., '2024-06-01T12:34:56Z'" }
   },
-  "required": ["name", "description", "cookTime", "prepTime", "servings", "mainPhoto", "url", "steps", "ingredients", "labels", "photos"]
+  "required": ["name", "description", "cookTime", "prepTime", "servings", "mainPhoto", "url", "steps", "ingredients", "labels", "photos", "createdAt", "updatedAt"]
 }
 ```
 

@@ -49,7 +49,7 @@ func Run(c *cli.Context) error {
 	defer sqlDB.Close()
 
 	queries := db.New(sqlDB)
-	repo := repository.NewRecipeRepository(queries)
+	repo := repository.NewRecipeRepository(queries, sqlDB)
 
 	// Initialise LLM client
 	httpClient := &http.Client{Timeout: 30 * time.Second}

@@ -30,9 +30,10 @@ CREATE TABLE recipes (
   cook_time INTERVAL,
   prep_time INTERVAL,
   servings SMALLINT,
+  main_photo_id UUID,
+  url VARCHAR,
   created_at TIMESTAMP NOT NULL DEFAULT now(),
   updated_at TIMESTAMP NOT NULL DEFAULT now(),
-  main_photo_id UUID
 );
 
 -- Create dependent tables

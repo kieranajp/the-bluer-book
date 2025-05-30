@@ -1,38 +1,69 @@
 package recipe
 
-import "time"
+import (
+	"time"
 
+	"github.com/google/uuid"
+)
+
+// Recipe is the aggregate root for a recipe and its related data.
 type Recipe struct {
-	UUID        string
+	UUID        uuid.UUID
 	Name        string
 	Description string
-	Timing      time.Duration
-	ServingSize int16
+	CookTime    time.Duration
+	PrepTime    time.Duration
+	Servings    int16
+	MainPhoto   *Photo // Main photo for the recipe, if any
+	Url         string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 	Steps       []Step
-	Ingredients []RecipeIngredient
+	Ingredients []RecipeIngredient // Ingredients with quantity/unit for this recipe
+	Labels      []Label
+	Photos      []Photo // Other photos directly attached to the recipe
 }
 
+// Step is a value object representing a step in a recipe.
 type Step struct {
-	UUID        string
-	RecipeID    string
-	StepIndex   int16
+	Order       int16
 	Description string
+	Photos      []Photo // Photos specific to this step
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
+// Ingredient is a value object representing an ingredient.
 type Ingredient struct {
-	UUID string
-	Name string
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Unit struct {
-	UUID         string
 	Name         string
 	Abbreviation string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
+// RecipeIngredient ties an ingredient to a recipe with quantity and unit.
 type RecipeIngredient struct {
-	RecipeID   string
 	Ingredient Ingredient
 	Unit       Unit
 	Quantity   float64
+}
+
+type Label struct {
+	Name      string
+	Color     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// Photo is a value object representing a photo attached to a recipe or step.
+type Photo struct {
+	URL       string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

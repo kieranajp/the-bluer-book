@@ -1,0 +1,9 @@
+# Ignore Python scripts
+*.py
+
+# Ignore output files
+output.txt
+
+.env
+
+__debug_bin*

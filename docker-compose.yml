@@ -19,6 +19,8 @@ services:
     build:
       context: .
       dockerfile: .devcontainer/postgres/Dockerfile
+    ports:
+      - 5432:5432
     restart: unless-stopped
     env_file:
       - .env

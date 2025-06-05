@@ -43,8 +43,18 @@ When you open the project, VS Code should prompt you to install recommended exte
 
 ## 🏗️ Running sqlc
 
-- To (re)generate Go code from SQL, run:
-  ```sh
-  sqlc generate
-  ```
-- There is also a launch configuration in `.vscode/launch.json` to make this easy from within VS Code (check the Run/Debug panel).
+After modifying SQL queries in `internal/infrastructure/storage/queries/`, generate the corresponding Go code using one of these methods:
+
+1. **Command Palette (F1 or Ctrl+Shift+P):**
+   - Type "Tasks: Run Task"
+   - Select "sqlc generate"
+
+2. **Keyboard Shortcut:**
+   - Press Ctrl+Shift+B (default shortcut for running the default build task)
+
+3. **Terminal:**
+   ```sh
+   sqlc generate
+   ```
+
+The generated code will appear in `internal/infrastructure/storage/db/`.

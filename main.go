@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/kieranajp/the-bluer-book/cmd"
+	"github.com/kieranajp/the-bluer-book/cmd/importer"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/urfave/cli/v2"
 )
@@ -12,14 +12,8 @@ var (
 	log logger.Logger
 )
 
-func setup(c *cli.Context) error {
-	log = logger.New(c.String("log-level"))
-	return nil
-}
-
 func main() {
-	importer := cmd.NewImport()
-	// server := cmd.NewServer()
+	log = logger.New(logger.LogLevelInfo)
 
 	app := &cli.App{
 		Name:  "The Bluer Book",
@@ -39,17 +33,10 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			{
-				Name:  importer.Name(),
-				Usage: importer.Usage(),
-				Flags: importer.Flags(),
-				Action: func(c *cli.Context) error {
-					if err := setup(c); err != nil {
-						return err
-					}
-					return importer.
-						WithLogger(log).
-						Run(c)
-				},
+				Name:   importer.Name,
+				Usage:  importer.Usage,
+				Flags:  importer.Flags,
+				Action: importer.Run,
 			},
 		},
 	}

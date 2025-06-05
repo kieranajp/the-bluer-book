@@ -27,12 +27,13 @@ CREATE TABLE recipes (
   uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR NOT NULL,
   description TEXT,
-  cook_time INTERVAL,
-  prep_time INTERVAL,
+  cook_time INTEGER, -- duration in minutes
+  prep_time INTEGER, -- duration in minutes
   servings SMALLINT,
+  main_photo_id UUID,
+  url VARCHAR,
   created_at TIMESTAMP NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP NOT NULL DEFAULT now(),
-  main_photo_id UUID
+  updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
 -- Create dependent tables

@@ -12,7 +12,7 @@ import (
 )
 
 type RecipeRepository interface {
-	SaveRecipe(ctx context.Context, recipe recipe.Recipe) error
+	SaveRecipe(ctx context.Context, recipe recipe.Recipe) (*recipe.Recipe, error)
 }
 
 type recipeRepository struct {
@@ -25,14 +25,14 @@ func NewRecipeRepository(db *db.Queries, sqlDB *sql.DB, logger logger.Logger) Re
 	return &recipeRepository{db: db, sqlDB: sqlDB, logger: logger}
 }
 
-func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) error {
+func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) (*recipe.Recipe, error) {
 	if rec.UUID == uuid.Nil {
 		rec.UUID = uuid.New()
 	}
 
 	tx, err := r.sqlDB.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	q := db.New(tx)
 	defer func() {
@@ -57,7 +57,7 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) er
 			UpdatedAt:  now,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		mainPhotoID = &photo.Uuid
 		r.logger.Info().Msgf("Inserted main photo for recipe %s: %s", rec.Name, rec.MainPhoto.URL)
@@ -77,7 +77,7 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) er
 		UpdatedAt:   now,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	recipeID := dbRec.Uuid
 	r.logger.Info().Msgf("Inserted recipe: %s (UUID: %s)", rec.Name, recipeID)
@@ -94,7 +94,7 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) er
 			UpdatedAt:   now,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		r.logger.Info().Msgf("Inserted step %d for recipe %s (UUID: %s)", step.Order, rec.Name, recipeID)
 		// Insert step photos
@@ -108,7 +108,7 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) er
 				UpdatedAt:  now,
 			})
 			if err != nil {
-				return err
+				return nil, err
 			}
 			r.logger.Info().Msgf("Inserted step photo for step %d: %s", step.Order, photo.URL)
 		}
@@ -128,11 +128,11 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) er
 				UpdatedAt: now,
 			})
 			if err != nil {
-				return err
+				return nil, err
 			}
 			r.logger.Info().Msgf("Inserted new ingredient: %s (UUID: %s)", ri.Ingredient.Name, ingRow.Uuid)
 		} else if err != nil {
-			return err
+			return nil, err
 		}
 		if ingredientSet[ingRow.Uuid] {
 			continue // already inserted for this recipe
@@ -150,11 +150,11 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) er
 				UpdatedAt:    now,
 			})
 			if err != nil {
-				return err
+				return nil, err
 			}
 			r.logger.Info().Msgf("Inserted new unit: %s (UUID: %s)", ri.Unit.Name, unitRow.Uuid)
 		} else if err != nil {
-			return err
+			return nil, err
 		}
 		// RecipeIngredient
 		_, err = q.CreateRecipeIngredient(ctx, db.CreateRecipeIngredientParams{
@@ -166,7 +166,7 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) er
 			UpdatedAt:    now,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		r.logger.Info().Msgf("Linked ingredient %s to recipe %s", ri.Ingredient.Name, rec.Name)
 	}
@@ -184,11 +184,11 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) er
 				UpdatedAt: now,
 			})
 			if err != nil {
-				return err
+				return nil, err
 			}
 			r.logger.Info().Msgf("Inserted new label: %s (UUID: %s)", label.Name, labelRow.Uuid)
 		} else if err != nil {
-			return err
+			return nil, err
 		}
 		_, err = q.CreateRecipeLabel(ctx, db.CreateRecipeLabelParams{
 			RecipeID:  recipeID,
@@ -197,7 +197,7 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) er
 			UpdatedAt: now,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		r.logger.Info().Msgf("Linked label %s to recipe %s", label.Name, rec.Name)
 	}
@@ -216,13 +216,19 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) er
 			UpdatedAt:  now,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 		r.logger.Info().Msgf("Inserted recipe photo for recipe %s: %s", rec.Name, photo.URL)
 	}
 
 	r.logger.Info().Msgf("Successfully saved recipe: %s (UUID: %s)", rec.Name, recipeID)
-	return nil
+
+	// Update the recipe with the saved UUID and timestamps
+	rec.UUID = recipeID
+	rec.CreatedAt = now
+	rec.UpdatedAt = now
+
+	return &rec, nil
 }
 
 func uuidToNullUUID(id *uuid.UUID) uuid.NullUUID {

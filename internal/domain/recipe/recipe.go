@@ -49,9 +49,10 @@ type Unit struct {
 
 // RecipeIngredient ties an ingredient to a recipe with quantity and unit.
 type RecipeIngredient struct {
-	Ingredient Ingredient `json:"ingredient"`
-	Unit       Unit       `json:"unit"`
-	Quantity   float64    `json:"quantity"`
+	Ingredient  Ingredient `json:"ingredient"`
+	Unit        Unit       `json:"unit"`
+	Quantity    float64    `json:"quantity"`
+	Preparation string     `json:"preparation"`
 }
 
 type Label struct {

@@ -29,7 +29,7 @@ func (s *NormalisationService) NormaliseRecipe(ctx context.Context, card trello.
 		s.logger.Error().Err(err).Msg("Failed to normalise recipe")
 		return err
 	}
-	err = s.repo.SaveRecipe(ctx, recipe)
+	_, err = s.repo.SaveRecipe(ctx, recipe)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Failed to save recipe")
 		return err

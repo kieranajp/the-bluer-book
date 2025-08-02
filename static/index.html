@@ -83,7 +83,16 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" x-text="selectedRecipe?.name"></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <div class="d-flex gap-2">
+                            <button type="button"
+                                    class="btn btn-outline-danger btn-sm"
+                                    @click="archiveRecipe()"
+                                    x-show="selectedRecipe"
+                                    title="Archive this recipe">
+                                🗄️ Archive
+                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
                     </div>
                     <div class="modal-body">
                         <template x-if="selectedRecipe">

@@ -80,6 +80,47 @@ function recipeApp() {
                 console.error('Failed to load recipe details:', error);
                 // Could add user-friendly error message here
             }
+        },
+
+        // Archive recipe with confirmation
+        async archiveRecipe() {
+            if (!this.selectedRecipe) {
+                return;
+            }
+
+            const confirmed = confirm(`Are you sure you want to archive "${this.selectedRecipe.name}"?\n\nThis will remove it from your active recipes but keep it for reference.`);
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/recipes/${this.selectedRecipe.uuid}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('recipeModal'));
+                modal.hide();
+
+                // Remove recipe from current list
+                this.recipes = this.recipes.filter(r => r.uuid !== this.selectedRecipe.uuid);
+                this.selectedRecipe = null;
+
+                // Show success message (simple alert for now)
+                alert('Recipe archived successfully!');
+
+            } catch (error) {
+                console.error('Failed to archive recipe:', error);
+                alert('Failed to archive recipe. Please try again.');
+            }
         }
     }
 }

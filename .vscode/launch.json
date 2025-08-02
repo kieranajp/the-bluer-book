@@ -2,18 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Import",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "${workspaceFolder}",
-            "args": [
-                "import",
-                "--trello-path", "data/recipes.json",
-            ],
-            "envFile": "${workspaceFolder}/.env"
-        },
-        {
             "name": "Serve",
             "type": "go",
             "request": "launch",

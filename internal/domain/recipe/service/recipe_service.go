@@ -12,6 +12,10 @@ type RecipeService interface {
 	CreateRecipe(ctx context.Context, recipe recipe.Recipe) (*recipe.Recipe, error)
 	GetRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
 	ListRecipes(ctx context.Context, limit, offset int, search string) ([]*recipe.Recipe, int, error)
+	UpdateRecipe(ctx context.Context, id uuid.UUID, recipe recipe.Recipe) (*recipe.Recipe, error)
+	ArchiveRecipe(ctx context.Context, id uuid.UUID) error
+	RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
+	ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error)
 }
 
 type recipeService struct {
@@ -39,4 +43,38 @@ func (s *recipeService) GetRecipe(ctx context.Context, id uuid.UUID) (*recipe.Re
 
 func (s *recipeService) ListRecipes(ctx context.Context, limit, offset int, search string) ([]*recipe.Recipe, int, error) {
 	return s.repo.ListRecipes(ctx, limit, offset, search)
+}
+
+func (s *recipeService) UpdateRecipe(ctx context.Context, id uuid.UUID, recipe recipe.Recipe) (*recipe.Recipe, error) {
+	// Check if recipe exists and is not already archived
+	existingRecipe, err := s.repo.GetRecipeByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if existingRecipe == nil {
+		return nil, nil // Recipe not found
+	}
+
+	return s.repo.UpdateRecipe(ctx, id, recipe)
+}
+
+func (s *recipeService) ArchiveRecipe(ctx context.Context, id uuid.UUID) error {
+	// Check if recipe exists and is not already archived
+	recipe, err := s.repo.GetRecipeByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if recipe == nil {
+		return nil // Recipe not found or already archived
+	}
+
+	return s.repo.ArchiveRecipe(ctx, id)
+}
+
+func (s *recipeService) RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error) {
+	return s.repo.RestoreRecipe(ctx, id)
+}
+
+func (s *recipeService) ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error) {
+	return s.repo.ListArchivedRecipes(ctx, limit, offset)
 }

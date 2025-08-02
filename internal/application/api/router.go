@@ -23,9 +23,23 @@ func NewRouter(recipeService service.RecipeService, logger logger.Logger) http.H
 		),
 	)
 
+	// PUT requires validation middleware for the recipe data
+	mux.Handle("PUT /api/recipes/{id}",
+		validationMiddleware.ValidateCreateRecipe(
+			http.HandlerFunc(recipeHandler.UpdateRecipe),
+		),
+	)
+
 	// Read operations don't need validation middleware
 	mux.HandleFunc("GET /api/recipes", recipeHandler.ListRecipes)
 	mux.HandleFunc("GET /api/recipes/{id}", recipeHandler.GetRecipe)
+
+	// Delete operation (soft delete) doesn't need validation middleware
+	mux.HandleFunc("DELETE /api/recipes/{id}", recipeHandler.DeleteRecipe)
+
+	// Admin operations for archived recipes (optional)
+	mux.HandleFunc("POST /api/recipes/{id}/restore", recipeHandler.RestoreRecipe)
+	mux.HandleFunc("GET /api/admin/recipes/archived", recipeHandler.ListArchivedRecipes)
 
 	// Serve static files
 	fs := http.FileServer(http.Dir("./static/"))

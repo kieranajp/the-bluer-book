@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -126,4 +127,149 @@ func (h *RecipeHandler) writeErrorResponse(w http.ResponseWriter, statusCode int
 			"message": message,
 		},
 	})
+}
+
+// PUT /api/recipes/{id}
+func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
+	// Extract ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/recipes/")
+	if path == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "missing_id", "Recipe ID is required")
+		return
+	}
+
+	recipeID, err := uuid.Parse(path)
+	if err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
+		return
+	}
+
+	// Get validated recipe from middleware context
+	rec := r.Context().Value(middleware.ValidatedRecipeKey).(recipe.Recipe)
+
+	// Update the recipe
+	updatedRecipe, err := h.recipeService.UpdateRecipe(r.Context(), recipeID, rec)
+	if err != nil {
+		if errors.Is(err, recipe.ErrRecipeNotFound) {
+			h.writeErrorResponse(w, http.StatusNotFound, "recipe_not_found", "Recipe not found")
+			return
+		}
+		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to update recipe")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "update_failed", "Failed to update recipe")
+		return
+	}
+
+	if updatedRecipe == nil {
+		h.writeErrorResponse(w, http.StatusNotFound, "recipe_not_found", "Recipe not found")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(updatedRecipe)
+
+	h.logger.Info().Str("recipe_id", recipeID.String()).Str("name", updatedRecipe.Name).Msg("Recipe updated via API")
+}
+
+// DELETE /api/recipes/{id} - Soft delete (archive)
+func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
+	// Extract ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/recipes/")
+	if path == "" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "missing_id", "Recipe ID is required")
+		return
+	}
+
+	recipeID, err := uuid.Parse(path)
+	if err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
+		return
+	}
+
+	// Archive (soft delete) the recipe
+	err = h.recipeService.ArchiveRecipe(r.Context(), recipeID)
+	if err != nil {
+		if errors.Is(err, recipe.ErrRecipeNotFound) {
+			h.writeErrorResponse(w, http.StatusNotFound, "recipe_not_found", "Recipe not found")
+			return
+		}
+		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to archive recipe")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "archive_failed", "Failed to archive recipe")
+		return
+	}
+
+	// Return 204 No Content for successful archive
+	w.WriteHeader(http.StatusNoContent)
+	h.logger.Info().Str("recipe_id", recipeID.String()).Msg("Recipe archived via API")
+}
+
+// POST /api/recipes/{id}/restore - Restore archived recipe (admin function)
+func (h *RecipeHandler) RestoreRecipe(w http.ResponseWriter, r *http.Request) {
+	// Extract ID from URL path
+	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/recipes/"), "/")
+	if len(pathParts) != 2 || pathParts[1] != "restore" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_path", "Invalid restore path")
+		return
+	}
+
+	recipeID, err := uuid.Parse(pathParts[0])
+	if err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
+		return
+	}
+
+	restoredRecipe, err := h.recipeService.RestoreRecipe(r.Context(), recipeID)
+	if err != nil {
+		if errors.Is(err, recipe.ErrArchivedRecipeNotFound) {
+			h.writeErrorResponse(w, http.StatusNotFound, "recipe_not_found", "Archived recipe not found")
+			return
+		}
+		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to restore recipe")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "restore_failed", "Failed to restore recipe")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(restoredRecipe)
+
+	h.logger.Info().Str("recipe_id", recipeID.String()).Msg("Recipe restored via API")
+}
+
+// GET /api/admin/recipes/archived - List archived recipes (admin function)
+func (h *RecipeHandler) ListArchivedRecipes(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit := 10 // default
+	offset := 0 // default
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+	if offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	recipes, total, err := h.recipeService.ListArchivedRecipes(r.Context(), limit, offset)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("Failed to list archived recipes")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "listing_failed", "Failed to list archived recipes")
+		return
+	}
+
+	response := map[string]interface{}{
+		"recipes": recipes,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

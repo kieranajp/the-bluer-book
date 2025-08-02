@@ -15,6 +15,10 @@ type RecipeRepository interface {
 	SaveRecipe(ctx context.Context, recipe recipe.Recipe) (*recipe.Recipe, error)
 	GetRecipeByID(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
 	ListRecipes(ctx context.Context, limit, offset int, search string) ([]*recipe.Recipe, int, error)
+	UpdateRecipe(ctx context.Context, id uuid.UUID, recipe recipe.Recipe) (*recipe.Recipe, error)
+	ArchiveRecipe(ctx context.Context, id uuid.UUID) error
+	RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
+	ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error)
 }
 
 type recipeRepository struct {
@@ -247,7 +251,7 @@ func (r *recipeRepository) GetRecipeByID(ctx context.Context, id uuid.UUID) (*re
 	recipeRow, err := q.GetRecipeByID(ctx, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil // Recipe not found
+			return nil, recipe.RecipeNotFoundError{ID: id}
 		}
 		return nil, err
 	}
@@ -381,4 +385,121 @@ func (r *recipeRepository) buildRecipeFromRows(ctx context.Context, q *db.Querie
 	rec.Photos = photos
 
 	return rec, nil
+}
+
+func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec recipe.Recipe) (*recipe.Recipe, error) {
+	now := time.Now()
+
+	// Update the recipe
+	updatedRecipe, err := r.db.UpdateRecipe(ctx, db.UpdateRecipeParams{
+		Uuid:        id,
+		Name:        rec.Name,
+		Description: sql.NullString{String: rec.Description, Valid: rec.Description != ""},
+		CookTime:    sql.NullInt32{Int32: rec.CookTime, Valid: rec.CookTime != 0},
+		PrepTime:    sql.NullInt32{Int32: rec.PrepTime, Valid: rec.PrepTime != 0},
+		Servings:    sql.NullInt16{Int16: rec.Servings, Valid: rec.Servings != 0},
+		MainPhotoID: uuid.NullUUID{}, // TODO: Handle main photo update
+		Url:         sql.NullString{String: rec.Url, Valid: rec.Url != ""},
+		UpdatedAt:   now,
+	})
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, recipe.RecipeNotFoundError{ID: id}
+		}
+		return nil, err
+	}
+
+	// Build complete recipe object
+	result, err := r.buildRecipeFromRows(ctx, r.db, updatedRecipe.Uuid, updatedRecipe.Name,
+		updatedRecipe.Description, updatedRecipe.CookTime, updatedRecipe.PrepTime,
+		updatedRecipe.Servings, updatedRecipe.Url, updatedRecipe.CreatedAt,
+		updatedRecipe.UpdatedAt, uuid.NullUUID{}, sql.NullString{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	r.logger.Info().Str("recipe_id", id.String()).Msg("Recipe updated successfully")
+	return result, nil
+}
+
+func (r *recipeRepository) ArchiveRecipe(ctx context.Context, id uuid.UUID) error {
+	now := time.Now()
+
+	// Archive the recipe (soft delete)
+	_, err := r.db.ArchiveRecipe(ctx, db.ArchiveRecipeParams{
+		Uuid:       id,
+		ArchivedAt: sql.NullTime{Time: now, Valid: true},
+	})
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return recipe.RecipeNotFoundError{ID: id}
+		}
+		return err
+	}
+
+	r.logger.Info().Str("recipe_id", id.String()).Msg("Recipe archived successfully")
+	return nil
+}
+
+func (r *recipeRepository) RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error) {
+	now := time.Now()
+
+	// Restore the recipe
+	restoredRecipe, err := r.db.RestoreRecipe(ctx, db.RestoreRecipeParams{
+		Uuid:      id,
+		UpdatedAt: now,
+	})
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, recipe.ArchivedRecipeNotFoundError{ID: id}
+		}
+		return nil, err
+	}
+
+	// Build complete recipe object
+	result, err := r.buildRecipeFromRows(ctx, r.db, restoredRecipe.Uuid, restoredRecipe.Name,
+		restoredRecipe.Description, restoredRecipe.CookTime, restoredRecipe.PrepTime,
+		restoredRecipe.Servings, restoredRecipe.Url, restoredRecipe.CreatedAt,
+		restoredRecipe.UpdatedAt, uuid.NullUUID{}, sql.NullString{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	r.logger.Info().Str("recipe_id", id.String()).Msg("Recipe restored successfully")
+	return result, nil
+}
+
+func (r *recipeRepository) ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error) {
+	// Get archived recipes
+	recipeRows, err := r.db.GetArchivedRecipes(ctx, db.GetArchivedRecipesParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get total count of archived recipes
+	count, err := r.db.CountArchivedRecipes(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	recipes := make([]*recipe.Recipe, len(recipeRows))
+	for i, row := range recipeRows {
+		rec, err := r.buildRecipeFromRows(ctx, r.db, row.Uuid, row.Name,
+			row.Description, row.CookTime, row.PrepTime, row.Servings,
+			row.Url, row.CreatedAt, row.UpdatedAt, row.MainPhotoUuid, row.MainPhotoUrl)
+		if err != nil {
+			return nil, 0, err
+		}
+		recipes[i] = rec
+	}
+
+	return recipes, int(count), nil
 }

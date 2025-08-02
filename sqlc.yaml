@@ -1,7 +1,9 @@
 version: "2"
 sql:
   - engine: postgresql
-    schema: "migrations/01_schema.sql"
+    schema:
+      - "migrations/01_schema.sql"
+      - "migrations/02_soft_delete.sql"
     queries: "internal/infrastructure/storage/queries"
     gen:
       go:

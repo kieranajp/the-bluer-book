@@ -203,7 +203,7 @@ func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info().Str("recipe_id", recipeID.String()).Msg("Recipe archived via API")
 }
 
-// POST /api/recipes/{id}/restore - Restore archived recipe (admin function)
+// POST /api/recipes/{id}/restore - Restore archived recipe
 func (h *RecipeHandler) RestoreRecipe(w http.ResponseWriter, r *http.Request) {
 	// Extract ID from URL path
 	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/recipes/"), "/")
@@ -236,7 +236,7 @@ func (h *RecipeHandler) RestoreRecipe(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info().Str("recipe_id", recipeID.String()).Msg("Recipe restored via API")
 }
 
-// GET /api/admin/recipes/archived - List archived recipes (admin function)
+// GET /api/recipes/archived - List archived recipes
 func (h *RecipeHandler) ListArchivedRecipes(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	limitStr := r.URL.Query().Get("limit")

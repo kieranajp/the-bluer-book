@@ -79,4 +79,53 @@ func (h *RecipeMCPHandler) RegisterTools(s *server.MCPServer) {
 		),
 		h.GetRecipe,
 	)
+
+	// Register update_recipe tool
+	s.AddTool(
+		mcp.NewTool("update_recipe",
+			mcp.WithDescription("Update an existing recipe with new information. All fields are optional except recipe_id - only provided fields will be updated."),
+			mcp.WithString("recipe_id", mcp.Required(), mcp.Description("UUID of the recipe to update")),
+			mcp.WithString("name", mcp.Description("Updated recipe name")),
+			mcp.WithString("description", mcp.Description("Updated recipe description")),
+			mcp.WithNumber("prep_time", mcp.Description("Updated prep time in minutes")),
+			mcp.WithNumber("cook_time", mcp.Description("Updated cook time in minutes")),
+			mcp.WithNumber("servings", mcp.Description("Updated number of servings")),
+			mcp.WithString("url", mcp.Description("Updated source URL for the recipe")),
+			mcp.WithArray("ingredients", mcp.Description("Updated list of ingredient objects with name, quantity, unit, preparation"),
+				mcp.Items(map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"name":        map[string]any{"type": "string", "description": "Ingredient name"},
+						"quantity":    map[string]any{"type": "number", "description": "Amount"},
+						"unit":        map[string]any{"type": "string", "description": "Unit of measurement"},
+						"preparation": map[string]any{"type": "string", "description": "Preparation notes"},
+					},
+					"required": []string{"name"},
+				}),
+			),
+			mcp.WithArray("steps", mcp.Description("Updated cooking steps in order"),
+				mcp.WithStringItems(mcp.Description("Step instruction")),
+			),
+			mcp.WithArray("labels", mcp.Description("Updated recipe labels/tags with name and optional color"),
+				mcp.Items(map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"name":  map[string]any{"type": "string", "description": "Label name"},
+						"color": map[string]any{"type": "string", "description": "Label color (hex or name)"},
+					},
+					"required": []string{"name"},
+				}),
+			),
+		),
+		h.UpdateRecipe,
+	)
+
+	// Register archive_recipe tool
+	s.AddTool(
+		mcp.NewTool("archive_recipe",
+			mcp.WithDescription("Archive a recipe (soft delete) - removes from active recipes but preserves data for reference."),
+			mcp.WithString("recipe_id", mcp.Required(), mcp.Description("UUID of the recipe to archive")),
+		),
+		h.ArchiveRecipe,
+	)
 }

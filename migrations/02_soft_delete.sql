@@ -5,7 +5,7 @@ ALTER TABLE recipes ADD COLUMN archived_at TIMESTAMP NULL;
 -- This partial index only includes rows where archived_at IS NULL (active records)
 CREATE INDEX idx_recipes_archived_at_null ON recipes(archived_at) WHERE archived_at IS NULL;
 
--- Add index for archived records queries (admin functions)
+-- Add index for archived records queries
 -- This partial index only includes rows where archived_at IS NOT NULL (archived records)
 CREATE INDEX idx_recipes_archived_at_not_null ON recipes(archived_at) WHERE archived_at IS NOT NULL;
 

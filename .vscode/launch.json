@@ -12,6 +12,18 @@
                 "--trello-path", "data/recipes.json",
             ],
             "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "name": "Serve",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": [
+                "server",
+                "-listen-addr", ":8081",
+            ],
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }

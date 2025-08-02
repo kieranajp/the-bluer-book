@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Bluer Book - Recipes</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app" x-data="recipeApp()">
+        <!-- Header with Search -->
+        <header class="bg-primary text-white py-3 sticky-top">
+            <div class="container">
+                <h1 class="h3 mb-3">🍳 The Bluer Book</h1>
+                <div class="search-container">
+                    <input
+                        type="text"
+                        class="form-control form-control-lg"
+                        placeholder="Search recipes..."
+                        x-model="searchQuery"
+                        x-on:input.debounce.300ms="searchRecipes()"
+                    >
+                </div>
+            </div>
+        </header>
+
+        <!-- Recipe Results -->
+        <main class="container py-4">
+            <!-- Loading State -->
+            <div x-show="loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Recipe Grid -->
+            <div x-show="!loading" class="row g-3">
+                <template x-for="recipe in recipes" :key="recipe.uuid">
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="card h-100 recipe-card" x-on:click="showRecipeDetail(recipe)">
+                            <div class="card-body">
+                                <h5 class="card-title" x-text="recipe.name"></h5>
+                                <p class="card-text text-muted small" x-text="recipe.description"></p>
+                                <div class="recipe-meta">
+                                    <span class="badge bg-light text-dark me-2">
+                                        ⏱️ <span x-text="(recipe.prepTime || 0) + (recipe.cookTime || 0)"></span>m
+                                    </span>
+                                    <span class="badge bg-light text-dark">
+                                        👥 <span x-text="recipe.servings || 1"></span>
+                                    </span>
+                                </div>
+                                <div class="mt-2">
+                                    <template x-for="label in (recipe.labels || [])">
+                                        <span class="badge me-1" :style="'background-color: ' + label.color" x-text="label.name"></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- No Results -->
+            <div x-show="!loading && recipes.length === 0 && searchQuery" class="text-center py-5">
+                <p class="text-muted">No recipes found for "<span x-text="searchQuery"></span>"</p>
+            </div>
+
+            <!-- Welcome message when no search -->
+            <div x-show="!loading && recipes.length === 0 && !searchQuery" class="text-center py-5">
+                <h4 class="text-muted">Welcome to The Bluer Book!</h4>
+                <p class="text-muted">Search for recipes above to get started.</p>
+            </div>
+        </main>
+
+        <!-- Recipe Detail Modal -->
+        <div class="modal fade" id="recipeModal" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-fullscreen-md-down">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" x-text="selectedRecipe?.name"></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <template x-if="selectedRecipe">
+                            <div>
+                                <!-- Recipe Meta -->
+                                <div class="recipe-meta-detail mb-4">
+                                    <div class="row g-3">
+                                        <div class="col-4 text-center">
+                                            <div class="fs-1">⏱️</div>
+                                            <div class="small text-muted">Prep</div>
+                                            <div x-text="(selectedRecipe.prepTime || 0) + 'm'"></div>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <div class="fs-1">🔥</div>
+                                            <div class="small text-muted">Cook</div>
+                                            <div x-text="(selectedRecipe.cookTime || 0) + 'm'"></div>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <div class="fs-1">👥</div>
+                                            <div class="small text-muted">Serves</div>
+                                            <div x-text="selectedRecipe.servings || 1"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Description -->
+                                <div x-show="selectedRecipe.description" class="mb-4">
+                                    <p class="lead" x-text="selectedRecipe.description"></p>
+                                </div>
+
+                                <!-- Labels -->
+                                <div x-show="selectedRecipe.labels && selectedRecipe.labels.length > 0" class="mb-4">
+                                    <template x-for="label in (selectedRecipe.labels || [])">
+                                        <span class="badge me-2 mb-2" :style="'background-color: ' + label.color" x-text="label.name"></span>
+                                    </template>
+                                </div>
+
+                                <!-- Ingredients -->
+                                <div x-show="selectedRecipe.ingredients && selectedRecipe.ingredients.length > 0" class="ingredients-section mb-4">
+                                    <h6 class="fw-bold mb-3">🥬 Ingredients</h6>
+                                    <div class="list-group">
+                                        <template x-for="ingredient in (selectedRecipe.ingredients || [])">
+                                            <div class="list-group-item list-group-item-action">
+                                                <div class="d-flex align-items-center">
+                                                    <input type="checkbox" class="form-check-input me-3">
+                                                    <div>
+                                                        <span x-show="ingredient.quantity > 0" x-text="ingredient.quantity"></span>
+                                                        <span x-show="ingredient.unit && ingredient.unit.name" x-text="ingredient.unit.name"></span>
+                                                        <strong x-text="ingredient.ingredient.name"></strong>
+                                                        <span x-show="ingredient.preparation" class="text-muted">
+                                                            (<span x-text="ingredient.preparation"></span>)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- Steps -->
+                                <div x-show="selectedRecipe.steps && selectedRecipe.steps.length > 0" class="steps-section">
+                                    <h6 class="fw-bold mb-3">📝 Instructions</h6>
+                                    <div class="list-group">
+                                        <template x-for="step in (selectedRecipe.steps || [])">
+                                            <div class="list-group-item">
+                                                <div class="d-flex">
+                                                    <div class="step-number me-3">
+                                                        <span class="badge bg-primary rounded-pill" x-text="step.order"></span>
+                                                    </div>
+                                                    <div class="step-content">
+                                                        <p x-text="step.description" class="mb-0"></p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="/js/app.js"></script>
+</body>
+</html>

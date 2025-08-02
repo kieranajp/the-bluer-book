@@ -27,5 +27,9 @@ func NewRouter(recipeService service.RecipeService, logger logger.Logger) http.H
 	mux.HandleFunc("GET /api/recipes", recipeHandler.ListRecipes)
 	mux.HandleFunc("GET /api/recipes/{id}", recipeHandler.GetRecipe)
 
+	// Serve static files
+	fs := http.FileServer(http.Dir("./static/"))
+	mux.Handle("GET /", fs)
+
 	return mux
 }

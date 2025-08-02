@@ -15,7 +15,6 @@ import (
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
-	"github.com/kieranajp/the-bluer-book/internal/infrastructure/llm"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
@@ -32,12 +31,6 @@ var (
 				EnvVars: []string{"LISTEN_ADDR"},
 				Value:   ":8080",
 			},
-			&cli.StringFlag{
-				Name:     "gemini-api-key",
-				Required: true,
-				Usage:    "Gemini API key",
-				EnvVars:  []string{"GEMINI_API_KEY"},
-			},
 		},
 		Action: run,
 	}
@@ -47,7 +40,6 @@ func run(c *cli.Context) error {
 	// Get configuration values
 	dbDSN := c.String("db-dsn")
 	listenAddr := c.String("listen-addr")
-	geminiAPIKey := c.String("gemini-api-key")
 
 	// Initialize logger
 	log := logger.New(logger.LogLevelInfo)
@@ -68,16 +60,11 @@ func run(c *cli.Context) error {
 	queries := db.New(sqlDB)
 	repo := repository.NewRecipeRepository(queries, sqlDB, log)
 
-	// Initialize LLM client
-	httpClient := &http.Client{Timeout: 30 * time.Second}
-	llmClient := llm.NewGeminiClient(geminiAPIKey, log, httpClient)
-
 	// Initialize services
-	normalizer := service.NewNormalisationService(llmClient, log, repo)
-	importService := service.NewImportService(normalizer, repo, log)
+	recipeService := service.NewRecipeService(repo)
 
 	// Create API router
-	router := api.NewRouter(importService, log)
+	router := api.NewRouter(recipeService, log)
 
 	// Create HTTP server
 	server := &http.Server{

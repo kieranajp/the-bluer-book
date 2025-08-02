@@ -13,6 +13,8 @@ import (
 
 type RecipeRepository interface {
 	SaveRecipe(ctx context.Context, recipe recipe.Recipe) (*recipe.Recipe, error)
+	GetRecipeByID(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
+	ListRecipes(ctx context.Context, limit, offset int, search string) ([]*recipe.Recipe, int, error)
 }
 
 type recipeRepository struct {
@@ -236,4 +238,147 @@ func uuidToNullUUID(id *uuid.UUID) uuid.NullUUID {
 		return uuid.NullUUID{Valid: false}
 	}
 	return uuid.NullUUID{UUID: *id, Valid: true}
+}
+
+func (r *recipeRepository) GetRecipeByID(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error) {
+	q := r.db
+
+	// Get basic recipe info
+	recipeRow, err := q.GetRecipeByID(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Recipe not found
+		}
+		return nil, err
+	}
+
+	return r.buildRecipeFromRows(ctx, q, recipeRow.Uuid, recipeRow.Name, recipeRow.Description,
+		recipeRow.CookTime, recipeRow.PrepTime, recipeRow.Servings, recipeRow.Url,
+		recipeRow.CreatedAt, recipeRow.UpdatedAt, recipeRow.MainPhotoUuid, recipeRow.MainPhotoUrl)
+}
+
+func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, search string) ([]*recipe.Recipe, int, error) {
+	q := r.db
+
+	// Get count first
+	count, err := q.CountRecipes(ctx, search)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get recipes
+	recipeRows, err := q.ListRecipes(ctx, db.ListRecipesParams{
+		Limit:   int32(limit),
+		Offset:  int32(offset),
+		Column3: search,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	recipes := make([]*recipe.Recipe, len(recipeRows))
+	for i, row := range recipeRows {
+		rec, err := r.buildRecipeFromRows(ctx, q, row.Uuid, row.Name, row.Description,
+			row.CookTime, row.PrepTime, row.Servings, row.Url,
+			row.CreatedAt, row.UpdatedAt, row.MainPhotoUuid, row.MainPhotoUrl)
+		if err != nil {
+			return nil, 0, err
+		}
+		recipes[i] = rec
+	}
+
+	return recipes, int(count), nil
+}
+
+func (r *recipeRepository) buildRecipeFromRows(ctx context.Context, q *db.Queries,
+	recipeUUID uuid.UUID, name string, description sql.NullString,
+	cookTime sql.NullInt32, prepTime sql.NullInt32, servings sql.NullInt16,
+	url sql.NullString, createdAt, updatedAt time.Time,
+	mainPhotoUUID uuid.NullUUID, mainPhotoURL sql.NullString) (*recipe.Recipe, error) {
+
+	rec := &recipe.Recipe{
+		UUID:        recipeUUID,
+		Name:        name,
+		Description: description.String,
+		CookTime:    cookTime.Int32,
+		PrepTime:    prepTime.Int32,
+		Servings:    servings.Int16,
+		Url:         url.String,
+		CreatedAt:   createdAt,
+		UpdatedAt:   updatedAt,
+	}
+
+	// Set main photo if exists
+	if mainPhotoUUID.Valid && mainPhotoURL.Valid {
+		rec.MainPhoto = &recipe.Photo{
+			URL: mainPhotoURL.String,
+		}
+	}
+
+	// Get steps
+	stepRows, err := q.GetStepsByRecipeID(ctx, uuid.NullUUID{UUID: recipeUUID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+
+	steps := make([]recipe.Step, len(stepRows))
+	for i, stepRow := range stepRows {
+		steps[i] = recipe.Step{
+			Order:       stepRow.StepOrder,
+			Description: stepRow.Description.String,
+		}
+	}
+	rec.Steps = steps
+
+	// Get ingredients
+	ingredientRows, err := q.GetIngredientsByRecipeID(ctx, recipeUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	ingredients := make([]recipe.RecipeIngredient, len(ingredientRows))
+	for i, ingRow := range ingredientRows {
+		ingredients[i] = recipe.RecipeIngredient{
+			Ingredient: recipe.Ingredient{
+				Name: ingRow.IngredientName,
+			},
+			Unit: recipe.Unit{
+				Name:         ingRow.UnitName.String,
+				Abbreviation: ingRow.UnitAbbreviation.String,
+			},
+			Quantity: ingRow.Quantity.Float64,
+		}
+	}
+	rec.Ingredients = ingredients
+
+	// Get labels
+	labelRows, err := q.GetLabelsByRecipeID(ctx, recipeUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	labels := make([]recipe.Label, len(labelRows))
+	for i, labelRow := range labelRows {
+		labels[i] = recipe.Label{
+			Name:  labelRow.Name,
+			Color: labelRow.Color.String,
+		}
+	}
+	rec.Labels = labels
+
+	// Get photos
+	photoRows, err := q.GetPhotosByRecipeID(ctx, recipeUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	photos := make([]recipe.Photo, len(photoRows))
+	for i, photoRow := range photoRows {
+		photos[i] = recipe.Photo{
+			URL: photoRow.Url,
+		}
+	}
+	rec.Photos = photos
+
+	return rec, nil
 }

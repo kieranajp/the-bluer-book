@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 
-	"github.com/kieranajp/the-bluer-book/cmd/importer"
 	"github.com/kieranajp/the-bluer-book/cmd/server"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/urfave/cli/v2"
@@ -33,12 +32,6 @@ func main() {
 			},
 		},
 		Commands: []*cli.Command{
-			{
-				Name:   importer.Name,
-				Usage:  importer.Usage,
-				Flags:  importer.Flags,
-				Action: importer.Run,
-			},
 			server.Command,
 		},
 	}

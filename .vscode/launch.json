@@ -12,6 +12,19 @@
                 "-listen-addr", ":8081",
             ],
             "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "name": "Serve with MCP",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": [
+                "server",
+                "-listen-addr", ":8081",
+                "-mcp-addr", ":8082"
+            ],
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }

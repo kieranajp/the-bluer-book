@@ -11,9 +11,11 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/mark3labs/mcp-go/server"
 	"github.com/urfave/cli/v2"
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api"
+	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
@@ -31,6 +33,12 @@ var (
 				EnvVars: []string{"LISTEN_ADDR"},
 				Value:   ":8080",
 			},
+			&cli.StringFlag{
+				Name:    "mcp-addr",
+				Usage:   "MCP server listen address",
+				EnvVars: []string{"MCP_ADDR"},
+				Value:   ":8082",
+			},
 		},
 		Action: run,
 	}
@@ -40,6 +48,7 @@ func run(c *cli.Context) error {
 	// Get configuration values
 	dbDSN := c.String("db-dsn")
 	listenAddr := c.String("listen-addr")
+	mcpAddr := c.String("mcp-addr")
 
 	// Initialize logger
 	log := logger.New(logger.LogLevelInfo)
@@ -63,20 +72,39 @@ func run(c *cli.Context) error {
 	// Initialize services
 	recipeService := service.NewRecipeService(repo)
 
+	// Create MCP handler
+	mcpHandler := mcp.NewRecipeMCPHandler(recipeService, log)
+
+	// Create MCP server
+	mcpServer := server.NewMCPServer("Recipe Management Server", "1.0.0",
+		server.WithToolCapabilities(true),
+	)
+	mcpHandler.RegisterTools(mcpServer)
+
 	// Create API router
 	router := api.NewRouter(recipeService, log)
 
 	// Create HTTP server
-	server := &http.Server{
+	httpServer := &http.Server{
 		Addr:    listenAddr,
 		Handler: router,
 	}
 
-	// Start server in a goroutine
+	// Start HTTP server in a goroutine
 	go func() {
 		log.Info().Str("address", listenAddr).Msg("Starting HTTP server")
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Error().Err(err).Msg("Failed to start server")
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Error().Err(err).Msg("HTTP server failed")
+			os.Exit(1)
+		}
+	}()
+
+	// Start MCP server in a goroutine
+	go func() {
+		log.Info().Str("address", mcpAddr).Msg("Starting MCP server")
+		httpMCPServer := server.NewStreamableHTTPServer(mcpServer)
+		if err := httpMCPServer.Start(mcpAddr); err != nil {
+			log.Error().Err(err).Msg("MCP server failed")
 			os.Exit(1)
 		}
 	}()
@@ -92,7 +120,7 @@ func run(c *cli.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := httpServer.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("Server forced to shutdown")
 		return err
 	}

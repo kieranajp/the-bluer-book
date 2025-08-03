@@ -65,6 +65,56 @@
                 </template>
             </div>
 
+            <!-- Pagination Controls -->
+            <nav x-show="!loading && totalPages > 1" class="mt-4" aria-label="Recipe pagination">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="text-muted small">
+                        Showing <span x-text="((currentPage - 1) * pageSize) + 1"></span> to
+                        <span x-text="Math.min(currentPage * pageSize, totalRecipes)"></span> of
+                        <span x-text="totalRecipes"></span> recipes
+                    </div>
+                    <div class="text-muted small">
+                        Page <span x-text="currentPage"></span> of <span x-text="totalPages"></span>
+                    </div>
+                </div>
+
+                <ul class="pagination justify-content-center flex-wrap">
+                    <!-- Previous Button -->
+                    <li class="page-item" :class="{ 'disabled': currentPage === 1 }">
+                        <button class="page-link"
+                                @click="previousPage()"
+                                :disabled="currentPage === 1"
+                                aria-label="Previous page">
+                            <span aria-hidden="true">&laquo;</span>
+                        </button>
+                    </li>
+
+                    <!-- Page Numbers -->
+                    <template x-for="page in getPageNumbers()" :key="page">
+                        <li class="page-item" :class="{ 'active': page === currentPage, 'disabled': page === '...' }">
+                            <button x-show="page !== '...'"
+                                    class="page-link"
+                                    @click="goToPage(page)"
+                                    :aria-label="'Go to page ' + page"
+                                    :aria-current="page === currentPage ? 'page' : false"
+                                    x-text="page">
+                            </button>
+                            <span x-show="page === '...'" class="page-link">...</span>
+                        </li>
+                    </template>
+
+                    <!-- Next Button -->
+                    <li class="page-item" :class="{ 'disabled': currentPage === totalPages }">
+                        <button class="page-link"
+                                @click="nextPage()"
+                                :disabled="currentPage === totalPages"
+                                aria-label="Next page">
+                            <span aria-hidden="true">&raquo;</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+
             <!-- No Results -->
             <div x-show="!loading && recipes.length === 0 && searchQuery" class="text-center py-5">
                 <p class="text-muted">No recipes found for "<span x-text="searchQuery"></span>"</p>
@@ -121,6 +171,55 @@
                                 <!-- Description -->
                                 <div x-show="selectedRecipe.description" class="mb-4">
                                     <p class="lead" x-text="selectedRecipe.description"></p>
+                                </div>
+
+                                <!-- Recipe URL/Video -->
+                                <div x-show="selectedRecipe.url" class="mb-4">
+                                    <template x-if="getUrlDisplayInfo(selectedRecipe.url)">
+                                        <div>
+                                            <!-- YouTube Video Embed -->
+                                            <template x-if="getUrlDisplayInfo(selectedRecipe.url).type === 'youtube'">
+                                                <div class="recipe-video">
+                                                    <h6 class="fw-bold mb-3">
+                                                        📺 Recipe Video
+                                                    </h6>
+                                                    <div class="ratio ratio-16x9 mb-3">
+                                                        <iframe
+                                                            :src="getUrlDisplayInfo(selectedRecipe.url).embedUrl"
+                                                            title="Recipe Video"
+                                                            frameborder="0"
+                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                            allowfullscreen>
+                                                        </iframe>
+                                                    </div>
+                                                    <a :href="getUrlDisplayInfo(selectedRecipe.url).originalUrl"
+                                                       target="_blank"
+                                                       class="btn btn-outline-primary btn-sm">
+                                                        🔗 Watch on YouTube
+                                                    </a>
+                                                </div>
+                                            </template>
+
+                                            <!-- Regular URL Link -->
+                                            <template x-if="getUrlDisplayInfo(selectedRecipe.url).type !== 'youtube'">
+                                                <div class="recipe-url">
+                                                    <h6 class="fw-bold mb-3">
+                                                        <span x-text="getUrlDisplayInfo(selectedRecipe.url).icon"></span>
+                                                        Recipe Source
+                                                    </h6>
+                                                    <a :href="getUrlDisplayInfo(selectedRecipe.url).originalUrl"
+                                                       target="_blank"
+                                                       class="btn btn-outline-primary">
+                                                        <span x-text="getUrlDisplayInfo(selectedRecipe.url).icon"></span>
+                                                        <span x-text="getUrlDisplayInfo(selectedRecipe.url).label"></span>
+                                                    </a>
+                                                    <div class="small text-muted mt-2" x-show="getUrlDisplayInfo(selectedRecipe.url).domain">
+                                                        Source: <span x-text="getUrlDisplayInfo(selectedRecipe.url).domain"></span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
                                 </div>
 
                                 <!-- Labels -->

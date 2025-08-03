@@ -228,3 +228,108 @@ header {
         border: 1px solid #ccc !important;
     }
 }
+
+/* Pagination Styles */
+.pagination {
+    margin: 0;
+}
+
+.pagination .page-link {
+    min-width: 44px; /* Touch-friendly targets */
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-color: #dee2e6;
+    color: #007bff;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+    font-weight: 600;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    background-color: #fff;
+    border-color: #dee2e6;
+    cursor: not-allowed;
+}
+
+/* Mobile pagination adjustments */
+@media (max-width: 576px) {
+    .pagination {
+        gap: 2px;
+    }
+
+    .pagination .page-link {
+        min-width: 40px;
+        min-height: 40px;
+        font-size: 0.875rem;
+        padding: 0.375rem 0.5rem;
+    }
+
+    /* Hide some page numbers on very small screens */
+    .pagination .page-item:not(.active):not(:first-child):not(:last-child):not(:nth-child(2)):not(:nth-last-child(2)) {
+        display: none;
+    }
+}
+
+/* Recipe URL and Video Styling */
+.recipe-video {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+}
+
+.recipe-url {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+}
+
+.recipe-video .ratio {
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.recipe-video iframe {
+    border-radius: 6px;
+}
+
+/* URL button styling */
+.recipe-url .btn,
+.recipe-video .btn {
+    font-weight: 500;
+}
+
+.recipe-url .btn:hover,
+.recipe-video .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* Make video responsive on mobile */
+@media (max-width: 576px) {
+    .recipe-video,
+    .recipe-url {
+        margin-left: -15px;
+        margin-right: -15px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    .recipe-video .ratio {
+        border-radius: 0;
+    }
+}

@@ -12,74 +12,228 @@ function recipeApp() {
         totalRecipes: 0,
         totalPages: 0,
 
+    // Router / navigation state (History API only)
+        updatingFromRoute: false, // guard to avoid URL/state feedback loops
+        recipeCache: new Map(), // uuid -> recipe object
+        listScrollY: 0,
+        lastRequestedRecipeId: null,
+    inFlightRecipes: new Map(), // uuid -> promise
+    routeError: null, // retained for internal logic but not directly shown; use notifications
+    notifications: [], // {id, message, ts}
+    loadingRecipe: false,
+    currentRouteName: 'list',
+
         // Initialize
         init() {
-            // Load popular recipes on startup
-            this.loadRecipes();
-
-            // Set up hash-based routing for permalinks
-            this.setupRouting();
+            // Assume modern browser (no fallback)
+            this.setupHistoryRouting();
         },
-
-        // Set up hash-based routing for recipe permalinks
-        setupRouting() {
-            // Listen for hash changes (back/forward navigation)
-            window.addEventListener('hashchange', () => {
-                this.handleHashChange();
+        // -----------------------
+        // History Router (Phase 1A)
+        // -----------------------
+        setupHistoryRouting() {
+            window.addEventListener('popstate', () => {
+                this.handleRouteChange('pop');
             });
 
-            // Listen for modal close events to clear hash
+            // Modal close -> navigate back to list if we are on a recipe route
             const modal = document.getElementById('recipeModal');
             if (modal) {
                 modal.addEventListener('hidden.bs.modal', () => {
-                    // Only clear hash if we're closing due to user action, not due to hash change
-                    if (window.location.hash.startsWith('#recipe/')) {
-                        history.replaceState(null, null, window.location.pathname + window.location.search);
+                    if (this.getCurrentPathRoute().name === 'recipe') {
+                        // navigate back to list preserving current search/page
+                        this.navigate(this.buildListUrl(), { replace: false });
                     }
                     this.selectedRecipe = null;
                 });
             }
 
-            // Check for recipe hash on page load
-            this.handleHashChange();
+            // Initial route resolution
+            this.handleRouteChange('init');
         },
 
-        // Handle hash changes for recipe permalinks
-        async handleHashChange() {
-            const hash = window.location.hash;
-            const recipeMatch = hash.match(/^#recipe\/([a-f0-9-]+)$/);
-
+        // Parse current path into a route descriptor
+        getCurrentPathRoute() {
+            const path = window.location.pathname || '/';
+            const recipeMatch = path.match(/^\/recipes\/([a-f0-9-]+)$/);
             if (recipeMatch) {
-                const recipeId = recipeMatch[1];
-                await this.openRecipeFromHash(recipeId);
+                return { name: 'recipe', params: { uuid: recipeMatch[1] } };
+            }
+            // List route (root or anything else we treat as list for now)
+            return { name: 'list', params: {} };
+        },
+
+        // Build list URL based on current or provided state
+        buildListUrl(options = {}) {
+            const search = options.search !== undefined ? options.search : this.searchQuery;
+            const page = options.page !== undefined ? options.page : this.currentPage;
+            const params = new URLSearchParams();
+            if (search && search.trim()) params.set('search', search.trim());
+            if (page && page > 1) params.set('page', page);
+            const qs = params.toString();
+            return qs ? `/?${qs}` : '/';
+        },
+
+        // Central navigation helper
+    navigate(path, { replace = false, state = {} } = {}) {
+            const currentFull = window.location.pathname + window.location.search;
+            if (currentFull === path) return; // no-op
+            if (replace) {
+                history.replaceState(state, '', path);
             } else {
-                // If no recipe hash, close modal if it's open
-                if (this.selectedRecipe) {
-                    this.closeRecipeModal();
+                history.pushState(state, '', path);
+            }
+            this.handleRouteChange('navigate');
+        },
+
+        async handleRouteChange(source) {
+            const route = this.getCurrentPathRoute();
+            this.currentRouteName = route.name;
+            if (route.name === 'recipe') {
+                this.routeError = null;
+                this.updateDocumentTitle('Loading…');
+                // Preserve scroll position from list
+                if (this.selectedRecipe == null) {
+                    this.listScrollY = window.scrollY;
+                }
+                await this.loadRecipeForRoute(route.params.uuid);
+            } else {
+                // LIST route
+                this.updateDocumentTitle();
+                // Deselect recipe for list view display (optional keep in cache)
+                this.selectedRecipe = null;
+                this.routeError = null; // clear any route errors when on list
+                this.syncListStateFromUrl();
+                // Restore scroll (only after coming back from recipe)
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, this.listScrollY || 0);
+                });
+                // Ensure recipes are loaded (avoid duplicate fetch on initial if already loaded)
+                if (!this.recipes.length || source === 'init' || this._listNeedsReload) {
+                    await (this.searchQuery.trim() ? this.searchRecipes() : this.loadRecipes());
                 }
             }
         },
 
-        // Open recipe modal from hash (for permalinks)
-        async openRecipeFromHash(recipeId) {
+        syncListStateFromUrl() {
+            this.updatingFromRoute = true;
+            const params = new URLSearchParams(window.location.search || '');
+            const search = params.get('search') || '';
+            const pageParam = parseInt(params.get('page'), 10);
+            const page = !isNaN(pageParam) && pageParam > 0 ? pageParam : 1;
+            let reloadNeeded = false;
+            if (search !== this.searchQuery) {
+                this.searchQuery = search;
+                reloadNeeded = true;
+            }
+            if (page !== this.currentPage) {
+                this.currentPage = page;
+                reloadNeeded = true;
+            }
+            this._listNeedsReload = reloadNeeded;
+            this.updatingFromRoute = false;
+        },
+
+        async loadRecipeForRoute(uuid) {
             try {
-                const response = await fetch(`/api/recipes/${recipeId}`);
-                if (!response.ok) {
-                    throw new Error(`Recipe not found: ${response.status}`);
+                // Basic UUID v4-ish validation (allow existing format) – 36 chars with hyphens
+                const uuidPattern = /^[a-f0-9-]{32,36}$/i;
+                if (!uuidPattern.test(uuid)) {
+                    this.routeError = 'not-found';
+                    this.updateDocumentTitle('Not Found');
+                    this.navigate(this.buildListUrl(), { replace: true });
+                    this.addNotification('Recipe not found');
+                    return;
                 }
 
-                const recipe = await response.json();
-                this.selectedRecipe = recipe;
+                if (this.loadingRecipe) return; // guard against rapid duplicate navigations
+                this.loadingRecipe = true;
+                this.routeError = null;
 
-                // Open modal without updating hash (to prevent loop)
-                const modal = new bootstrap.Modal(document.getElementById('recipeModal'));
-                modal.show();
-            } catch (error) {
-                console.error('Failed to load recipe from URL:', error);
-                // Clear invalid hash
-                window.location.hash = '';
+                // Cache hit
+                if (this.recipeCache.has(uuid)) {
+                    this.selectedRecipe = this.recipeCache.get(uuid);
+                    this.updateDocumentTitle(this.selectedRecipe.name);
+                } else {
+                    let promise = this.inFlightRecipes.get(uuid);
+                    if (!promise) {
+                        this.lastRequestedRecipeId = uuid;
+                        promise = fetch(`/api/recipes/${uuid}`)
+                            .then(res => {
+                                if (!res.ok) {
+                                    if (res.status === 404) {
+                                        throw new Error('NOT_FOUND');
+                                    }
+                                    throw new Error(`HTTP_${res.status}`);
+                                }
+                                return res.json();
+                            })
+                            .then(recipe => {
+                                if (this.lastRequestedRecipeId === uuid) {
+                                    this.recipeCache.set(uuid, recipe);
+                                    return recipe;
+                                }
+                                return null; // stale
+                            })
+                            .finally(() => {
+                                this.inFlightRecipes.delete(uuid);
+                            });
+                        this.inFlightRecipes.set(uuid, promise);
+                    }
+                    const recipe = await promise;
+                    if (recipe) {
+                        this.selectedRecipe = recipe;
+                        this.updateDocumentTitle(recipe.name);
+                    } else if (!this.selectedRecipe) {
+                        // stale navigation; nothing to do
+                        this.updateDocumentTitle();
+                        return;
+                    }
+                }
+                // Focus recipe title when loaded for accessibility
+                requestAnimationFrame(() => {
+                    const titleEl = document.getElementById('recipe-title');
+                    if (titleEl) titleEl.focus();
+                });
+            } catch (err) {
+                console.error('Failed to load recipe route:', err);
+                if (String(err.message) === 'NOT_FOUND') {
+                    this.routeError = 'not-found';
+                    this.addNotification('Recipe not found');
+                } else {
+                    this.routeError = 'load-failed';
+                    this.addNotification('Error loading recipe');
+                }
+                this.updateDocumentTitle(this.routeError === 'not-found' ? 'Not Found' : 'Error');
+                // Return to list but preserve ability to show message
+                this.navigate(this.buildListUrl(), { replace: true });
+            }
+                this.loadingRecipe = false;
+        },
+
+
+        updateDocumentTitle(name) {
+            if (name) {
+                document.title = `${name} – The Bluer Book`;
+            } else {
+                document.title = 'Recipes – The Bluer Book';
             }
         },
+
+        // Notification helpers
+        addNotification(message, timeout = 4000) {
+            const id = Date.now() + Math.random();
+            this.notifications.push({ id, message, ts: Date.now() });
+            if (timeout > 0) {
+                setTimeout(() => {
+                    this.dismissNotification(id);
+                }, timeout);
+            }
+        },
+        dismissNotification(id) {
+            this.notifications = this.notifications.filter(n => n.id !== id);
+        },
+    // (Legacy hash handlers removed – History API only)
 
         // Search recipes with debouncing
         async searchRecipes() {
@@ -112,6 +266,10 @@ function recipeApp() {
                 // Could add user-friendly error message here
             } finally {
                 this.loading = false;
+                // Sync URL after load if using history and not from a route-derived update
+                if (!this.updatingFromRoute) {
+                    this.navigate(this.buildListUrl({ search: this.searchQuery, page: this.currentPage }), { replace: true });
+                }
             }
         },
 
@@ -139,6 +297,9 @@ function recipeApp() {
                 // Could add user-friendly error message here
             } finally {
                 this.loading = false;
+                if (!this.updatingFromRoute) {
+                    this.navigate(this.buildListUrl({ search: this.searchQuery, page: this.currentPage }), { replace: true });
+                }
             }
         },
 
@@ -155,6 +316,7 @@ function recipeApp() {
             } else {
                 await this.loadRecipes();
             }
+            // URL sync handled inside search/load; no extra navigate needed
         },
 
         async nextPage() {
@@ -292,6 +454,7 @@ function recipeApp() {
         // Show recipe detail modal
         async showRecipeDetail(recipe) {
             try {
+                if (this.loadingRecipe) return; // prevent overlap
                 // Fetch full recipe details
                 const response = await fetch(`/api/recipes/${recipe.uuid}`);
 
@@ -300,13 +463,16 @@ function recipeApp() {
                 }
 
                 this.selectedRecipe = await response.json();
+                // Cache it
+                this.recipeCache.set(recipe.uuid, this.selectedRecipe);
 
-                // Update URL hash for permalink
-                window.location.hash = `recipe/${recipe.uuid}`;
-
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('recipeModal'));
-                modal.show();
+                // Navigate using History API -> page view
+                this.navigate(`/recipes/${recipe.uuid}`);
+                this.updateDocumentTitle(this.selectedRecipe.name);
+                requestAnimationFrame(() => {
+                    const titleEl = document.getElementById('recipe-title');
+                    if (titleEl) titleEl.focus();
+                });
             } catch (error) {
                 console.error('Failed to load recipe details:', error);
                 // Could add user-friendly error message here
@@ -315,13 +481,10 @@ function recipeApp() {
 
         // Close recipe modal and clear hash
         closeRecipeModal() {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('recipeModal'));
-            if (modal) {
-                modal.hide();
-            }
+            // Now used as a generic return to list helper
             this.selectedRecipe = null;
-            // Clear hash without triggering hashchange event
-            history.replaceState(null, null, window.location.pathname + window.location.search);
+            this.navigate(this.buildListUrl(), { replace: false });
+            this.updateDocumentTitle();
         },
 
         // Archive recipe with confirmation
@@ -360,12 +523,12 @@ function recipeApp() {
 
                 this.selectedRecipe = null;
 
-                // Show success message (simple alert for now)
-                alert('Recipe archived successfully!');
+                // Success notification
+                this.addNotification('Recipe archived successfully');
 
             } catch (error) {
                 console.error('Failed to archive recipe:', error);
-                alert('Failed to archive recipe. Please try again.');
+                this.addNotification('Failed to archive recipe');
             }
         }
     }

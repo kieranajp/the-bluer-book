@@ -90,8 +90,8 @@
 }
 
 /* Header styling */
-header {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+header.sticky-top {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -250,7 +250,7 @@ header {
 }
 
 .pagination .page-item.active .page-link {
-    background-color: #007bff;
+    background-color: #e9ecef;
     border-color: #007bff;
     font-weight: 600;
 }

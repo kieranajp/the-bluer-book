@@ -29,8 +29,21 @@
             </div>
         </header>
 
-        <!-- Recipe Results -->
-        <main class="container py-4">
+    <!-- Recipe Results (List View) -->
+    <main class="container py-4" x-show="currentRouteName !== 'recipe'">
+            <!-- Transient Notifications (bottom-right) -->
+            <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 2000;">
+                <template x-for="n in notifications" :key="n.id">
+                    <div class="toast show align-items-center text-bg-dark border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <span x-text="n.message"></span>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="dismissNotification(n.id)"></button>
+                        </div>
+                    </div>
+                </template>
+            </div>
             <!-- Loading State -->
             <div x-show="loading" class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
@@ -127,154 +140,108 @@
             </div>
         </main>
 
-        <!-- Recipe Detail Modal -->
-        <div class="modal fade" id="recipeModal" tabindex="-1">
-            <div class="modal-dialog modal-lg modal-fullscreen-md-down">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" x-text="selectedRecipe?.name"></h5>
-                        <div class="d-flex gap-2">
-                            <button type="button"
-                                    class="btn btn-outline-danger btn-sm"
-                                    @click="archiveRecipe()"
-                                    x-show="selectedRecipe"
-                                    title="Archive this recipe">
-                                🗄️ Archive
-                            </button>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <!-- Full Page Recipe View -->
+        <section class="container py-4" x-show="currentRouteName === 'recipe'">
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" @click="navigate(buildListUrl()); updateDocumentTitle();">← Back</button>
+                    <button class="btn btn-outline-danger btn-sm" x-show="selectedRecipe" @click="archiveRecipe()">🗄️ Archive</button>
+                </div>
+            </div>
+            <template x-if="!selectedRecipe && currentRouteName === 'recipe'">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                </div>
+            </template>
+            <template x-if="selectedRecipe">
+                <article>
+                    <header class="mb-4">
+                        <h2 x-text="selectedRecipe.name" id="recipe-title"></h2>
+                        <p class="lead mb-0" x-show="selectedRecipe.description" x-text="selectedRecipe.description"></p>
+                    </header>
+                    <div class="row g-3 mb-4">
+                        <div class="col-4 text-center">
+                            <div class="fs-2">⏱️</div>
+                            <div class="small text-muted">Prep</div>
+                            <div x-text="(selectedRecipe.prepTime || 0) + 'm'"></div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="fs-2">🔥</div>
+                            <div class="small text-muted">Cook</div>
+                            <div x-text="(selectedRecipe.cookTime || 0) + 'm'"></div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="fs-2">👥</div>
+                            <div class="small text-muted">Serves</div>
+                            <div x-text="selectedRecipe.servings || 1"></div>
                         </div>
                     </div>
-                    <div class="modal-body">
-                        <template x-if="selectedRecipe">
+                    <div class="mb-4" x-show="selectedRecipe.url">
+                        <template x-if="getUrlDisplayInfo(selectedRecipe.url)">
                             <div>
-                                <!-- Recipe Meta -->
-                                <div class="recipe-meta-detail mb-4">
-                                    <div class="row g-3">
-                                        <div class="col-4 text-center">
-                                            <div class="fs-1">⏱️</div>
-                                            <div class="small text-muted">Prep</div>
-                                            <div x-text="(selectedRecipe.prepTime || 0) + 'm'"></div>
+                                <template x-if="getUrlDisplayInfo(selectedRecipe.url).type === 'youtube'">
+                                    <div class="recipe-video mb-3">
+                                        <div class="ratio ratio-16x9 mb-2">
+                                            <iframe :src="getUrlDisplayInfo(selectedRecipe.url).embedUrl" title="Recipe Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                                         </div>
-                                        <div class="col-4 text-center">
-                                            <div class="fs-1">🔥</div>
-                                            <div class="small text-muted">Cook</div>
-                                            <div x-text="(selectedRecipe.cookTime || 0) + 'm'"></div>
-                                        </div>
-                                        <div class="col-4 text-center">
-                                            <div class="fs-1">👥</div>
-                                            <div class="small text-muted">Serves</div>
-                                            <div x-text="selectedRecipe.servings || 1"></div>
-                                        </div>
+                                        <a :href="getUrlDisplayInfo(selectedRecipe.url).originalUrl" target="_blank" class="btn btn-outline-primary btn-sm">🔗 Watch on YouTube</a>
                                     </div>
-                                </div>
-
-                                <!-- Description -->
-                                <div x-show="selectedRecipe.description" class="mb-4">
-                                    <p class="lead" x-text="selectedRecipe.description"></p>
-                                </div>
-
-                                <!-- Recipe URL/Video -->
-                                <div x-show="selectedRecipe.url" class="mb-4">
-                                    <template x-if="getUrlDisplayInfo(selectedRecipe.url)">
-                                        <div>
-                                            <!-- YouTube Video Embed -->
-                                            <template x-if="getUrlDisplayInfo(selectedRecipe.url).type === 'youtube'">
-                                                <div class="recipe-video">
-                                                    <h6 class="fw-bold mb-3">
-                                                        📺 Recipe Video
-                                                    </h6>
-                                                    <div class="ratio ratio-16x9 mb-3">
-                                                        <iframe
-                                                            :src="getUrlDisplayInfo(selectedRecipe.url).embedUrl"
-                                                            title="Recipe Video"
-                                                            frameborder="0"
-                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                            allowfullscreen>
-                                                        </iframe>
-                                                    </div>
-                                                    <a :href="getUrlDisplayInfo(selectedRecipe.url).originalUrl"
-                                                       target="_blank"
-                                                       class="btn btn-outline-primary btn-sm">
-                                                        🔗 Watch on YouTube
-                                                    </a>
-                                                </div>
-                                            </template>
-
-                                            <!-- Regular URL Link -->
-                                            <template x-if="getUrlDisplayInfo(selectedRecipe.url).type !== 'youtube'">
-                                                <div class="recipe-url">
-                                                    <h6 class="fw-bold mb-3">
-                                                        <span x-text="getUrlDisplayInfo(selectedRecipe.url).icon"></span>
-                                                        Recipe Source
-                                                    </h6>
-                                                    <a :href="getUrlDisplayInfo(selectedRecipe.url).originalUrl"
-                                                       target="_blank"
-                                                       class="btn btn-outline-primary">
-                                                        <span x-text="getUrlDisplayInfo(selectedRecipe.url).icon"></span>
-                                                        <span x-text="getUrlDisplayInfo(selectedRecipe.url).label"></span>
-                                                    </a>
-                                                    <div class="small text-muted mt-2" x-show="getUrlDisplayInfo(selectedRecipe.url).domain">
-                                                        Source: <span x-text="getUrlDisplayInfo(selectedRecipe.url).domain"></span>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
-
-                                <!-- Labels -->
-                                <div x-show="selectedRecipe.labels && selectedRecipe.labels.length > 0" class="mb-4">
-                                    <template x-for="label in (selectedRecipe.labels || [])">
-                                        <span class="badge me-2 mb-2" :style="'background-color: ' + label.color" x-text="label.name"></span>
-                                    </template>
-                                </div>
-
-                                <!-- Ingredients -->
-                                <div x-show="selectedRecipe.ingredients && selectedRecipe.ingredients.length > 0" class="ingredients-section mb-4">
-                                    <h6 class="fw-bold mb-3">🥬 Ingredients</h6>
-                                    <div class="list-group">
-                                        <template x-for="ingredient in (selectedRecipe.ingredients || [])">
-                                            <div class="list-group-item list-group-item-action">
-                                                <div class="d-flex align-items-center">
-                                                    <input type="checkbox" class="form-check-input me-3">
-                                                    <div>
-                                                        <span x-show="ingredient.quantity > 0" x-text="ingredient.quantity"></span>
-                                                        <span x-show="ingredient.unit && ingredient.unit.name" x-text="ingredient.unit.name"></span>
-                                                        <strong x-text="ingredient.ingredient.name"></strong>
-                                                        <span x-show="ingredient.preparation" class="text-muted">
-                                                            (<span x-text="ingredient.preparation"></span>)
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </template>
+                                </template>
+                                <template x-if="getUrlDisplayInfo(selectedRecipe.url).type !== 'youtube'">
+                                    <div class="recipe-url mb-3">
+                                        <a :href="getUrlDisplayInfo(selectedRecipe.url).originalUrl" target="_blank" class="btn btn-outline-primary btn-sm">
+                                            <span x-text="getUrlDisplayInfo(selectedRecipe.url).icon"></span>
+                                            <span x-text="getUrlDisplayInfo(selectedRecipe.url).label"></span>
+                                        </a>
+                                        <div class="small text-muted mt-2" x-show="getUrlDisplayInfo(selectedRecipe.url).domain">Source: <span x-text="getUrlDisplayInfo(selectedRecipe.url).domain"></span></div>
                                     </div>
-                                </div>
-
-                                <!-- Steps -->
-                                <div x-show="selectedRecipe.steps && selectedRecipe.steps.length > 0" class="steps-section">
-                                    <h6 class="fw-bold mb-3">📝 Instructions</h6>
-                                    <div class="list-group">
-                                        <template x-for="step in (selectedRecipe.steps || [])">
-                                            <div class="list-group-item">
-                                                <div class="d-flex">
-                                                    <div class="step-number me-3">
-                                                        <span class="badge bg-primary rounded-pill" x-text="step.order"></span>
-                                                    </div>
-                                                    <div class="step-content">
-                                                        <p x-text="step.description" class="mb-0"></p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
+                                </template>
                             </div>
                         </template>
                     </div>
-                </div>
-            </div>
-        </div>
+                    <div class="mb-4" x-show="selectedRecipe.labels && selectedRecipe.labels.length">
+                        <template x-for="label in (selectedRecipe.labels || [])">
+                            <span class="badge me-2 mb-2" :style="'background-color: ' + label.color" x-text="label.name"></span>
+                        </template>
+                    </div>
+                    <section class="mb-5" x-show="selectedRecipe.ingredients && selectedRecipe.ingredients.length">
+                        <h5 class="fw-bold mb-3">🥬 Ingredients</h5>
+                        <div class="list-group">
+                            <template x-for="ingredient in (selectedRecipe.ingredients || [])">
+                                <div class="list-group-item list-group-item-action">
+                                    <div class="d-flex align-items-center">
+                                        <input type="checkbox" class="form-check-input me-3">
+                                        <div>
+                                            <span x-show="ingredient.quantity > 0" x-text="ingredient.quantity"></span>
+                                            <span x-show="ingredient.unit && ingredient.unit.name" x-text="ingredient.unit.name"></span>
+                                            <strong x-text="ingredient.ingredient.name"></strong>
+                                            <span x-show="ingredient.preparation" class="text-muted">(<span x-text="ingredient.preparation"></span>)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </section>
+                    <section class="mb-4" x-show="selectedRecipe.steps && selectedRecipe.steps.length">
+                        <h5 class="fw-bold mb-3">📝 Instructions</h5>
+                        <div class="list-group">
+                            <template x-for="step in (selectedRecipe.steps || [])">
+                                <div class="list-group-item">
+                                    <div class="d-flex">
+                                        <div class="step-number me-3">
+                                            <span class="badge bg-primary rounded-pill" x-text="step.order"></span>
+                                        </div>
+                                        <div class="step-content">
+                                            <p x-text="step.description" class="mb-0"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </section>
+                </article>
+            </template>
+        </section>
     </div>
 
     <!-- Bootstrap JS -->

@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api/middleware"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
@@ -33,9 +35,40 @@ func NewRouter(recipeService service.RecipeService, logger logger.Logger) http.H
 		),
 	)
 
-	// Serve static files
-	fs := http.FileServer(http.Dir("./static/"))
-	mux.Handle("GET /", fs)
+	// SPA static + fallback handler
+	staticDir := http.Dir("./static")
+	fileServer := http.FileServer(staticDir)
+
+	mux.Handle("GET /", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If root, serve normally (will serve index.html by default)
+		if r.URL.Path == "/" || r.URL.Path == "" {
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// Prevent directory traversal
+		cleanPath := filepath.Clean(r.URL.Path)
+		// Basic heuristic: if path contains a dot, treat as static asset attempt
+		if strings.Contains(filepath.Base(cleanPath), ".") {
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// Attempt to open (in case it's an actual static folder/file without extension)
+		f, err := staticDir.Open(strings.TrimPrefix(cleanPath, "/"))
+		if err == nil {
+			stat, statErr := f.Stat()
+			_ = f.Close()
+			if statErr == nil && !stat.IsDir() {
+				// Serve existing file
+				fileServer.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		// Fallback: serve index.html for client-side route
+		http.ServeFile(w, r, "./static/index.html")
+	}))
 
 	return mux
 }

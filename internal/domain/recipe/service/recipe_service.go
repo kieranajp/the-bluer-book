@@ -11,7 +11,7 @@ import (
 type RecipeService interface {
 	CreateRecipe(ctx context.Context, recipe recipe.Recipe) (*recipe.Recipe, error)
 	GetRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
-	ListRecipes(ctx context.Context, limit, offset int, search string) ([]*recipe.Recipe, int, error)
+	ListRecipes(ctx context.Context, limit, offset int, search string, labels []string) ([]*recipe.Recipe, int, error)
 	UpdateRecipe(ctx context.Context, id uuid.UUID, recipe recipe.Recipe) (*recipe.Recipe, error)
 
 	// Archival methods
@@ -48,8 +48,8 @@ func (s *recipeService) GetRecipe(ctx context.Context, id uuid.UUID) (*recipe.Re
 	return s.repo.GetRecipeByID(ctx, id)
 }
 
-func (s *recipeService) ListRecipes(ctx context.Context, limit, offset int, search string) ([]*recipe.Recipe, int, error) {
-	return s.repo.ListRecipes(ctx, limit, offset, search)
+func (s *recipeService) ListRecipes(ctx context.Context, limit, offset int, search string, labels []string) ([]*recipe.Recipe, int, error) {
+	return s.repo.ListRecipes(ctx, limit, offset, search, labels)
 }
 
 func (s *recipeService) UpdateRecipe(ctx context.Context, id uuid.UUID, recipe recipe.Recipe) (*recipe.Recipe, error) {

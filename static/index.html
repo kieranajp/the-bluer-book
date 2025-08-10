@@ -15,13 +15,47 @@
             <div class="container">
                 <h1 class="h3 mb-3">🍳 The Bluer Book</h1>
                 <div class="search-container">
-                    <input type="text" class="form-control form-control-lg" placeholder="Search recipes..." x-model="value" @input="value = $event.target.value">
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-lg" placeholder="Search recipes... (press Enter)" x-model="value" @keydown.enter="search()">
+                        <button class="btn btn-outline-light btn-lg" type="button" @click="search()">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
 
     <!-- Recipe Results (List View) -->
     <main class="container py-4" x-show="appStore.view === 'list'" x-data="MainContent()">
+            <!-- Label Filter Component -->
+            <div x-data="LabelFilter(appStore)" class="mb-3">
+                <div class="card">
+                    <div class="card-body py-2">
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <small class="text-muted fw-bold">Filter by labels:</small>
+                            <template x-for="label in appStore.availableLabels" :key="label">
+                                <button
+                                    class="btn btn-sm"
+                                    :class="appStore.selectedLabels.includes(label) ? 'btn-primary' : 'btn-outline-secondary'"
+                                    @click="toggleLabel(label)"
+                                    x-text="label"
+                                    :title="`Toggle ${label} filter`">
+                                </button>
+                            </template>
+                            <div x-show="hasActiveFilters" class="ms-auto">
+                                <span class="badge bg-info me-2" x-text="`${selectedCount} filter${selectedCount !== 1 ? 's' : ''} active`"></span>
+                                <button
+                                    class="btn btn-sm btn-outline-danger"
+                                    @click="clearAllFilters()"
+                                    title="Clear all label filters">
+                                    Clear All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Transient Notifications (component) -->
             <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 2000;" x-data="Notifications()">
                 <template x-for="n in items" :key="n.id">
@@ -43,10 +77,10 @@
             <!-- Recipe Grid (component) -->
             <div x-show="!loading" x-data="RecipeList()">
                 <!-- Meal Plan Section -->
-                <div x-show="hasMealPlanRecipes" class="mb-4">
+                <div x-show="appStore.mealPlanItems.length > 0" class="mb-4">
                     <h4 class="h5 mb-3 text-primary">⭐ Meal Plan</h4>
                     <div class="row g-3 mb-4">
-                        <template x-for="recipe in mealPlanItems" :key="recipe.uuid">
+                        <template x-for="recipe in appStore.mealPlanItems" :key="recipe.uuid">
                             <div class="col-12 col-md-6 col-lg-4">
                                 <div class="card h-100 recipe-card position-relative" @click="open(recipe)">
                                     <div class="position-absolute top-0 end-0 p-2">
@@ -65,7 +99,12 @@
                                         </div>
                                         <div class="mt-2">
                                             <template x-for="label in (recipe.labels || [])">
-                                                <span class="badge me-1" :style="'background-color: ' + label.color" x-text="label.name"></span>
+                                                <span class="badge me-1"
+                                                      :style="'background-color: ' + label.color + '; cursor: pointer;'"
+                                                      :title="`Filter by ${label.name}`"
+                                                      @click.stop="addLabelFilter(label.name)"
+                                                      x-text="label.name">
+                                                </span>
                                             </template>
                                         </div>
                                     </div>
@@ -77,10 +116,10 @@
                 </div>
 
                 <!-- Regular Recipes Section -->
-                <div x-show="regularItems.length > 0">
-                    <h4 x-show="hasMealPlanRecipes" class="h6 mb-3 text-muted">All Recipes</h4>
+                <div x-show="appStore.regularItems.length > 0">
+                    <h4 x-show="appStore.mealPlanItems.length > 0" class="h6 mb-3 text-muted">All Recipes</h4>
                     <div class="row g-3">
-                        <template x-for="recipe in regularItems" :key="recipe.uuid">
+                        <template x-for="recipe in appStore.regularItems" :key="recipe.uuid">
                             <div class="col-12 col-md-6 col-lg-4">
                                 <div class="card h-100 recipe-card position-relative" @click="open(recipe)">
                                     <div class="position-absolute top-0 end-0 p-2">
@@ -99,7 +138,12 @@
                                         </div>
                                         <div class="mt-2">
                                             <template x-for="label in (recipe.labels || [])">
-                                                <span class="badge me-1" :style="'background-color: ' + label.color" x-text="label.name"></span>
+                                                <span class="badge me-1"
+                                                      :style="'background-color: ' + label.color + '; cursor: pointer;'"
+                                                      :title="`Filter by ${label.name}`"
+                                                      @click.stop="addLabelFilter(label.name)"
+                                                      x-text="label.name">
+                                                </span>
                                             </template>
                                         </div>
                                     </div>
@@ -111,24 +155,24 @@
             </div>
 
             <!-- Pagination Controls (component) -->
-            <nav x-show="!loading && totalPages > 1" class="mt-4" aria-label="Recipe pagination" x-data="Pagination()">
+            <nav x-show="!appStore.loadingList && appStore.totalPages > 1" class="mt-4" aria-label="Recipe pagination" x-data="Pagination()">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="text-muted small">
-                        Showing <span x-text="((currentPage - 1) * pageSize) + 1"></span> to
-                        <span x-text="Math.min(currentPage * pageSize, totalRecipes)"></span> of
-                        <span x-text="totalRecipes"></span> recipes
+                        Showing <span x-text="((appStore.page - 1) * appStore.pageSize) + 1"></span> to
+                        <span x-text="Math.min(appStore.page * appStore.pageSize, appStore.total)"></span> of
+                        <span x-text="appStore.total"></span> recipes
                     </div>
                     <div class="text-muted small">
-                        Page <span x-text="currentPage"></span> of <span x-text="totalPages"></span>
+                        Page <span x-text="appStore.page"></span> of <span x-text="appStore.totalPages"></span>
                     </div>
                 </div>
 
                 <ul class="pagination justify-content-center flex-wrap">
                     <!-- Previous Button -->
-                    <li class="page-item" :class="{ 'disabled': currentPage === 1 }">
+                    <li class="page-item" :class="{ 'disabled': appStore.page === 1 }">
                         <button class="page-link"
                                 @click="prev()"
-                                :disabled="currentPage === 1"
+                                :disabled="appStore.page === 1"
                                 aria-label="Previous page">
                             <span aria-hidden="true">&laquo;</span>
                         </button>
@@ -136,17 +180,17 @@
 
                     <!-- Page Numbers -->
                     <template x-for="page in pages" :key="page">
-                        <li class="page-item" :class="{ 'active': page === currentPage, 'disabled': page === '...' }">
-                            <button x-show="page !== '...'" class="page-link" @click="go(page)" :aria-label="'Go to page ' + page" :aria-current="page === currentPage ? 'page' : false" x-text="page"></button>
+                        <li class="page-item" :class="{ 'active': page === appStore.page, 'disabled': page === '...' }">
+                            <button x-show="page !== '...'" class="page-link" @click="go(page)" :aria-label="'Go to page ' + page" :aria-current="page === appStore.page ? 'page' : false" x-text="page"></button>
                             <span x-show="page === '...'" class="page-link">...</span>
                         </li>
                     </template>
 
                     <!-- Next Button -->
-                    <li class="page-item" :class="{ 'disabled': currentPage === totalPages }">
+                    <li class="page-item" :class="{ 'disabled': appStore.page === appStore.totalPages }">
                         <button class="page-link"
                                 @click="next()"
-                                :disabled="currentPage === totalPages"
+                                :disabled="appStore.page === appStore.totalPages"
                                 aria-label="Next page">
                             <span aria-hidden="true">&raquo;</span>
                         </button>

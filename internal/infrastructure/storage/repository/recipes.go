@@ -14,7 +14,7 @@ import (
 type RecipeRepository interface {
 	SaveRecipe(ctx context.Context, recipe recipe.Recipe) (*recipe.Recipe, error)
 	GetRecipeByID(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
-	ListRecipes(ctx context.Context, limit, offset int, search string) ([]*recipe.Recipe, int, error)
+	ListRecipes(ctx context.Context, limit, offset int, search string, labels []string) ([]*recipe.Recipe, int, error)
 	UpdateRecipe(ctx context.Context, id uuid.UUID, recipe recipe.Recipe) (*recipe.Recipe, error)
 	ArchiveRecipe(ctx context.Context, id uuid.UUID) error
 	RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
@@ -266,20 +266,64 @@ func (r *recipeRepository) GetRecipeByID(ctx context.Context, id uuid.UUID) (*re
 		recipeRow.CreatedAt, recipeRow.UpdatedAt, recipeRow.MainPhotoUuid, recipeRow.MainPhotoUrl)
 }
 
-func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, search string) ([]*recipe.Recipe, int, error) {
+func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, search string, labels []string) ([]*recipe.Recipe, int, error) {
 	q := r.db
 
+	// Prepare search parameter
+	var searchParam sql.NullString
+	if search != "" {
+		searchParam = sql.NullString{String: search, Valid: true}
+	}
+
+	// If no labels filter is provided, use existing query for performance
+	if len(labels) == 0 {
+		// Get count first
+		count, err := q.CountRecipes(ctx, search)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Get recipes with meal plan status
+		recipeRows, err := q.ListRecipesWithMealPlanStatus(ctx, db.ListRecipesWithMealPlanStatusParams{
+			Limit:   int32(limit),
+			Offset:  int32(offset),
+			Column3: search,
+		})
+		if err != nil {
+			return nil, 0, err
+		}
+
+		recipes := make([]*recipe.Recipe, len(recipeRows))
+		for i, row := range recipeRows {
+			rec, err := r.buildRecipeFromRows(ctx, q, row.Uuid, row.Name, row.Description,
+				row.CookTime, row.PrepTime, row.Servings, row.Url,
+				row.CreatedAt, row.UpdatedAt, row.MainPhotoID, sql.NullString{})
+			if err != nil {
+				return nil, 0, err
+			}
+			rec.IsInMealPlan = row.IsInMealPlan
+			recipes[i] = rec
+		}
+
+		return recipes, int(count), nil
+	}
+
+	// Use label filtering query
 	// Get count first
-	count, err := q.CountRecipes(ctx, search)
+	count, err := q.CountRecipesWithLabels(ctx, db.CountRecipesWithLabelsParams{
+		Search:     searchParam,
+		LabelNames: labels,
+	})
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Get recipes with meal plan status
-	recipeRows, err := q.ListRecipesWithMealPlanStatus(ctx, db.ListRecipesWithMealPlanStatusParams{
-		Limit:   int32(limit),
-		Offset:  int32(offset),
-		Column3: search,
+	// Get recipes with meal plan status and label filtering
+	recipeRows, err := q.ListRecipesWithMealPlanStatusAndLabels(ctx, db.ListRecipesWithMealPlanStatusAndLabelsParams{
+		Search:       searchParam,
+		LabelNames:   labels,
+		RecipeLimit:  int32(limit),
+		RecipeOffset: int32(offset),
 	})
 	if err != nil {
 		return nil, 0, err

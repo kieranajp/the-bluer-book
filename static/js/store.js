@@ -23,6 +23,14 @@ export function createStore() {
     mealPlanRecipes: [],
     loadingMealPlan: false,
 
+    // Derived recipe lists (updated when recipes change)
+    mealPlanItems: [],      // Filtered recipes that are in meal plan
+    regularItems: [],       // Filtered recipes that are not in meal plan
+
+    // Label filtering
+    selectedLabels: [],     // Array of selected label names for filtering
+    availableLabels: [],    // Array of all available labels from recipes
+
     // Loading flags
     loadingList: false,
     loadingRecipe: false,
@@ -47,4 +55,8 @@ export function createStore() {
  */
 export function derive(store) {
   store.totalPages = Math.ceil((store.total || 0) / store.pageSize) || 0;
+
+  // Update filtered recipe lists
+  store.mealPlanItems = store.recipes.filter(recipe => recipe.isInMealPlan);
+  store.regularItems = store.recipes.filter(recipe => !recipe.isInMealPlan);
 }

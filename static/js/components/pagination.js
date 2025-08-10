@@ -44,14 +44,6 @@ export function Pagination(store) {
       return buildWindow(store.page, store.totalPages);
     },
 
-    get currentPage() {
-      return store.page;
-    },
-
-    get totalPages() {
-      return store.totalPages;
-    },
-
     go(page) {
       if (page === '...' || page === store.page) {
         return;

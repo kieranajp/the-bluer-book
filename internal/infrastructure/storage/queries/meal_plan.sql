@@ -44,7 +44,7 @@ FROM recipes r
 LEFT JOIN meal_plan_recipes mp ON r.uuid = mp.recipe_id
 WHERE r.archived_at IS NULL
   AND ($3::text = '' OR r.name ILIKE '%' || $3 || '%')
-ORDER BY 
+ORDER BY
   CASE WHEN mp.recipe_id IS NOT NULL THEN 0 ELSE 1 END,
   mp.added_at DESC NULLS LAST,
   r.name

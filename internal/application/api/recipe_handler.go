@@ -83,10 +83,12 @@ func (h *RecipeHandler) ListRecipes(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.URL.Query().Get("limit")
 	offsetStr := r.URL.Query().Get("offset")
 	search := r.URL.Query().Get("search")
+	labelsParam := r.URL.Query().Get("labels") // New parameter
 
 	// Set defaults
 	limit := 20
 	offset := 0
+	var labels []string
 
 	if limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
@@ -100,7 +102,21 @@ func (h *RecipeHandler) ListRecipes(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	recipes, total, err := h.recipeService.ListRecipes(r.Context(), limit, offset, search)
+	// Parse labels parameter (comma-separated)
+	if labelsParam != "" {
+		labels = strings.Split(labelsParam, ",")
+		// Clean and validate labels
+		var cleanLabels []string
+		for _, label := range labels {
+			trimmed := strings.TrimSpace(label)
+			if trimmed != "" {
+				cleanLabels = append(cleanLabels, trimmed)
+			}
+		}
+		labels = cleanLabels
+	}
+
+	recipes, total, err := h.recipeService.ListRecipes(r.Context(), limit, offset, search, labels)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("Failed to list recipes")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "listing_failed", "Failed to list recipes")

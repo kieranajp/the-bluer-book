@@ -1,6 +1,7 @@
 import { listRecipes, addToMealPlan, removeFromMealPlan } from '../api.js';
 import { setListTitle } from '../title.js';
 import { add as addNotification } from './notifications.js';
+import { derive } from '../store.js';
 
 export function RecipeList(store) {
   return {
@@ -8,35 +9,46 @@ export function RecipeList(store) {
       if (!store.recipes.length) {
         await this.load();
       }
-    },
 
-    get mealPlanItems() {
-      return store.recipes.filter(recipe => recipe.isInMealPlan);
-    },
-
-    get regularItems() {
-      return store.recipes.filter(recipe => !recipe.isInMealPlan);
+      // Listen for refresh events from other components
+      window.addEventListener('store:refresh-list', () => {
+        this.load();
+      });
     },
 
     get hasMealPlanRecipes() {
-      return this.mealPlanItems.length > 0;
+      return store.mealPlanItems.length > 0;
     },
 
     async load() {
       try {
         store.loadingList = true;
         const offset = (store.page - 1) * store.pageSize;
+
         const { recipes, total } = await listRecipes({
           search: store.search,
+          labels: store.selectedLabels, // Include selected labels
           limit: store.pageSize,
           offset
         });
-        store.recipes = recipes;
+
+        // Force reactivity by clearing and repopulating the array
+        store.recipes.length = 0;
+        store.recipes.push(...recipes);
+
+        // Update total - let derive calculate totalPages
         store.total = total;
-        store.totalPages = Math.ceil(total / store.pageSize) || 0;
+
+        // Update derived values including filtered lists and totalPages
+        derive(store);
+
+        // Notify that recipes have been updated
+        window.dispatchEvent(new CustomEvent('store:recipes-updated'));
+
         setListTitle();
       } catch (e) {
         // minimal error handling – notifications helper can be used here if desired
+        addNotification(store, 'Failed to load recipes');
       } finally {
         store.loadingList = false;
       }
@@ -77,6 +89,15 @@ export function RecipeList(store) {
         // Revert optimistic update on error
         recipe.isInMealPlan = !recipe.isInMealPlan;
         addNotification(store, 'Failed to update meal plan');
+      }
+    },
+
+    addLabelFilter(labelName) {
+      // Add label to filters if not already present
+      if (!store.selectedLabels.includes(labelName)) {
+        store.selectedLabels.push(labelName);
+        store.page = 1; // Reset to first page
+        window.dispatchEvent(new CustomEvent('store:refresh-list'));
       }
     }
   };

@@ -14,7 +14,7 @@ func (h *RecipeMCPHandler) SearchRecipes(ctx context.Context, req mcp.CallToolRe
 	format := req.GetString("format", "summary")
 
 	// Call service layer directly
-	recipes, total, err := h.recipeService.ListRecipes(ctx, limit, 0, query)
+	recipes, total, err := h.recipeService.ListRecipes(ctx, limit, 0, query, nil)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("Failed to search recipes via MCP")
 		return nil, fmt.Errorf("search failed: %w", err)

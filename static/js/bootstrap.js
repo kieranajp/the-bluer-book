@@ -8,6 +8,7 @@ import { RecipeList } from './components/recipeList.js';
 import { RecipeDetail } from './components/recipeDetail.js';
 import { RecipeEdit } from './components/recipeEdit.js';
 import { MainContent } from './components/mainContent.js';
+import { LabelFilter } from './components/labelFilter.js';
 
 async function startApp() {
   let Alpine;
@@ -31,6 +32,7 @@ async function startApp() {
   Alpine.data('RecipeDetail', () => RecipeDetail(store));
   Alpine.data('RecipeEdit', () => RecipeEdit(store));
   Alpine.data('MainContent', () => MainContent(store));
+  Alpine.data('LabelFilter', () => LabelFilter(store));
 
   window.addNotification = function(message, timeout = 4000) {
     return notify.add(store, message, timeout);
@@ -59,6 +61,7 @@ async function startApp() {
       const offset = (store.page - 1) * store.pageSize;
       const { recipes, total } = await listRecipes({
         search: store.search,
+        labels: store.selectedLabels, // Include selected labels
         limit: store.pageSize,
         offset
       });

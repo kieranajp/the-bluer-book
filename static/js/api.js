@@ -22,9 +22,10 @@ async function handleNoContent(res) {
   return true;
 }
 
-export async function listRecipes({ search = '', limit = 20, offset = 0 } = {}) {
+export async function listRecipes({ search = '', labels = [], limit = 20, offset = 0 } = {}) {
   const qs = new URLSearchParams();
   if (search && search.trim()) qs.set('search', search.trim());
+  if (labels && labels.length > 0) qs.set('labels', labels.join(','));
   qs.set('limit', limit);
   qs.set('offset', offset);
   const res = await fetch(`/api/recipes?${qs.toString()}`);

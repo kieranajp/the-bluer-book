@@ -124,6 +124,7 @@
             <div class="mb-3 d-flex justify-content-between align-items-center">
                 <div class="d-flex gap-2">
                     <button class="btn btn-outline-secondary btn-sm" @click="back()">← Back</button>
+                    <button class="btn btn-outline-primary btn-sm" x-show="recipe" @click="edit()">✏️ Edit</button>
                     <button class="btn btn-outline-danger btn-sm" x-show="recipe" @click="archive()">🗄️ Archive</button>
                 </div>
             </div>
@@ -219,6 +220,153 @@
                         </div>
                     </section>
                 </article>
+            </template>
+        </section>
+
+        <!-- Recipe Edit View -->
+        <section class="container py-4" x-show="appStore.view === 'edit'" x-data="RecipeEdit()" x-init="$watch('selectedId', (newId) => { if (newId) load(); })">
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" @click="back()">← Back to Recipe</button>
+                    <button class="btn btn-primary btn-sm" @click="save()" :disabled="saving" x-show="recipe">
+                        <span x-show="!saving">💾 Save Changes</span>
+                        <span x-show="saving">Saving...</span>
+                    </button>
+                </div>
+            </div>
+
+            <template x-if="!recipe || loadingRecipe">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                </div>
+            </template>
+
+            <template x-if="recipe">
+                <form @submit.prevent="save()">
+                    <!-- Basic Recipe Info -->
+                    <div class="card mb-4">
+                        <div class="card-header"><h5 class="mb-0">📋 Basic Information</h5></div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Recipe Name *</label>
+                                <input type="text" class="form-control" x-model="recipe.name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" x-model="recipe.description" rows="3"></textarea>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Prep Time (minutes)</label>
+                                    <input type="number" class="form-control" x-model.number="recipe.prepTime" min="0">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Cook Time (minutes)</label>
+                                    <input type="number" class="form-control" x-model.number="recipe.cookTime" min="0">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Servings</label>
+                                    <input type="number" class="form-control" x-model.number="recipe.servings" min="1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Source URL</label>
+                                    <input type="url" class="form-control" x-model="recipe.url">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ingredients -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">🥬 Ingredients</h5>
+                            <button type="button" class="btn btn-sm btn-outline-primary" @click="addIngredient()">+ Add Ingredient</button>
+                        </div>
+                        <div class="card-body">
+                            <template x-for="(ingredient, index) in (recipe.ingredients || [])" :key="index">
+                                <div class="row g-2 mb-2 align-items-end">
+                                    <div class="col-md-2">
+                                        <label class="form-label small">Quantity</label>
+                                        <input type="number" class="form-control form-control-sm" x-model.number="ingredient.quantity" min="0" step="0.1">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small">Unit</label>
+                                        <input type="text" class="form-control form-control-sm" x-model="ingredient.unit.name" placeholder="cups, tsp, etc.">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Ingredient *</label>
+                                        <input type="text" class="form-control form-control-sm" x-model="ingredient.ingredient.name" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Preparation</label>
+                                        <input type="text" class="form-control form-control-sm" x-model="ingredient.preparation" placeholder="diced, chopped, etc.">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @click="removeIngredient(index)">×</button>
+                                    </div>
+                                </div>
+                            </template>
+                            <div x-show="!recipe.ingredients || recipe.ingredients.length === 0" class="text-muted text-center py-3">
+                                No ingredients yet. Click "Add Ingredient" to get started.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Steps -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">📝 Instructions</h5>
+                            <button type="button" class="btn btn-sm btn-outline-primary" @click="addStep()">+ Add Step</button>
+                        </div>
+                        <div class="card-body">
+                            <template x-for="(step, index) in (recipe.steps || [])" :key="index">
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-start">
+                                        <span class="badge bg-primary rounded-pill me-3 mt-2" x-text="step.order"></span>
+                                        <div class="flex-grow-1">
+                                            <textarea class="form-control" x-model="step.description" rows="2" :placeholder="'Step ' + step.order + ' instructions'" required></textarea>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-2" @click="removeStep(index)">×</button>
+                                    </div>
+                                </div>
+                            </template>
+                            <div x-show="!recipe.steps || recipe.steps.length === 0" class="text-muted text-center py-3">
+                                No instructions yet. Click "Add Step" to get started.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Labels -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">🏷️ Labels</h5>
+                            <button type="button" class="btn btn-sm btn-outline-primary" @click="addLabel()">+ Add Label</button>
+                        </div>
+                        <div class="card-body">
+                            <template x-for="(label, index) in (recipe.labels || [])" :key="index">
+                                <div class="row g-2 mb-2 align-items-end">
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Label Name *</label>
+                                        <input type="text" class="form-control form-control-sm" x-model="label.name" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Color</label>
+                                        <input type="color" class="form-control form-control-color form-control-sm" x-model="label.color">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <span class="badge me-2" :style="'background-color: ' + label.color" x-text="label.name || 'Preview'"></span>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @click="removeLabel(index)">×</button>
+                                    </div>
+                                </div>
+                            </template>
+                            <div x-show="!recipe.labels || recipe.labels.length === 0" class="text-muted text-center py-3">
+                                No labels yet. Click "Add Label" to get started.
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </template>
         </section>
     </div>

@@ -6,6 +6,7 @@ import { Notifications as NotificationsComp } from './components/notifications.j
 import { SearchBox } from './components/searchBox.js';
 import { RecipeList } from './components/recipeList.js';
 import { RecipeDetail } from './components/recipeDetail.js';
+import { RecipeEdit } from './components/recipeEdit.js';
 import { MainContent } from './components/mainContent.js';
 
 async function startApp() {
@@ -28,6 +29,7 @@ async function startApp() {
   Alpine.data('SearchBox', () => SearchBox(store));
   Alpine.data('RecipeList', () => RecipeList(store));
   Alpine.data('RecipeDetail', () => RecipeDetail(store));
+  Alpine.data('RecipeEdit', () => RecipeEdit(store));
   Alpine.data('MainContent', () => MainContent(store));
 
   window.addNotification = function(message, timeout = 4000) {
@@ -37,6 +39,9 @@ async function startApp() {
   router.initRouter((route) => {
     if (route.name === 'recipe') {
       store.view = 'recipe';
+      store.selectedId = route.id;
+    } else if (route.name === 'edit') {
+      store.view = 'edit';
       store.selectedId = route.id;
     } else {
       store.view = 'list';

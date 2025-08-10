@@ -130,6 +130,12 @@ export function RecipeDetail(store) {
       setListTitle();
     },
 
+    edit() {
+      if (store.router && store.selectedRecipe) {
+        store.router.goToEdit(store.selectedRecipe.uuid);
+      }
+    },
+
     async archive() {
       if (!store.selectedRecipe) {
         return;

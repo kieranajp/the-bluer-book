@@ -44,3 +44,12 @@ export async function archiveRecipe(uuid) {
   await handle(res); // no body expected
   return true;
 }
+
+export async function updateRecipe(uuid, recipe) {
+  const res = await fetch(`/api/recipes/${uuid}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(recipe)
+  });
+  return await handle(res);
+}

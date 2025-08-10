@@ -1,9 +1,13 @@
-/** Simple History API router helpers (migration phase) */
 import { setListTitle, setRecipeTitle } from './title.js';
 
 export function parseLocation() {
   const path = window.location.pathname || '/';
+  const editMatch = path.match(/^\/recipes\/([a-f0-9-]+)\/edit$/);
   const recipeMatch = path.match(/^\/recipes\/([a-f0-9-]+)$/);
+
+  if (editMatch) {
+    return { name: 'edit', id: editMatch[1] };
+  }
   if (recipeMatch) {
     return { name: 'recipe', id: recipeMatch[1] };
   }
@@ -32,6 +36,11 @@ export function goToList({ search, page, replace = false } = {}) {
 export function goToRecipe(id, { replace = false } = {}) {
   push(`/recipes/${id}`, replace);
   setRecipeTitle('Loading…');
+}
+
+export function goToEdit(id, { replace = false } = {}) {
+  push(`/recipes/${id}/edit`, replace);
+  setRecipeTitle('Editing…');
 }
 
 export function initRouter(onChange) {

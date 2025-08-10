@@ -1,0 +1,17 @@
+// Pagination controls
+.pagination-wrapper
+  display: flex
+  justify-content: center
+  margin: 1.5rem 0 .5rem
+
+.pagination
+  --bs-pagination-active-bg: var(--bs-primary)
+  --bs-pagination-active-border-color: var(--bs-primary)
+  --bs-pagination-focus-box-shadow: 0 0 0 .15rem rgba(78,106,131,.35)
+
+@media (max-width: 520px)
+  .pagination
+    flex-wrap: wrap
+    gap: .25rem
+    li.page-item
+      flex: 0 1 auto

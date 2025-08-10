@@ -1,0 +1,25 @@
+@use '../variables.sass' as *
+:root
+  --bs-primary: #4E6A83
+  --bs-primary-rgb: 78,106,131
+  --bs-link-color: #4E6A83
+  --bs-link-hover-color: #5C839F
+
+// Shared utility styles & helpers
+.close-btn
+  background: transparent
+  border: 0
+  line-height: 1
+  opacity: .75
+  &:hover
+    opacity: 1
+  &:focus-visible
+    outline: 2px solid var(--bs-primary)
+    outline-offset: 2px
+
+.loading-indicator
+  display: inline-flex
+  gap: .4rem
+  align-items: center
+  font-size: .85rem
+  color: var(--bs-secondary-color)

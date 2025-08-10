@@ -1,4 +1,11 @@
 // Main Sass entrypoint (indented syntax)
 @use 'variables' as *
 @use 'bootstrap/scss/bootstrap'
-@use 'custom'
+
+@forward 'components/global'
+@forward 'components/recipe-card'
+@forward 'components/recipe-detail'
+@forward 'components/search'
+@forward 'components/header'
+@forward 'components/pagination'
+@forward 'components/print'

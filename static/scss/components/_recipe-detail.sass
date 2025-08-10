@@ -1,0 +1,72 @@
+// Recipe metadata layout
+.recipe-meta
+  display: flex
+  flex-wrap: wrap
+  gap: .5rem
+  font-size: .85rem
+
+.recipe-detail-panel
+  background: var(--bs-light)
+  padding: 1rem 1.25rem
+  border-radius: .5rem
+  border: 1px solid rgba(0,0,0,.05)
+  box-shadow: 0 1px 2px rgba(0,0,0,.06)
+  margin-bottom: 1rem
+  h2, h3, h4
+    font-size: 1.05rem
+    font-weight: 600
+
+// Media (video / embedded)
+.recipe-media
+  margin: 1rem 0 1.25rem
+  iframe, video
+    max-width: 100%
+    border: 0
+    border-radius: .65rem
+    box-shadow: 0 4px 16px -4px rgba(0,0,0,.18)
+    aspect-ratio: 16 / 9
+    width: 100%
+
+
+// Ingredient checkbox interaction
+.ingredients-list input[type='checkbox']
+  transform: scale(1.15)
+  margin-right: .5rem
+  cursor: pointer
+
+.ingredients-list li.completed
+  opacity: .55
+  text-decoration: line-through
+  transition: opacity .2s ease
+
+// Ingredient & instruction lists
+.ingredients-list, .instructions-list
+  list-style: none
+  padding-left: 0
+  margin-bottom: 0
+  display: flex
+  flex-direction: column
+  gap: .35rem
+
+.ingredients-list li, .instructions-list li
+  line-height: 1.25
+
+.instructions-list li
+  counter-increment: step
+  position: relative
+  padding-left: 2rem
+  &::before
+    content: counter(step)
+    position: absolute
+    left: 0
+    top: 0
+    width: 1.4rem
+    height: 1.4rem
+    border-radius: 50%
+    background: var(--bs-primary)
+    color: #fff
+    font-size: .75rem
+    display: flex
+    align-items: center
+    justify-content: center
+    font-weight: 600

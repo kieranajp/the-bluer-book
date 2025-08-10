@@ -1,6 +1,5 @@
-import { store } from '../bootstrap.js';
 
-export function MainContent() {
+export function MainContent(store) {
   return {
     // Expose all needed variables from the store
     get loading() {

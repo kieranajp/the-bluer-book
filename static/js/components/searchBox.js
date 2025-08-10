@@ -1,10 +1,9 @@
-import { store } from '../bootstrap.js';
 import { listRecipes } from '../api.js';
 import { setListTitle } from '../title.js';
 
 let debounceTimer;
 
-export function SearchBox() {
+export function SearchBox(store) {
   return {
     get value() {
       return store.search;

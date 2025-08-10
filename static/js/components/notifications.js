@@ -1,6 +1,4 @@
-import { store } from '../bootstrap.js';
 
-// Notification helpers
 export function add(store, message, timeout = 4000) {
   const id = Date.now() + Math.random();
   store.notifications.push({ id, message, ts: Date.now() });
@@ -20,7 +18,7 @@ export function dismiss(store, id) {
   }
 }
 
-export function Notifications() {
+export function Notifications(store) {
   return {
     get items() {
       return store.notifications;

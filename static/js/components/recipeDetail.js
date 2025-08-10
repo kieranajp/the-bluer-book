@@ -1,4 +1,3 @@
-import { store } from '../bootstrap.js';
 import { getRecipe, archiveRecipe } from '../api.js';
 import { setRecipeTitle, setListTitle } from '../title.js';
 import { add as addNotification } from './notifications.js';
@@ -70,7 +69,7 @@ function displayInfo(url) {
   }
 }
 
-export function RecipeDetail() {
+export function RecipeDetail(store) {
   return {
     async init() {
       // Load recipe if we have a selectedId on init

@@ -1,8 +1,7 @@
-import { store } from '../bootstrap.js';
 import { listRecipes } from '../api.js';
 import { setListTitle } from '../title.js';
 
-export function RecipeList() {
+export function RecipeList(store) {
   return {
     async init() {
       if (!store.recipes.length) {

@@ -156,23 +156,23 @@
                         </div>
                     </div>
                     <div class="mb-4" x-show="recipe.url">
-                        <template x-if="appStore.urlInfo.displayInfo(recipe.url)">
+                        <template x-if="urlInfo.displayInfo(recipe.url)">
                             <div>
-                                <template x-if="appStore.urlInfo.displayInfo(recipe.url).type === 'youtube'">
+                                <template x-if="urlInfo.displayInfo(recipe.url).type === 'youtube'">
                                     <div class="recipe-video mb-3">
                                         <div class="ratio ratio-16x9 mb-2">
-                                            <iframe :src="appStore.urlInfo.displayInfo(recipe.url).embedUrl" title="Recipe Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                            <iframe :src="urlInfo.displayInfo(recipe.url).embedUrl" title="Recipe Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                                         </div>
-                                        <a :href="appStore.urlInfo.displayInfo(recipe.url).originalUrl" target="_blank" class="btn btn-outline-primary btn-sm">🔗 Watch on YouTube</a>
+                                        <a :href="urlInfo.displayInfo(recipe.url).originalUrl" target="_blank" class="btn btn-outline-primary btn-sm">🔗 Watch on YouTube</a>
                                     </div>
                                 </template>
-                                <template x-if="appStore.urlInfo.displayInfo(recipe.url).type !== 'youtube'">
+                                <template x-if="urlInfo.displayInfo(recipe.url).type !== 'youtube'">
                                     <div class="recipe-url mb-3">
-                                        <a :href="appStore.urlInfo.displayInfo(recipe.url).originalUrl" target="_blank" class="btn btn-outline-primary btn-sm">
-                                            <span x-text="appStore.urlInfo.displayInfo(recipe.url).icon"></span>
-                                            <span x-text="appStore.urlInfo.displayInfo(recipe.url).label"></span>
+                                        <a :href="urlInfo.displayInfo(recipe.url).originalUrl" target="_blank" class="btn btn-outline-primary btn-sm">
+                                            <span x-text="urlInfo.displayInfo(recipe.url).icon"></span>
+                                            <span x-text="urlInfo.displayInfo(recipe.url).label"></span>
                                         </a>
-                                        <div class="small text-muted mt-2" x-show="appStore.urlInfo.displayInfo(recipe.url).domain">Source: <span x-text="appStore.urlInfo.displayInfo(recipe.url).domain"></span></div>
+                                        <div class="small text-muted mt-2" x-show="urlInfo.displayInfo(recipe.url).domain">Source: <span x-text="urlInfo.displayInfo(recipe.url).domain"></span></div>
                                     </div>
                                 </template>
                             </div>

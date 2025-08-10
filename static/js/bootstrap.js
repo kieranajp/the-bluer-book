@@ -1,8 +1,7 @@
 import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/module.esm.js';
 import { createStore, derive } from './store.js';
-import * as notify from './notifications.js';
+import * as notify from './components/notifications.js';
 import * as router from './router.js';
-import * as urlInfo from './urlInfo.js';
 import { Pagination } from './components/pagination.js';
 import { Notifications as NotificationsComp } from './components/notifications.js';
 import { SearchBox } from './components/searchBox.js';
@@ -13,7 +12,6 @@ import { MainContent } from './components/mainContent.js';
 // Phase 1 bootstrap: create shared store and expose for inspection.
 const store = Alpine.reactive(createStore());
 store.router = router; // debug reference
-store.urlInfo = urlInfo; // expose media helpers
 window.appStore = store; // temporary debug handle during migration
 
 // Simple watch to keep derived values up to date (manual trigger points will call derive())

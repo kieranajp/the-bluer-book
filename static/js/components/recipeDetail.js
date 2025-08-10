@@ -1,7 +1,74 @@
 import { store } from '../bootstrap.js';
 import { getRecipe, archiveRecipe } from '../api.js';
 import { setRecipeTitle, setListTitle } from '../title.js';
-import { add as addNotification } from '../notifications.js';
+import { add as addNotification } from './notifications.js';
+
+const YT_PATTERN = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+
+function isYouTube(url) {
+  return !!(url && YT_PATTERN.test(url));
+}
+
+function videoId(url) {
+  const m = url ? url.match(YT_PATTERN) : null;
+  return m ? m[1] : null;
+}
+
+function startTime(url) {
+  if (!url) return null;
+
+  const m = url.match(/[?&]t=(\d+)/);
+  return m ? parseInt(m[1]) : null;
+}
+
+function embedUrl(url) {
+  const id = videoId(url);
+  if (!id) return null;
+
+  const t = startTime(url);
+  return t ? `https://www.youtube.com/embed/${id}?start=${t}` : `https://www.youtube.com/embed/${id}`;
+}
+
+function displayInfo(url) {
+  if (!url) return null;
+
+  if (isYouTube(url)) {
+    return {
+      type: 'youtube',
+      embedUrl: embedUrl(url),
+      originalUrl: url,
+      icon: '📺',
+      label: 'Watch Recipe Video'
+    };
+  }
+
+  if (url.toLowerCase().includes('.pdf')) {
+    return {
+      type: 'pdf',
+      originalUrl: url,
+      icon: '📄',
+      label: 'View Recipe PDF'
+    };
+  }
+
+  try {
+    const u = new URL(url);
+    return {
+      type: 'link',
+      originalUrl: url,
+      icon: '🔗',
+      label: `Visit ${u.hostname}`,
+      domain: u.hostname
+    };
+  } catch {
+    return {
+      type: 'link',
+      originalUrl: url,
+      icon: '🔗',
+      label: 'View Recipe Source'
+    };
+  }
+}
 
 export function RecipeDetail() {
   return {
@@ -48,6 +115,13 @@ export function RecipeDetail() {
     // Watch for changes to selectedId and load the new recipe
     get selectedId() {
       return store.selectedId;
+    },
+
+    // Expose urlInfo functions for use in the template
+    get urlInfo() {
+      return {
+        displayInfo
+      };
     },
 
     back() {

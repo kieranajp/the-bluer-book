@@ -1,4 +1,4 @@
-import { store } from '../bootstrap.js';
+import { store as defaultStore } from '../bootstrap.js';
 
 // Pagination window builder (ellipsis strategy matches legacy)
 function buildWindow(current, total) {
@@ -39,7 +39,7 @@ function buildWindow(current, total) {
   return pages;
 }
 
-export function Pagination() {
+export function Pagination(store = defaultStore) {
   return {
     get pages() {
       return buildWindow(store.page, store.totalPages);

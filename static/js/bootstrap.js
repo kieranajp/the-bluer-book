@@ -1,4 +1,4 @@
-import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/module.esm.js';
+import Alpine from 'alpinejs';
 import { createStore, derive } from './store.js';
 import * as notify from './components/notifications.js';
 import * as router from './router.js';

@@ -1,0 +1,79 @@
+// Bootstrap variable overrides and theme palette (indented syntax)
+// Dusty blue recipe book theme
+
+// Core palette
+$primary: #4E6A83
+$secondary: #41576C
+$success: #3C7F58
+$info: #3A6F9E
+$warning: #C98A1B
+$danger: #B4453C
+$light: #F5F7F9
+$dark: #253038
+
+// Gray scale
+$gray-100: #F5F7F9
+$gray-200: #ECEFF2
+$gray-300: #D9E1E8
+$gray-400: #B8C2CC
+$gray-500: #8A97A3
+$gray-600: #62717E
+$gray-700: #48555F
+$gray-800: #344454
+$gray-900: #253038
+
+// Rebuild the theme colors map early (Bootstrap will use this)
+$theme-colors: ("primary": $primary, "secondary": $secondary, "success": $success, "info": $info, "warning": $warning, "danger": $danger, "light": $light, "dark": $dark, "accent": #D19A3D)
+
+$body-bg: #FCFCFD
+$body-color: $gray-900
+$border-color: $gray-300
+
+$link-color: $primary
+$link-hover-color: shade-color($primary, 15%)
+
+$focus-ring-color: rgba(#88B5E5, .55)
+$focus-ring-width: .22rem
+
+// Buttons
+$btn-border-radius: .5rem
+$btn-border-radius-sm: .4rem
+$btn-border-radius-lg: .65rem
+$btn-padding-y: .6rem
+$btn-padding-x: 1rem
+$btn-font-weight: 500
+
+// Badges
+$badge-font-weight: 500
+$badge-border-radius: .4rem
+
+// Pagination
+$pagination-color: $primary
+$pagination-active-bg: $gray-200
+$pagination-active-border-color: $primary
+$pagination-hover-color: $primary
+$pagination-border-color: $gray-300
+$pagination-focus-box-shadow: 0 0 0 .15rem rgba($primary, .35)
+
+// Shadows
+$box-shadow-sm: 0 2px 4px rgba(#000,.06)
+$box-shadow: 0 4px 12px rgba(#000,.08)
+$box-shadow-lg: 0 8px 24px rgba(#000,.10)
+
+// Typography
+$font-size-base: 1rem
+$headings-color: $dark
+$headings-font-weight: 600
+
+// Enable CSS vars for easier future dark mode
+$enable-css-vars: true
+
+// Optional custom property exposure layer
+:root
+  --color-bg:#FCFCFD
+  --color-surface:#F5F7F9
+  --color-text:#253038
+  --color-border:#D9E1E8
+  --color-primary:#4E6A83
+  --color-primary-hover:#5C839F
+  --color-accent:#D19A3D

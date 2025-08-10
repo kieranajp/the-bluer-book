@@ -1,8 +1,8 @@
-# Ignore Python scripts
-*.py
+node_modules/
 
 # Ignore output files
 output.txt
+static/css/*
 
 .env
 

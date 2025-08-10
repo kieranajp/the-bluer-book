@@ -1,0 +1,14 @@
+{
+  "name": "the-bluer-book",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Recipe app with themed Bootstrap Sass build",
+  "scripts": {
+  "build:css": "sass --load-path=node_modules static/scss/styles.sass static/css/app.css --style=compressed",
+  "watch:css": "sass --load-path=node_modules --watch static/scss/styles.sass:static/css/app.css"
+  },
+  "devDependencies": {
+    "bootstrap": "^5.3.3",
+    "sass": "^1.77.0"
+  }
+}

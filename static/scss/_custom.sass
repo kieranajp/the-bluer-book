@@ -1,0 +1,192 @@
+@use 'variables' as *
+// Bespoke component/layout styles not covered by variable overrides
+// NOTE: Modal styles intentionally omitted (obsolete)
+
+.recipe-card
+  cursor: pointer
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease
+  min-height: 44px
+  border: 1px solid var(--color-border)
+  &:hover
+    transform: translateY(-2px)
+    box-shadow: 0 4px 12px rgba(0,0,0,.15)
+    border-color: $primary
+  &:focus
+    outline: 2px solid $primary
+    outline-offset: 2px
+
+.card-title
+  font-size: 1.25rem
+  line-height: 1.3
+  font-weight: 600
+
+.card-text
+  font-size: .95rem
+  line-height: 1.4
+
+.list-group-item
+  font-size: 1rem
+  line-height: 1.5
+  padding: 1rem
+  border-left: none
+  border-right: none
+  &:first-child
+    border-top: none
+  &:last-child
+    border-bottom: none
+
+.step-number .badge
+  width: 2rem
+  height: 2rem
+  display: flex
+  align-items: center
+  justify-content: center
+  font-size: .9rem
+  font-weight: 600
+
+.step-content
+  font-size: 1rem
+  line-height: 1.5
+
+.search-container input
+  font-size: 1.1rem
+  padding: .75rem 1rem
+  border: 2px solid #fff
+  box-shadow: 0 2px 4px rgba(0,0,0,.1)
+  &:focus
+    border-color: $warning
+    box-shadow: 0 0 0 .2rem rgba(201,138,27,.25)
+
+.recipe-meta .badge
+  font-size: .8rem
+  padding: .5rem .75rem
+
+.recipe-meta-detail
+  background: $light
+  border-radius: .5rem
+  padding: 1.5rem
+  border: 1px solid $gray-300
+
+header.sticky-top
+  background: linear-gradient(135deg, lighten($primary, 10%) 0%, darken($primary, 10%) 100%)
+  box-shadow: 0 2px 4px rgba(0,0,0,.1)
+
+// Ingredients checklist scaling
+.ingredients-section .form-check-input
+  transform: scale(1.3)
+  margin-right: 1rem
+  &:checked
+    background-color: $success
+    border-color: $success
+
+.btn-close:focus
+  box-shadow: 0 0 0 .25rem rgba($primary, .25)
+
+.spinner-border
+  width: 3rem
+  height: 3rem
+
+.badge
+  font-weight: 500
+
+.text-center h4
+  color: $gray-600
+  font-weight: 300
+
+*
+  -webkit-tap-highlight-color: transparent
+
+.card, .btn, .badge, .list-group-item
+  transition: all .2s ease
+
+// Pagination adjustments
+.pagination
+  margin: 0
+  .page-link
+    min-width: 44px
+    min-height: 44px
+    display: flex
+    align-items: center
+    justify-content: center
+    border-color: $gray-300
+    color: $primary
+    &:hover
+      background-color: $gray-200
+      border-color: $gray-400
+  .page-item
+    &.active .page-link
+      background-color: $gray-200
+      border-color: $primary
+      font-weight: 600
+    &.disabled .page-link
+      color: $gray-600
+      background-color: #fff
+      border-color: $gray-300
+      cursor: not-allowed
+
+@media (max-width: 576px)
+  .pagination
+    gap: 2px
+    .page-link
+      min-width: 40px
+      min-height: 40px
+      font-size: .875rem
+      padding: .375rem .5rem
+    .page-item:not(.active):not(:first-child):not(:last-child):not(:nth-child(2)):not(:nth-last-child(2))
+      display: none
+
+.recipe-video, .recipe-url
+  background: $light
+  border-radius: 8px
+  padding: 1rem
+  border: 1px solid $gray-300
+
+.recipe-video
+  .ratio
+    border-radius: 6px
+    overflow: hidden
+    box-shadow: 0 2px 8px rgba(0,0,0,.1)
+  iframe
+    border-radius: 6px
+
+.recipe-url .btn, .recipe-video .btn
+  font-weight: 500
+  &:hover
+    transform: translateY(-1px)
+    box-shadow: 0 2px 6px rgba(0,0,0,.15)
+
+@media (max-width: 576px)
+  .recipe-video, .recipe-url
+    margin-left: -15px
+    margin-right: -15px
+    border-radius: 0
+    border-left: none
+    border-right: none
+  .recipe-video .ratio
+    border-radius: 0
+
+@media (min-width: 576px)
+  .card-title
+    font-size: 1.4rem
+  .recipe-grid
+    gap: 1.5rem
+  .search-container input
+    font-size: 1.2rem
+
+@media (min-width: 992px)
+  .container
+    max-width: 1200px
+  .recipe-card
+    min-height: auto
+  .card-title
+    font-size: 1.5rem
+
+// Print styles (adapted for page view)
+@media print
+  header
+    display: none !important
+  .ingredients-section .form-check-input
+    transform: scale(1)
+  .recipe-meta-detail
+    background: white !important
+    border: 1px solid #ccc !important

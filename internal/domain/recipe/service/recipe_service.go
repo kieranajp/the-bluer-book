@@ -13,9 +13,16 @@ type RecipeService interface {
 	GetRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
 	ListRecipes(ctx context.Context, limit, offset int, search string) ([]*recipe.Recipe, int, error)
 	UpdateRecipe(ctx context.Context, id uuid.UUID, recipe recipe.Recipe) (*recipe.Recipe, error)
+
+	// Archival methods
 	ArchiveRecipe(ctx context.Context, id uuid.UUID) error
 	RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
 	ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error)
+
+	// Meal planning methods
+	AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error
+	RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error
+	ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error)
 }
 
 type recipeService struct {
@@ -77,4 +84,16 @@ func (s *recipeService) RestoreRecipe(ctx context.Context, id uuid.UUID) (*recip
 
 func (s *recipeService) ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error) {
 	return s.repo.ListArchivedRecipes(ctx, limit, offset)
+}
+
+func (s *recipeService) AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error {
+	return s.repo.AddToMealPlan(ctx, recipeID)
+}
+
+func (s *recipeService) RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error {
+	return s.repo.RemoveFromMealPlan(ctx, recipeID)
+}
+
+func (s *recipeService) ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error) {
+	return s.repo.ListMealPlanRecipes(ctx)
 }

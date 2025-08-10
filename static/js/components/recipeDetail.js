@@ -1,4 +1,4 @@
-import { getRecipe, archiveRecipe } from '../api.js';
+import { getRecipe, archiveRecipe, addToMealPlan, removeFromMealPlan } from '../api.js';
 import { setRecipeTitle, setListTitle } from '../title.js';
 import { add as addNotification } from './notifications.js';
 
@@ -133,6 +133,38 @@ export function RecipeDetail(store) {
     edit() {
       if (store.router && store.selectedRecipe) {
         store.router.goToEdit(store.selectedRecipe.uuid);
+      }
+    },
+
+    async toggleMealPlan() {
+      if (!store.selectedRecipe) {
+        return;
+      }
+
+      try {
+        const wasInMealPlan = store.selectedRecipe.isInMealPlan;
+
+        // Optimistic update
+        store.selectedRecipe.isInMealPlan = !wasInMealPlan;
+
+        if (wasInMealPlan) {
+          await removeFromMealPlan(store.selectedRecipe.uuid);
+          addNotification(store, 'Removed from meal plan');
+        } else {
+          await addToMealPlan(store.selectedRecipe.uuid);
+          addNotification(store, 'Added to meal plan');
+        }
+
+        // Update cache
+        store.recipeCache.set(store.selectedRecipe.uuid, store.selectedRecipe);
+
+        // Trigger list refresh to update meal plan section
+        window.dispatchEvent(new CustomEvent('store:refresh-list'));
+
+      } catch (e) {
+        // Revert optimistic update on error
+        store.selectedRecipe.isInMealPlan = !store.selectedRecipe.isInMealPlan;
+        addNotification(store, 'Failed to update meal plan');
       }
     },
 

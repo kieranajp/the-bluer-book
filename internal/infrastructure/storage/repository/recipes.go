@@ -19,6 +19,11 @@ type RecipeRepository interface {
 	ArchiveRecipe(ctx context.Context, id uuid.UUID) error
 	RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
 	ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error)
+
+	// Meal planning methods
+	AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error
+	RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error
+	ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error)
 }
 
 type recipeRepository struct {
@@ -270,8 +275,8 @@ func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, s
 		return nil, 0, err
 	}
 
-	// Get recipes
-	recipeRows, err := q.ListRecipes(ctx, db.ListRecipesParams{
+	// Get recipes with meal plan status
+	recipeRows, err := q.ListRecipesWithMealPlanStatus(ctx, db.ListRecipesWithMealPlanStatusParams{
 		Limit:   int32(limit),
 		Offset:  int32(offset),
 		Column3: search,
@@ -284,10 +289,11 @@ func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, s
 	for i, row := range recipeRows {
 		rec, err := r.buildRecipeFromRows(ctx, q, row.Uuid, row.Name, row.Description,
 			row.CookTime, row.PrepTime, row.Servings, row.Url,
-			row.CreatedAt, row.UpdatedAt, row.MainPhotoUuid, row.MainPhotoUrl)
+			row.CreatedAt, row.UpdatedAt, row.MainPhotoID, sql.NullString{})
 		if err != nil {
 			return nil, 0, err
 		}
+		rec.IsInMealPlan = row.IsInMealPlan
 		recipes[i] = rec
 	}
 
@@ -502,4 +508,33 @@ func (r *recipeRepository) ListArchivedRecipes(ctx context.Context, limit, offse
 	}
 
 	return recipes, int(count), nil
+}
+
+func (r *recipeRepository) AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error {
+	return r.db.AddToMealPlan(ctx, recipeID)
+}
+
+func (r *recipeRepository) RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error {
+	return r.db.RemoveFromMealPlan(ctx, recipeID)
+}
+
+func (r *recipeRepository) ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error) {
+	rows, err := r.db.ListMealPlanRecipes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	recipes := make([]*recipe.Recipe, len(rows))
+	for i, row := range rows {
+		rec, err := r.buildRecipeFromRows(ctx, r.db, row.Uuid, row.Name,
+			row.Description, row.CookTime, row.PrepTime, row.Servings,
+			row.Url, row.CreatedAt, row.UpdatedAt, row.MainPhotoID, sql.NullString{})
+		if err != nil {
+			return nil, err
+		}
+		rec.IsInMealPlan = row.IsInMealPlan
+		recipes[i] = rec
+	}
+
+	return recipes, nil
 }

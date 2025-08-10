@@ -273,3 +273,57 @@ func (h *RecipeHandler) ListArchivedRecipes(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
+
+// POST /api/recipes/{id}/meal-plan - Add recipe to meal plan
+func (h *RecipeHandler) AddToMealPlan(w http.ResponseWriter, r *http.Request) {
+	// Extract ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/recipes/")
+	pathParts := strings.Split(path, "/")
+	if len(pathParts) != 2 || pathParts[1] != "meal-plan" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_path", "Invalid meal plan path")
+		return
+	}
+
+	recipeID, err := uuid.Parse(pathParts[0])
+	if err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
+		return
+	}
+
+	err = h.recipeService.AddToMealPlan(r.Context(), recipeID)
+	if err != nil {
+		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to add recipe to meal plan")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "meal_plan_add_failed", "Failed to add recipe to meal plan")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	h.logger.Info().Str("recipe_id", recipeID.String()).Msg("Recipe added to meal plan")
+}
+
+// DELETE /api/recipes/{id}/meal-plan - Remove recipe from meal plan
+func (h *RecipeHandler) RemoveFromMealPlan(w http.ResponseWriter, r *http.Request) {
+	// Extract ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/recipes/")
+	pathParts := strings.Split(path, "/")
+	if len(pathParts) != 2 || pathParts[1] != "meal-plan" {
+		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_path", "Invalid meal plan path")
+		return
+	}
+
+	recipeID, err := uuid.Parse(pathParts[0])
+	if err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
+		return
+	}
+
+	err = h.recipeService.RemoveFromMealPlan(r.Context(), recipeID)
+	if err != nil {
+		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to remove recipe from meal plan")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "meal_plan_remove_failed", "Failed to remove recipe from meal plan")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	h.logger.Info().Str("recipe_id", recipeID.String()).Msg("Recipe removed from meal plan")
+}

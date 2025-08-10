@@ -41,26 +41,73 @@
             </div>
 
             <!-- Recipe Grid (component) -->
-            <div x-show="!loading" class="row g-3" x-data="RecipeList()">
-                <template x-for="recipe in items" :key="recipe.uuid">
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="card h-100 recipe-card" @click="open(recipe)">
-                            <div class="card-body">
-                                <h5 class="card-title" x-text="recipe.name"></h5>
-                                <p class="card-text text-muted small" x-text="recipe.description"></p>
-                                <div class="recipe-meta">
-                                    <span class="badge bg-light text-dark me-2">⏱️ <span x-text="(recipe.prepTime || 0) + (recipe.cookTime || 0)"></span>m</span>
-                                    <span class="badge bg-light text-dark">👥 <span x-text="recipe.servings || 1"></span></span>
-                                </div>
-                                <div class="mt-2">
-                                    <template x-for="label in (recipe.labels || [])">
-                                        <span class="badge me-1" :style="'background-color: ' + label.color" x-text="label.name"></span>
-                                    </template>
+            <div x-show="!loading" x-data="RecipeList()">
+                <!-- Meal Plan Section -->
+                <div x-show="hasMealPlanRecipes" class="mb-4">
+                    <h4 class="h5 mb-3 text-primary">⭐ Meal Plan</h4>
+                    <div class="row g-3 mb-4">
+                        <template x-for="recipe in mealPlanItems" :key="recipe.uuid">
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <div class="card h-100 recipe-card position-relative" @click="open(recipe)">
+                                    <div class="position-absolute top-0 end-0 p-2">
+                                        <button class="btn p-0 text-warning fs-5"
+                                                @click="toggleMealPlan(recipe, $event)"
+                                                :title="recipe?.isInMealPlan ? 'Remove from meal plan' : 'Add to meal plan'">
+                                            <span x-text="recipe?.isInMealPlan ? '⭐' : '☆'"></span>
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <h5 class="card-title pe-4" x-text="recipe.name"></h5>
+                                        <p class="card-text text-muted small" x-text="recipe.description"></p>
+                                        <div class="recipe-meta">
+                                            <span class="badge bg-light text-dark me-2">⏱️ <span x-text="(recipe.prepTime || 0) + (recipe.cookTime || 0)"></span>m</span>
+                                            <span class="badge bg-light text-dark">👥 <span x-text="recipe.servings || 1"></span></span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <template x-for="label in (recipe.labels || [])">
+                                                <span class="badge me-1" :style="'background-color: ' + label.color" x-text="label.name"></span>
+                                            </template>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </template>
                     </div>
-                </template>
+                    <hr class="border-primary opacity-25">
+                </div>
+
+                <!-- Regular Recipes Section -->
+                <div x-show="regularItems.length > 0">
+                    <h4 x-show="hasMealPlanRecipes" class="h6 mb-3 text-muted">All Recipes</h4>
+                    <div class="row g-3">
+                        <template x-for="recipe in regularItems" :key="recipe.uuid">
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <div class="card h-100 recipe-card position-relative" @click="open(recipe)">
+                                    <div class="position-absolute top-0 end-0 p-2">
+                                        <button class="btn p-0 text-muted fs-5"
+                                                @click="toggleMealPlan(recipe, $event)"
+                                                :title="recipe?.isInMealPlan ? 'Remove from meal plan' : 'Add to meal plan'">
+                                            <span x-text="recipe?.isInMealPlan ? '⭐' : '☆'"></span>
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <h5 class="card-title pe-4" x-text="recipe.name"></h5>
+                                        <p class="card-text text-muted small" x-text="recipe.description"></p>
+                                        <div class="recipe-meta">
+                                            <span class="badge bg-light text-dark me-2">⏱️ <span x-text="(recipe.prepTime || 0) + (recipe.cookTime || 0)"></span>m</span>
+                                            <span class="badge bg-light text-dark">👥 <span x-text="recipe.servings || 1"></span></span>
+                                        </div>
+                                        <div class="mt-2">
+                                            <template x-for="label in (recipe.labels || [])">
+                                                <span class="badge me-1" :style="'background-color: ' + label.color" x-text="label.name"></span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
 
             <!-- Pagination Controls (component) -->
@@ -126,6 +173,12 @@
                     <button class="btn btn-outline-secondary btn-sm" @click="back()">← Back</button>
                     <button class="btn btn-outline-primary btn-sm" x-show="recipe" @click="edit()">✏️ Edit</button>
                     <button class="btn btn-outline-danger btn-sm" x-show="recipe" @click="archive()">🗄️ Archive</button>
+                </div>
+                <div x-show="recipe">
+                    <button class="btn btn-outline-warning btn-sm" @click="toggleMealPlan()"
+                            :title="recipe?.isInMealPlan ? 'Remove from meal plan' : 'Add to meal plan'">
+                        <span x-text="recipe?.isInMealPlan ? '⭐ In Meal Plan' : '☆ Add to Meal Plan'"></span>
+                    </button>
                 </div>
             </div>
             <template x-if="!recipe || loadingRecipe">

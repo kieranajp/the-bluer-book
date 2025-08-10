@@ -23,6 +23,10 @@ func NewRouter(recipeService service.RecipeService, logger logger.Logger) http.H
 	mux.HandleFunc("DELETE /api/recipes/{id}", recipeHandler.DeleteRecipe)
 	mux.HandleFunc("POST /api/recipes/{id}/restore", recipeHandler.RestoreRecipe)
 
+	// Meal planning routes
+	mux.HandleFunc("POST /api/recipes/{id}/meal-plan", recipeHandler.AddToMealPlan)
+	mux.HandleFunc("DELETE /api/recipes/{id}/meal-plan", recipeHandler.RemoveFromMealPlan)
+
 	mux.Handle("POST /api/recipes",
 		validationMiddleware.ValidateCreateRecipe(
 			http.HandlerFunc(recipeHandler.CreateRecipe),

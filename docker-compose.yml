@@ -8,3 +8,10 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+    external: true
+    name: the-bluer-book-db

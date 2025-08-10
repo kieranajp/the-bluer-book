@@ -14,10 +14,14 @@ export function createStore() {
     totalPages: 0,
 
     // View / routing
-    view: 'list', // 'list' | 'recipe'
+    view: 'list', // 'list' | 'recipe' | 'edit'
     selectedId: null,
     selectedRecipe: null,
     routeError: null,
+
+    // Meal planning
+    mealPlanRecipes: [],
+    loadingMealPlan: false,
 
     // Loading flags
     loadingList: false,

@@ -8,20 +8,21 @@ import (
 
 // Recipe is the aggregate root for a recipe and its related data.
 type Recipe struct {
-	UUID        uuid.UUID          `json:"uuid,omitempty"`
-	Name        string             `json:"name"`
-	Description string             `json:"description"`
-	CookTime    int32              `json:"cookTime"`
-	PrepTime    int32              `json:"prepTime"`
-	Servings    int16              `json:"servings"`
-	MainPhoto   *Photo             `json:"mainPhoto"`
-	Url         string             `json:"url"`
-	CreatedAt   time.Time          `json:"createdAt,omitempty"`
-	UpdatedAt   time.Time          `json:"updatedAt,omitempty"`
-	Steps       []Step             `json:"steps"`
-	Ingredients []RecipeIngredient `json:"ingredients"`
-	Labels      []Label            `json:"labels"`
-	Photos      []Photo            `json:"photos"`
+	UUID         uuid.UUID          `json:"uuid,omitempty"`
+	Name         string             `json:"name"`
+	Description  string             `json:"description"`
+	CookTime     int32              `json:"cookTime"`
+	PrepTime     int32              `json:"prepTime"`
+	Servings     int16              `json:"servings"`
+	MainPhoto    *Photo             `json:"mainPhoto"`
+	Url          string             `json:"url"`
+	CreatedAt    time.Time          `json:"createdAt,omitempty"`
+	UpdatedAt    time.Time          `json:"updatedAt,omitempty"`
+	IsInMealPlan bool               `json:"isInMealPlan"`
+	Steps        []Step             `json:"steps"`
+	Ingredients  []RecipeIngredient `json:"ingredients"`
+	Labels       []Label            `json:"labels"`
+	Photos       []Photo            `json:"photos"`
 }
 
 // Step is a value object representing a step in a recipe.

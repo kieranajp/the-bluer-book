@@ -12,6 +12,16 @@ async function handle(res) {
   return res.json();
 }
 
+async function handleNoContent(res) {
+  if (!res.ok) {
+    const err = new Error(`HTTP_${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  // No JSON parsing for 204 No Content responses
+  return true;
+}
+
 export async function listRecipes({ search = '', limit = 20, offset = 0 } = {}) {
   const qs = new URLSearchParams();
   if (search && search.trim()) qs.set('search', search.trim());
@@ -41,7 +51,7 @@ export async function getRecipe(uuid) {
 
 export async function archiveRecipe(uuid) {
   const res = await fetch(`/api/recipes/${uuid}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
-  await handle(res); // no body expected
+  await handleNoContent(res); // no body expected
   return true;
 }
 
@@ -52,4 +62,22 @@ export async function updateRecipe(uuid, recipe) {
     body: JSON.stringify(recipe)
   });
   return await handle(res);
+}
+
+export async function addToMealPlan(uuid) {
+  const res = await fetch(`/api/recipes/${uuid}/meal-plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  await handleNoContent(res); // no body expected
+  return true;
+}
+
+export async function removeFromMealPlan(uuid) {
+  const res = await fetch(`/api/recipes/${uuid}/meal-plan`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  await handleNoContent(res); // no body expected
+  return true;
 }

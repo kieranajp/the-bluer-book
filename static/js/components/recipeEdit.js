@@ -20,17 +20,17 @@ export function RecipeEdit(store) {
       if (!store.selectedId) {
         return;
       }
-      
+
       this.lastLoadedId = store.selectedId;
-      
+
       try {
         this.loadingRecipe = true;
         const recipe = await getRecipe(store.selectedId);
         this.originalRecipe = recipe;
-        
+
         // Create editable copy with proper structure
         this.recipe = JSON.parse(JSON.stringify(recipe));
-        
+
         // Ensure arrays exist
         if (!this.recipe.ingredients) {
           this.recipe.ingredients = [];
@@ -41,7 +41,7 @@ export function RecipeEdit(store) {
         if (!this.recipe.labels) {
           this.recipe.labels = [];
         }
-        
+
         setRecipeTitle(`Editing: ${recipe.name}`);
       } catch (e) {
         if (e.status === 404) {
@@ -86,8 +86,8 @@ export function RecipeEdit(store) {
       if (!this.recipe.steps) {
         this.recipe.steps = [];
       }
-      const nextOrder = this.recipe.steps.length > 0 
-        ? Math.max(...this.recipe.steps.map(s => s.order)) + 1 
+      const nextOrder = this.recipe.steps.length > 0
+        ? Math.max(...this.recipe.steps.map(s => s.order)) + 1
         : 1;
       this.recipe.steps.push({
         order: nextOrder,
@@ -132,11 +132,11 @@ export function RecipeEdit(store) {
       try {
         this.saving = true;
         const updatedRecipe = await updateRecipe(store.selectedId, this.recipe);
-        
+
         // Update cache
         store.recipeCache.set(store.selectedId, updatedRecipe);
         store.selectedRecipe = updatedRecipe;
-        
+
         addNotification(store, 'Recipe updated successfully');
         store.router.goToRecipe(store.selectedId, { replace: true });
       } catch (e) {

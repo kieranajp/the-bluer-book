@@ -1,0 +1,96 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-backup
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-backup
+    app.kubernetes.io/name: {{ .Chart.Name }}-backup
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: {{ .Release.Name }}-backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999  # postgres user
+            runAsGroup: 999
+            fsGroup: 999
+          containers:
+          - name: postgres-backup
+            image: postgres:17.5-alpine
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "Starting backup process at $(date)"
+
+              # Wait for database to be ready
+              until pg_isready -h {{ .Release.Name }}-postgresql -U bluer_book -d bluer_book; do
+                echo "Waiting for database to be ready..."
+                sleep 5
+              done
+
+              # Create backup
+              BACKUP_FILE="/backup/backup-$(date +%Y%m%d-%H%M%S).sql"
+              echo "Creating backup: $BACKUP_FILE"
+              pg_dump "$DATABASE_URL" > "$BACKUP_FILE"
+
+              if [ $? -eq 0 ]; then
+                echo "Backup created successfully: $BACKUP_FILE"
+                ls -lh "$BACKUP_FILE"
+              else
+                echo "Backup failed!"
+                exit 1
+              fi
+
+              # Clean up old backups (keep last N days)
+              echo "Cleaning old backups (keeping last {{ .Values.backup.retention }} days)"
+              find /backup -name "backup-*.sql" -mtime +{{ .Values.backup.retention }} -delete
+
+              # Show remaining backups
+              echo "Remaining backups:"
+              ls -la /backup/backup-*.sql 2>/dev/null || echo "No backups found"
+
+              echo "Backup process completed successfully at $(date)"
+            env:
+            - name: DATABASE_URL
+              value: "postgres://bluer_book:$(POSTGRES_PASSWORD)@{{ .Release.Name }}-postgresql:5432/bluer_book"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bluer-book-secrets
+                  key: postgres-password
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bluer-book-secrets
+                  key: postgres-password
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "100m"
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: {{ .Release.Name }}-backup-pvc
+{{- end }}

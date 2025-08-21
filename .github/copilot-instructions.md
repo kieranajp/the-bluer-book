@@ -81,24 +81,6 @@ Concise, project-specific guidance to be productive quickly. Prefer concrete exi
 - Keep repository methods focused: assembly helpers (like `buildRecipeFromRows`) should remain isolated; add new assembly logic there instead of in handlers/services.
 - Front-end: keep each module single purpose (state in `store.js`, fetch logic in `api.js`, pagination in `pagination.js`); avoid framework dependencies – stay vanilla modular JS.
 
-#### 12a. Front-End JS Specifics (same readability rules as Go)
-- Same multiline rule: no `const f = () => doThing()` inline bodies once non-trivial; always expand:
-	```js
-	export function fetchRecipes(params) {
-		// ...logic...
-		return result;
-	}
-	```
-- Avoid `if (cond) return` one-liners; expand for clarity & future logging.
-- Keep side-effects out of pure helpers; mutation confined to store-manipulation functions.
-- Derivations belong in small pure helpers (see `derive` in `store.js`).
-- Naming: verbs for actions (`loadRecipes`), nouns for data (`recipeCache`).
-- Prefer explicit object returns over positional arrays.
-- Keep modules < ~120 lines; split (`recipes_fetch.js`, `recipes_render.js`) when mixing concerns.
-- Centralize fetch calls in `api.js`; UI modules call those abstractions, not `fetch` directly.
-- Debounce/throttle user-driven network calls in a tiny utility module if added (do not inline ad-hoc timers everywhere).
-- Error propagation: return `{ ok:false, error }` objects from API helpers; UI layer decides notification.
-
 ### 13. Safe Changes Checklist (before PR / completion)
 - Added SQL? Regenerated with `sqlc generate` and no diff outside `storage/db/` expected except new generated files.
 - New fields: repository build helper updated; API & MCP parity ensured.

@@ -1,3 +1,3 @@
-FROM postgres:17.5-alpine
+FROM postgres:17.6-alpine
 
 COPY migrations/ /docker-entrypoint-initdb.d/

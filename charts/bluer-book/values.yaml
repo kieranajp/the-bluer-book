@@ -1,4 +1,19 @@
-# PostgreSQL configuration
+app:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/kieranajp/the-bluer-book
+    tag: latest
+  service:
+    port: 8080
+    type: ClusterIP
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
 postgresql:
   enabled: true
   image:
@@ -14,23 +29,6 @@ postgresql:
       cpu: "100m"
     limits:
       memory: "512Mi"
-      cpu: "250m"
-
-# Application configuration
-app:
-  replicaCount: 1
-  image:
-    repository: ghcr.io/kieranajp/the-bluer-book
-    tag: latest
-  service:
-    port: 8080
-    type: ClusterIP
-  resources:
-    requests:
-      memory: "128Mi"
-      cpu: "100m"
-    limits:
-      memory: "256Mi"
       cpu: "250m"
 
 ingress:

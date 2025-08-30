@@ -23,10 +23,6 @@ spec:
         app.kubernetes.io/name: {{ .Chart.Name }}-postgresql
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
-      {{- if .Values.imagePullSecrets.enabled }}
-      imagePullSecrets:
-      - name: ghcr-secret
-      {{- end }}
       securityContext:
         runAsNonRoot: false  # PostgreSQL needs to run as postgres user
         runAsUser: 999       # postgres user
@@ -60,15 +56,26 @@ spec:
         - containerPort: 5432
           protocol: TCP
         env:
-        {{- range .Values.postgresql.env }}
-        - name: {{ .name }}
-          {{- if .value }}
-          value: {{ .value | quote }}
-          {{- else if .valueFrom }}
+        - name: POSTGRES_DB
           valueFrom:
-            {{- toYaml .valueFrom | nindent 12 }}
-          {{- end }}
-        {{- end }}
+            secretKeyRef:
+              name: {{ .Values.secretName }}
+              key: DB_NAME
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secretName }}
+              key: DB_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secretName }}
+              key: DB_PASS
+        - name: POSTGRES_PORT
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secretName }}
+              key: DB_PORT
         volumeMounts:
         - name: postgresql-data
           mountPath: /var/lib/postgresql/data

@@ -25,11 +25,6 @@ func main() {
 				EnvVars: []string{"LOG_LEVEL"},
 				Value:   "info",
 			},
-			&cli.StringFlag{
-				Name:    "db-dsn",
-				Usage:   "Database DSN",
-				EnvVars: []string{"DB_DSN"},
-			},
 		},
 		Commands: []*cli.Command{
 			server.Command,

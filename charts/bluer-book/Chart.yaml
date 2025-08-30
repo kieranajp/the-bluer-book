@@ -1,13 +1,4 @@
 apiVersion: v2
 name: bluer-book
 version: 0.1.0
-description: The Blue(r) Book - Recipe Management Application
 appVersion: "latest"
-keywords:
-  - recipes
-  - cooking
-  - food
-home: https://github.com/kieranajp/the-bluer-book
-maintainers:
-  - name: kieranajp
-    email: kieran@kieranajp.uk

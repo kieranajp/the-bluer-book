@@ -1,7 +1,6 @@
 # PostgreSQL configuration
 postgresql:
   enabled: true
-  # Using standard PostgreSQL image - migrations handled by app
   image:
     repository: postgres
     tag: "17.5-alpine"
@@ -9,16 +8,6 @@ postgresql:
     enabled: true
     size: 1Gi
     storageClass: local-path
-  env:
-    - name: POSTGRES_DB
-      value: "bluer_book"
-    - name: POSTGRES_USER
-      value: "bluer_book"
-    - name: POSTGRES_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: bluer-book-secrets
-          key: postgres-password
   resources:
     requests:
       memory: "256Mi"
@@ -31,19 +20,11 @@ postgresql:
 app:
   replicaCount: 1
   image:
-    repository: ghcr.io/kieranajp/bluer-book
+    repository: ghcr.io/kieranajp/the-bluer-book
     tag: latest
   service:
     port: 8080
     type: ClusterIP
-  env:
-    - name: DB_DSN
-      value: "postgres://bluer_book:$(POSTGRES_PASSWORD)@bluer-book-postgresql:5432/bluer_book?sslmode=disable"
-    - name: POSTGRES_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: bluer-book-secrets
-          key: postgres-password
   resources:
     requests:
       memory: "128Mi"
@@ -52,48 +33,16 @@ app:
       memory: "256Mi"
       cpu: "250m"
 
-# Ingress configuration (HTTP - Cloudflare handles TLS)
 ingress:
   enabled: true
-  host: "recipes.kieranajp.uk"  # Will be served over HTTPS via Cloudflare
+  host: "recipes.kieranajp.uk"
   middlewares:
-    - google-auth  # Optional: remove for public access
-  # No TLS section needed - Cloudflare Tunnel handles TLS termination
+    - google-auth
 
-# Backup configuration
-backup:
-  enabled: true
-  schedule: "0 2 * * *"  # Daily at 2 AM
-  retention: 7  # Keep 7 days of backups
-  storage:
-    size: 2Gi  # Space for backup files
-    storageClass: local-path
-
-# Secrets (will be set via --set in GitHub Actions)
+secretName: bluer-book-secrets
 secrets:
-  postgresPassword: ""
-
-# Image pull secrets
-imagePullSecrets:
-  enabled: false  # Set to true if using private images
-
-# Labels and annotations
-labels: {}
-annotations: {}
-
-# Pod security context
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
-
-# Security context for containers
-securityContext:
-  allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: false
-  runAsNonRoot: true
-  runAsUser: 1000
-  capabilities:
-    drop:
-    - ALL
+  DB_USER: "bluer_book"
+  DB_PASS: "xxx"
+  DB_NAME: "bluer_book"
+  DB_HOST: "bluer-book-postgresql"
+  DB_PORT: "5432"

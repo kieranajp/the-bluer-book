@@ -21,30 +21,17 @@ spec:
         app.kubernetes.io/name: {{ .Chart.Name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
-      {{- if .Values.imagePullSecrets.enabled }}
       imagePullSecrets:
       - name: ghcr-secret
-      {{- end }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
       - name: bluer-book
         image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
-        securityContext:
-          {{- toYaml .Values.securityContext | nindent 10 }}
         ports:
         - containerPort: {{ .Values.app.service.port }}
           protocol: TCP
-        env:
-        {{- range .Values.app.env }}
-        - name: {{ .name }}
-          {{- if .value }}
-          value: {{ .value | quote }}
-          {{- else if .valueFrom }}
-          valueFrom:
-            {{- toYaml .valueFrom | nindent 12 }}
-          {{- end }}
-        {{- end }}
+        envFrom:
+        - secretRef:
+            name: {{ .Values.secretName }}
         resources:
           {{- toYaml .Values.app.resources | nindent 10 }}
         livenessProbe:

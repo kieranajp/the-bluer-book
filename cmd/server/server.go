@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -46,7 +47,7 @@ var (
 			&cli.StringFlag{
 				Name:    "db-pass",
 				Usage:   "Database Password",
-				EnvVars: []string{"DB_PASSWORD"},
+				EnvVars: []string{"DB_PASS"},
 			},
 			&cli.StringFlag{
 				Name:    "db-name",
@@ -153,8 +154,7 @@ func run(c *cli.Context) error {
 	return nil
 }
 
-// buildDSN builds a valid PostgreSQL Data Source Name (DSN) for pq to use
 func buildDSN(user, pass, name, host, port string) string {
 	format := "postgres://%s:%s@%s:%s/%s?sslmode=disable"
-	return fmt.Sprintf(format, user, pass, host, port, name)
+	return fmt.Sprintf(format, url.QueryEscape(user), url.QueryEscape(pass), host, port, name)
 }

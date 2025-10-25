@@ -2,19 +2,23 @@
 FROM golang:1.25-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+RUN apk add --no-cache git ca-certificates tzdata nodejs npm
 
 # Set working directory
 WORKDIR /app
 
 # Copy dependency files
-COPY go.mod go.sum ./
+COPY go.mod go.sum package.json package-lock.json* ./
 
 # Download dependencies
 RUN go mod download
+RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Build CSS
+RUN npm run css
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \

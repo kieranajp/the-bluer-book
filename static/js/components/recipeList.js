@@ -14,6 +14,11 @@ export function RecipeList(store) {
       window.addEventListener('store:refresh-list', () => {
         this.load();
       });
+
+      // Listen for pagination events
+      window.addEventListener('store:page-changed', () => {
+        this.load();
+      });
     },
 
     get hasMealPlanRecipes() {

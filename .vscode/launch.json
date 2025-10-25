@@ -12,7 +12,10 @@
                 "-listen-addr", "0.0.0.0:8081",
                 "-mcp-addr", "0.0.0.0:8082"
             ],
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "DB_HOST": "localhost"
+            }
         }
     ]
 }

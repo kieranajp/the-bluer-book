@@ -11,6 +11,20 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  app:
+    profiles:
+      - app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    restart: unless-stopped
+    env_file:
+      - .env
+
 volumes:
   pgdata:
     external: true

@@ -15,6 +15,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/urfave/cli/v2"
 
+	"github.com/kieranajp/the-bluer-book/internal/application/agent"
 	"github.com/kieranajp/the-bluer-book/internal/application/api"
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
@@ -47,7 +48,7 @@ var (
 			&cli.StringFlag{
 				Name:    "db-pass",
 				Usage:   "Database Password",
-				EnvVars: []string{"DB_PASS"},
+				EnvVars: []string{"DB_PASSWORD"},
 			},
 			&cli.StringFlag{
 				Name:    "db-name",
@@ -64,16 +65,25 @@ var (
 				Usage:   "Database Port",
 				EnvVars: []string{"DB_PORT"},
 			},
+			&cli.StringFlag{
+				Name:     "google-api-key",
+				Usage:    "Google API Key for Gemini",
+				EnvVars:  []string{"GOOGLE_API_KEY"},
+				Required: true,
+			},
 		},
 		Action: run,
 	}
 )
 
 func run(c *cli.Context) error {
+	ctx := context.Background()
+
 	// Get configuration values
 	dbDSN := buildDSN(c.String("db-user"), c.String("db-pass"), c.String("db-name"), c.String("db-host"), c.String("db-port"))
 	listenAddr := c.String("listen-addr")
 	mcpAddr := c.String("mcp-addr")
+	googleAPIKey := c.String("google-api-key")
 
 	// Initialize logger
 	log := logger.New(logger.LogLevelInfo)
@@ -106,8 +116,25 @@ func run(c *cli.Context) error {
 	)
 	mcpHandler.RegisterTools(mcpServer)
 
+	// Create ADK agents
+	rootAgent, err := agent.NewRootAgent(ctx, googleAPIKey, recipeService)
+	if err != nil {
+		return fmt.Errorf("failed to create agent: %w", err)
+	}
+
+	for _, sa := range rootAgent.SubAgents() {
+		log.Info().Str("name", sa.Name()).Msg("found subagent")
+	}
+
+	chatHandler, err := agent.NewChatHandler(rootAgent, log)
+	if err != nil {
+		return fmt.Errorf("failed to create chat handler: %w", err)
+	}
+
 	// Create API router
 	router := api.NewRouter(recipeService, log)
+	router.HandleFunc("POST /api/chat", chatHandler.HandleChat)
+	router.HandleFunc("POST /api/chat/simple", chatHandler.HandleChatNonStreaming)
 
 	// Create HTTP server
 	httpServer := &http.Server{

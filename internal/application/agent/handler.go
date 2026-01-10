@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -144,60 +143,4 @@ func (h *ChatHandler) HandleChat(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, "event: done\ndata: {}\n\n")
 	flusher.Flush()
-}
-
-func (h *ChatHandler) HandleChatNonStreaming(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req ChatRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Error().Err(err).Msg("Failed to decode request")
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
-
-	userID := req.UserID
-	if userID == "" {
-		userID = "default-user"
-	}
-
-	sessionID := req.SessionID
-	if sessionID == "" {
-		sessionID = "default-session"
-	}
-
-	userMessage := &genai.Content{
-		Role: "user",
-		Parts: []*genai.Part{
-			{Text: req.Message},
-		},
-	}
-
-	runConfig := agent.RunConfig{
-		StreamingMode: agent.StreamingModeNone,
-	}
-
-	ctx := context.Background()
-	var responseText string
-	for event, err := range h.runner.Run(ctx, userID, sessionID, userMessage, runConfig) {
-		if err != nil {
-			h.logger.Error().Err(err).Msg("Error during agent run")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		if event.Content != nil {
-			for _, part := range event.Content.Parts {
-				responseText += part.Text
-			}
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"response": responseText,
-	})
 }

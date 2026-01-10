@@ -134,7 +134,6 @@ func run(c *cli.Context) error {
 	// Create API router
 	router := api.NewRouter(recipeService, log)
 	router.HandleFunc("POST /api/chat", chatHandler.HandleChat)
-	router.HandleFunc("POST /api/chat/simple", chatHandler.HandleChatNonStreaming)
 
 	// Create HTTP server
 	httpServer := &http.Server{

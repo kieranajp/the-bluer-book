@@ -35,7 +35,7 @@ ingress:
   enabled: true
   host: "recipes.kieranajp.uk"
   middlewares:
-    - google-auth
+    - ory-auth
 
 secretName: bluer-book-secrets
 secrets:

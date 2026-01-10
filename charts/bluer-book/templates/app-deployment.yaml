@@ -26,6 +26,15 @@ spec:
       containers:
       - name: bluer-book
         image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
         ports:
         - containerPort: {{ .Values.app.service.port }}
           protocol: TCP

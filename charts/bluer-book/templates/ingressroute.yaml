@@ -11,18 +11,19 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   entryPoints:
-    - web  # HTTP entry point - Cloudflare Tunnel handles TLS
+    - websecure
   routes:
-  - match: Host(`{{ .Values.ingress.host }}`)
-    kind: Rule
+  - kind: Rule
+    match: Host(`{{ .Values.ingress.host }}`)
     {{- if .Values.ingress.middlewares }}
     middlewares:
     {{- range .Values.ingress.middlewares }}
     - name: {{ . }}
-      namespace: homelab  # Where your google-auth middleware lives
     {{- end }}
     {{- end }}
     services:
     - name: {{ .Release.Name }}
       port: {{ .Values.app.service.port }}
+  tls:
+    certResolver: letsencrypt
 {{- end }}

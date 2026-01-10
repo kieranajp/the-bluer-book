@@ -47,6 +47,9 @@ export function createStore() {
 
     // Internal flags (migration bridging)
     updatingFromRoute: false,
+
+    // Chat visibility
+    chatVisible: false,
   };
 }
 

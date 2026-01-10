@@ -24,31 +24,22 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       securityContext:
-        runAsNonRoot: false  # PostgreSQL needs to run as postgres user
-        runAsUser: 999       # postgres user
+        runAsNonRoot: true
+        runAsUser: 999
         runAsGroup: 999
         fsGroup: 999
-      initContainers:
-      - name: postgres-data-permission-fix
-        image: busybox:1.35
-        command:
-        - /bin/chown
-        - -R
-        - "999:999"
-        - /var/lib/postgresql/data
-        volumeMounts:
-        - name: postgresql-data
-          mountPath: /var/lib/postgresql/data
-        securityContext:
-          runAsUser: 0  # Need root to chown
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: postgresql
         image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
-          runAsNonRoot: false  # PostgreSQL needs postgres user
+          runAsNonRoot: true
           runAsUser: 999
+          seccompProfile:
+            type: RuntimeDefault
           capabilities:
             drop:
             - ALL

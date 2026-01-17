@@ -1,0 +1,10 @@
+{
+  "files.exclude": {
+    "app/android/": true,
+    "app/ios/": true,
+    "app/macos/": true,
+    "app/web/": true,
+    "app/linux/": true,
+    "app/windows/": true
+  }
+}

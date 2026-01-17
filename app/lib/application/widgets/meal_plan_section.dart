@@ -18,21 +18,9 @@ class MealPlanSection extends ConsumerWidget {
         SizedBox(height: Spacing.m),
         Padding(
           padding: Spacing.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Meal Plan',
-                style: TextStyles.sectionHeading(context),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: Text(
-                  'See All',
-                  style: TextStyles.button(context),
-                ),
-              ),
-            ],
+          child: Text(
+            'Meal Plan',
+            style: TextStyles.sectionHeading(context),
           ),
         ),
         SizedBox(height: Spacing.s),

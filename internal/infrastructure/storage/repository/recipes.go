@@ -275,7 +275,7 @@ func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, s
 		searchParam = sql.NullString{String: search, Valid: true}
 	}
 
-	// If no labels filter is provided, use existing query for performance
+	// If no labels filter is provided, use standard query
 	if len(labels) == 0 {
 		// Get count first
 		count, err := q.CountRecipes(ctx, search)
@@ -284,7 +284,7 @@ func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, s
 		}
 
 		// Get recipes with meal plan status
-		recipeRows, err := q.ListRecipesWithMealPlanStatus(ctx, db.ListRecipesWithMealPlanStatusParams{
+		recipeRows, err := q.ListRecipes(ctx, db.ListRecipesParams{
 			Limit:   int32(limit),
 			Offset:  int32(offset),
 			Column3: search,
@@ -297,7 +297,7 @@ func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, s
 		for i, row := range recipeRows {
 			rec, err := r.buildRecipeFromRows(ctx, q, row.Uuid, row.Name, row.Description,
 				row.CookTime, row.PrepTime, row.Servings, row.Url,
-				row.CreatedAt, row.UpdatedAt, row.MainPhotoID, sql.NullString{})
+				row.CreatedAt, row.UpdatedAt, row.MainPhotoUuid, row.MainPhotoUrl)
 			if err != nil {
 				return nil, 0, err
 			}

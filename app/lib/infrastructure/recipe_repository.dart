@@ -45,4 +45,20 @@ class RecipeRepository {
       throw Exception('Failed to toggle favourite: ${e.message}');
     }
   }
+
+  Future<void> addToMealPlan(String uuid) async {
+    try {
+      await _apiClient.dio.post('/recipes/$uuid/meal-plan');
+    } on DioException catch (e) {
+      throw Exception('Failed to add to meal plan: ${e.message}');
+    }
+  }
+
+  Future<void> removeFromMealPlan(String uuid) async {
+    try {
+      await _apiClient.dio.delete('/recipes/$uuid/meal-plan');
+    } on DioException catch (e) {
+      throw Exception('Failed to remove from meal plan: ${e.message}');
+    }
+  }
 }

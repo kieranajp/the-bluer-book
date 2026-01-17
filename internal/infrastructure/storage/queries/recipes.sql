@@ -124,9 +124,11 @@ WHERE r.name = $1 AND r.archived_at IS NULL;
 
 -- name: ListRecipes :many
 SELECT r.*,
-       p.uuid as main_photo_uuid, p.url as main_photo_url
+       p.uuid as main_photo_uuid, p.url as main_photo_url,
+       CASE WHEN mp.recipe_id IS NOT NULL THEN TRUE ELSE FALSE END as is_in_meal_plan
 FROM recipes r
 LEFT JOIN photos p ON r.main_photo_id = p.uuid
+LEFT JOIN meal_plan_recipes mp ON r.uuid = mp.recipe_id
 WHERE r.archived_at IS NULL
   AND ($3::text = '' OR r.name ILIKE '%' || $3 || '%' OR r.description ILIKE '%' || $3 || '%')
 ORDER BY r.created_at DESC

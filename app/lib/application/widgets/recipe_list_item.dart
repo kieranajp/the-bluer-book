@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../domain/recipe.dart';
 import '../screens/recipe_details_screen.dart';
 import '../styles/colours.dart';
+import '../providers/recipe_providers.dart';
 
-class RecipeListItem extends StatelessWidget {
+class RecipeListItem extends ConsumerWidget {
   final Recipe recipe;
 
   const RecipeListItem({super.key, required this.recipe});
@@ -23,7 +25,7 @@ class RecipeListItem extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final totalTime = recipe.preparationTime + recipe.cookingTime;
 
     return GestureDetector(
@@ -93,7 +95,33 @@ class RecipeListItem extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       GestureDetector(
-                        onTap: () {},
+                        onTap: () async {
+                          final notifier = ref.read(recipeListProvider.notifier);
+                          try {
+                            await notifier.toggleMealPlan(recipe.uuid);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    recipe.isFavourite
+                                        ? 'Removed from meal plan'
+                                        : 'Added to meal plan',
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to update meal plan'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          }
+                        },
                         child: Icon(
                           recipe.isFavourite ? Icons.star : Icons.star_border,
                           color: recipe.isFavourite

@@ -14,7 +14,7 @@ class RecipeListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allRecipesAsync = ref.watch(allRecipesProvider);
+    final allRecipesAsync = ref.watch(recipeListProvider);
 
     return Scaffold(
       backgroundColor: context.colours.background,

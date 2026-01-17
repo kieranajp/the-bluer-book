@@ -19,9 +19,7 @@ WHERE r.archived_at IS NULL
             HAVING COUNT(DISTINCT l2.name) = array_length(sqlc.arg('label_names')::text[], 1)
         )
     )
-ORDER BY
-    CASE WHEN mp.recipe_id IS NOT NULL THEN 0 ELSE 1 END,
-    r.name
+ORDER BY r.created_at DESC
 LIMIT sqlc.arg('recipe_limit')
 OFFSET sqlc.arg('recipe_offset');
 

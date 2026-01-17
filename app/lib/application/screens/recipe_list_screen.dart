@@ -14,7 +14,7 @@ class RecipeListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allRecipesAsync = ref.watch(recipeListProvider);
+    final allRecipesAsync = ref.watch(filteredRecipesProvider);
 
     return Scaffold(
       backgroundColor: context.colours.background,
@@ -45,8 +45,12 @@ class RecipeListScreen extends ConsumerWidget {
             ),
 
             // Search bar
-            const SliverToBoxAdapter(
-              child: RecipeSearchBar(),
+            SliverToBoxAdapter(
+              child: RecipeSearchBar(
+                onChanged: (query) {
+                  ref.read(searchQueryProvider.notifier).state = query;
+                },
+              ),
             ),
 
             // Meal plan section

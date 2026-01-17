@@ -135,3 +135,23 @@ final recipeDetailProvider = StateNotifierProvider.family<RecipeDetailNotifier, 
   notifier.loadRecipe(id);
   return notifier;
 });
+
+// Search query state
+final searchQueryProvider = StateProvider<String>((ref) => '');
+
+// Filtered recipes based on search query
+final filteredRecipesProvider = Provider<AsyncValue<List<Recipe>>>((ref) {
+  final recipesAsync = ref.watch(recipeListProvider);
+  final searchQuery = ref.watch(searchQueryProvider).toLowerCase();
+
+  return recipesAsync.whenData((recipes) {
+    if (searchQuery.isEmpty) {
+      return recipes;
+    }
+
+    return recipes.where((recipe) {
+      return recipe.name.toLowerCase().contains(searchQuery) ||
+             (recipe.description?.toLowerCase().contains(searchQuery) ?? false);
+    }).toList();
+  });
+});

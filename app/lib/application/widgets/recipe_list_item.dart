@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../domain/recipe.dart';
 import '../screens/recipe_details_screen.dart';
+import '../styles/colours.dart';
 
 class RecipeListItem extends StatelessWidget {
   final Recipe recipe;
@@ -36,12 +37,12 @@ class RecipeListItem extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.colours.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFF0F0F0)),
+          border: Border.all(color: context.colours.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: context.colours.shadow,
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -56,7 +57,7 @@ class RecipeListItem extends StatelessWidget {
               height: 96,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                color: const Color(0xFFE0E0E0),
+                color: context.colours.border,
                 image: recipe.imageUrl != null
                     ? DecorationImage(
                         image: NetworkImage(recipe.imageUrl!),
@@ -65,7 +66,7 @@ class RecipeListItem extends StatelessWidget {
                     : null,
               ),
               child: recipe.imageUrl == null
-                  ? const Icon(Icons.restaurant, size: 32, color: Colors.white54)
+                  ? Icon(Icons.restaurant, size: 32, color: context.colours.textSecondary.withValues(alpha: 0.4))
                   : null,
             ),
             const SizedBox(width: 16),
@@ -84,7 +85,7 @@ class RecipeListItem extends StatelessWidget {
                           style: GoogleFonts.workSans(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF121416),
+                            color: context.colours.textPrimary,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -96,8 +97,8 @@ class RecipeListItem extends StatelessWidget {
                         child: Icon(
                           recipe.isFavourite ? Icons.star : Icons.star_border,
                           color: recipe.isFavourite
-                              ? const Color(0xFF4E6983)
-                              : const Color(0xFFD0D0D0),
+                              ? context.colours.primary
+                              : context.colours.textSecondary.withValues(alpha: 0.3),
                           size: 24,
                         ),
                       ),
@@ -108,7 +109,7 @@ class RecipeListItem extends StatelessWidget {
                     recipe.description,
                     style: GoogleFonts.workSans(
                       fontSize: 12,
-                      color: const Color(0xFF67737E),
+                      color: context.colours.textSecondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -122,17 +123,17 @@ class RecipeListItem extends StatelessWidget {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.schedule,
                             size: 16,
-                            color: Color(0xFF67737E),
+                            color: context.colours.textSecondary,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '${totalTime}m',
                             style: GoogleFonts.workSans(
                               fontSize: 12,
-                              color: const Color(0xFF67737E),
+                              color: context.colours.textSecondary,
                             ),
                           ),
                         ],
@@ -145,7 +146,7 @@ class RecipeListItem extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: labelColor.withOpacity(0.1),
+                            color: labelColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(

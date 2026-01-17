@@ -4,6 +4,7 @@ import '../providers/recipe_providers.dart';
 import '../widgets/recipe_list_item.dart';
 import '../widgets/search_bar.dart';
 import '../widgets/meal_plan_section.dart';
+import '../widgets/theme_selector_dialog.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
@@ -16,19 +17,31 @@ class RecipeListScreen extends ConsumerWidget {
     final allRecipesAsync = ref.watch(allRecipesProvider);
 
     return Scaffold(
-      backgroundColor: Colours.background,
+      backgroundColor: context.colours.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
             // App bar
             SliverAppBar(
               floating: true,
-              backgroundColor: Colours.background,
+              backgroundColor: context.colours.background,
               elevation: 0,
               title: Text(
                 'My Kitchen',
-                style: TextStyles.appBarTitle,
+                style: TextStyles.appBarTitle(context),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.brightness_6),
+                  tooltip: 'Theme',
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const ThemeSelectorDialog(),
+                    );
+                  },
+                ),
+              ],
             ),
 
             // Search bar
@@ -52,7 +65,7 @@ class RecipeListScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   'All Recipes',
-                  style: TextStyles.sectionHeading,
+                  style: TextStyles.sectionHeading(context),
                 ),
               ),
             ),
@@ -99,8 +112,8 @@ class RecipeListScreen extends ConsumerWidget {
       // Add recipe button
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
-        backgroundColor: Colours.primary,
-        child: const Icon(Icons.add, size: 28),
+        backgroundColor: context.colours.primary,
+        child: const Icon(Icons.add, size: 28, color: Colors.white),
       ),
     );
   }

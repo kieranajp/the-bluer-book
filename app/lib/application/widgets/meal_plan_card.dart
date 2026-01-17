@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../domain/recipe.dart';
 import '../screens/recipe_details_screen.dart';
+import '../styles/colours.dart';
 
 class MealPlanCard extends StatelessWidget {
   final Recipe recipe;
@@ -24,12 +25,12 @@ class MealPlanCard extends StatelessWidget {
       child: Container(
         width: 200,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.colours.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFF0F0F0)),
+          border: Border.all(color: context.colours.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: context.colours.shadow,
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -47,7 +48,7 @@ class MealPlanCard extends StatelessWidget {
                   height: 140,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    color: const Color(0xFFE0E0E0),
+                    color: context.colours.border,
                     image: recipe.imageUrl != null
                         ? DecorationImage(
                             image: NetworkImage(recipe.imageUrl!),
@@ -56,7 +57,7 @@ class MealPlanCard extends StatelessWidget {
                         : null,
                   ),
                   child: recipe.imageUrl == null
-                      ? const Icon(Icons.restaurant, size: 48, color: Colors.white54)
+                      ? Icon(Icons.restaurant, size: 48, color: context.colours.textSecondary.withValues(alpha: 0.4))
                       : null,
                 ),
                 Positioned(
@@ -67,11 +68,11 @@ class MealPlanCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4E6983).withOpacity(0.9),
+                        color: const Color(0xFF4E6983).withValues(alpha: 0.9),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 4,
                           ),
                         ],
@@ -92,7 +93,7 @@ class MealPlanCard extends StatelessWidget {
               style: GoogleFonts.workSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF121416),
+                color: context.colours.textPrimary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -100,17 +101,17 @@ class MealPlanCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.schedule,
                   size: 14,
-                  color: Color(0xFF67737E),
+                  color: context.colours.textSecondary,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   '${totalTime}m',
                   style: GoogleFonts.workSans(
                     fontSize: 12,
-                    color: const Color(0xFF67737E),
+                    color: context.colours.textSecondary,
                   ),
                 ),
               ],

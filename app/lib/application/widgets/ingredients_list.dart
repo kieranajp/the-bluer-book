@@ -31,7 +31,7 @@ class IngredientsList extends StatelessWidget {
                 Expanded(
                   child: Text(
                     _formatIngredient(ingredient),
-                    style: TextStyles.bodyText,
+                    style: TextStyles.bodyText(context),
                   ),
                 ),
               ],

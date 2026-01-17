@@ -23,13 +23,13 @@ class MealPlanSection extends ConsumerWidget {
             children: [
               Text(
                 'Meal Plan',
-                style: TextStyles.sectionHeading,
+                style: TextStyles.sectionHeading(context),
               ),
               TextButton(
                 onPressed: () {},
                 child: Text(
                   'See All',
-                  style: TextStyles.button,
+                  style: TextStyles.button(context),
                 ),
               ),
             ],

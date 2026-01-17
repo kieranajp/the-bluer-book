@@ -17,14 +17,14 @@ class RecipeDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colours.background,
+      backgroundColor: context.colours.background,
       body: CustomScrollView(
         slivers: [
           // Hero image with back button
           SliverAppBar(
             expandedHeight: 250,
             pinned: false,
-            backgroundColor: Colours.background,
+            backgroundColor: context.colours.background,
             leading: Padding(
               padding: const EdgeInsets.all(Spacing.xs),
               child: CircleAvatar(
@@ -98,7 +98,7 @@ class _AddToMealPlanButton extends StatelessWidget {
             // TODO: Implement add to meal plan functionality
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colours.primary,
+            backgroundColor: context.colours.primary,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -107,7 +107,7 @@ class _AddToMealPlanButton extends StatelessWidget {
           ),
           child: Text(
             'Add to Meal Plan',
-            style: TextStyles.buttonText,
+            style: TextStyles.buttonText(context),
           ),
         ),
       ),

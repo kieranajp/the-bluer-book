@@ -21,12 +21,12 @@ class RecipeStatsCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: Spacing.m),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.colours.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFF0F0F0)),
+          border: Border.all(color: context.colours.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -75,11 +75,11 @@ class _StatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, size: 24, color: Colours.primary),
+        Icon(icon, size: 24, color: context.colours.primary),
         const SizedBox(height: 4),
-        Text(label, style: TextStyles.caption),
+        Text(label, style: TextStyles.caption(context)),
         const SizedBox(height: 2),
-        Text(value, style: TextStyles.statValue),
+        Text(value, style: TextStyles.statValue(context)),
       ],
     );
   }
@@ -91,7 +91,7 @@ class _StatDivider extends StatelessWidget {
     return Container(
       width: 1,
       height: 40,
-      color: const Color(0xFFF0F0F0),
+      color: context.colours.border,
     );
   }
 }

@@ -23,14 +23,14 @@ class RecipeSearchBar extends StatelessWidget {
       ),
       child: Container(
         height: Spacing.searchBarHeight,
-        decoration: Decorations.searchBar,
+        decoration: Decorations.searchBar(context),
         child: Row(
           children: [
             Padding(
               padding: Spacing.searchIconPadding,
               child: Icon(
                 Icons.search,
-                color: Colours.textSecondary,
+                color: context.colours.textSecondary,
                 size: 24,
               ),
             ),
@@ -39,10 +39,10 @@ class RecipeSearchBar extends StatelessWidget {
                 onChanged: onChanged,
                 decoration: InputDecoration(
                   hintText: hintText,
-                  hintStyle: TextStyles.searchHint,
+                  hintStyle: TextStyles.searchHint(context),
                   border: InputBorder.none,
                 ),
-                style: TextStyles.body,
+                style: TextStyles.body(context),
               ),
             ),
           ],

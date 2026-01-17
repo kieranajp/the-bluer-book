@@ -25,7 +25,7 @@ class RecipeHeader extends StatelessWidget {
           // Title
           Text(
             name,
-            style: TextStyles.pageTitle,
+            style: TextStyles.pageTitle(context),
           ),
           const SizedBox(height: Spacing.xs),
 
@@ -36,7 +36,7 @@ class RecipeHeader extends StatelessWidget {
           // Description
           Text(
             description,
-            style: TextStyles.bodyText,
+            style: TextStyles.bodyText(context),
           ),
 
           const SizedBox(height: Spacing.m),
@@ -89,16 +89,16 @@ class _RecipeTag extends StatelessWidget {
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: tagColor.withOpacity(0.1),
+        color: tagColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: tagColor.withOpacity(0.3),
+          color: tagColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
       child: Text(
         text.toUpperCase(),
-        style: TextStyles.tag.copyWith(color: tagColor),
+        style: TextStyles.tag(context).copyWith(color: tagColor),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../styles/colours.dart';
 
 class RecipeHeroImage extends StatelessWidget {
   final String? imageUrl;
@@ -17,11 +18,11 @@ class RecipeHeroImage extends StatelessWidget {
                 fit: BoxFit.cover,
               )
             : Container(
-                color: const Color(0xFFE0E0E0),
-                child: const Icon(
+                color: context.colours.border,
+                child: Icon(
                   Icons.restaurant,
                   size: 64,
-                  color: Colors.white54,
+                  color: context.colours.textSecondary.withValues(alpha: 0.5),
                 ),
               ),
 
@@ -32,7 +33,7 @@ class RecipeHeroImage extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withOpacity(0.3),
+                Colors.black.withValues(alpha: 0.3),
                 Colors.transparent,
               ],
             ),

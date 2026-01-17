@@ -14,10 +14,10 @@ class RecipeTabBar extends SliverPersistentHeaderDelegate {
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
       decoration: BoxDecoration(
-        color: Colours.background,
+        color: context.colours.background,
         border: Border(
           bottom: BorderSide(
-            color: const Color(0xFFF0F0F0),
+            color: context.colours.border,
             width: 1,
           ),
         ),
@@ -34,14 +34,14 @@ class RecipeTabBar extends SliverPersistentHeaderDelegate {
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: Colours.primary,
+                      color: context.colours.primary,
                       width: 2,
                     ),
                   ),
                 ),
                 child: Text(
                   'Ingredients',
-                  style: TextStyles.tabActive,
+                  style: TextStyles.tabActive(context),
                 ),
               ),
             ),
@@ -53,7 +53,7 @@ class RecipeTabBar extends SliverPersistentHeaderDelegate {
                 padding: const EdgeInsets.symmetric(vertical: Spacing.m),
                 child: Text(
                   'Instructions',
-                  style: TextStyles.tabInactive,
+                  style: TextStyles.tabInactive(context),
                 ),
               ),
             ),

@@ -4,6 +4,14 @@ import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 
 class RecipeTabBar extends SliverPersistentHeaderDelegate {
+  final int selectedTab;
+  final Function(int) onTabSelected;
+
+  RecipeTabBar({
+    required this.selectedTab,
+    required this.onTabSelected,
+  });
+
   @override
   double get minExtent => 56;
 
@@ -26,34 +34,56 @@ class RecipeTabBar extends SliverPersistentHeaderDelegate {
         padding: const EdgeInsets.symmetric(horizontal: Spacing.m),
         child: Row(
           children: [
-            // Ingredients tab (active)
+            // Ingredients tab
             Expanded(
-              child: Container(
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(vertical: Spacing.m),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: context.colours.primary,
-                      width: 2,
-                    ),
+              child: GestureDetector(
+                onTap: () => onTabSelected(0),
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: Spacing.m),
+                  decoration: BoxDecoration(
+                    border: selectedTab == 0
+                        ? Border(
+                            bottom: BorderSide(
+                              color: context.colours.primary,
+                              width: 2,
+                            ),
+                          )
+                        : null,
                   ),
-                ),
-                child: Text(
-                  'Ingredients',
-                  style: TextStyles.tabActive(context),
+                  child: Text(
+                    'Ingredients',
+                    style: selectedTab == 0
+                        ? TextStyles.tabActive(context)
+                        : TextStyles.tabInactive(context),
+                  ),
                 ),
               ),
             ),
 
-            // Instructions tab (inactive, for future)
+            // Instructions tab
             Expanded(
-              child: Container(
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(vertical: Spacing.m),
-                child: Text(
-                  'Instructions',
-                  style: TextStyles.tabInactive(context),
+              child: GestureDetector(
+                onTap: () => onTabSelected(1),
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: Spacing.m),
+                  decoration: BoxDecoration(
+                    border: selectedTab == 1
+                        ? Border(
+                            bottom: BorderSide(
+                              color: context.colours.primary,
+                              width: 2,
+                            ),
+                          )
+                        : null,
+                  ),
+                  child: Text(
+                    'Instructions',
+                    style: selectedTab == 1
+                        ? TextStyles.tabActive(context)
+                        : TextStyles.tabInactive(context),
+                  ),
                 ),
               ),
             ),
@@ -64,7 +94,7 @@ class RecipeTabBar extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    return false;
+  bool shouldRebuild(covariant RecipeTabBar oldDelegate) {
+    return oldDelegate.selectedTab != selectedTab;
   }
 }

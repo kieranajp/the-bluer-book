@@ -5,14 +5,28 @@ import '../widgets/recipe_header.dart';
 import '../widgets/recipe_stats_card.dart';
 import '../widgets/recipe_tab_bar.dart';
 import '../widgets/ingredients_list.dart';
+import '../widgets/instructions_list.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 
-class RecipeDetailsScreen extends StatelessWidget {
+class RecipeDetailsScreen extends StatefulWidget {
   final Recipe recipe;
 
   const RecipeDetailsScreen({super.key, required this.recipe});
+
+  @override
+  State<RecipeDetailsScreen> createState() => _RecipeDetailsScreenState();
+}
+
+class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
+  int _selectedTab = 0;
+
+  void _onTabSelected(int index) {
+    setState(() {
+      _selectedTab = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,25 +51,25 @@ class RecipeDetailsScreen extends StatelessWidget {
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              background: RecipeHeroImage(imageUrl: recipe.imageUrl),
+              background: RecipeHeroImage(imageUrl: widget.recipe.imageUrl),
             ),
           ),
 
           // Recipe header
           SliverToBoxAdapter(
             child: RecipeHeader(
-              name: recipe.name,
-              description: recipe.description,
-              labels: recipe.labels,
+              name: widget.recipe.name,
+              description: widget.recipe.description,
+              labels: widget.recipe.labels,
             ),
           ),
 
           // Stats card
           SliverToBoxAdapter(
             child: RecipeStatsCard(
-              preparationTime: recipe.preparationTime,
-              cookingTime: recipe.cookingTime,
-              servings: recipe.servings,
+              preparationTime: widget.recipe.preparationTime,
+              cookingTime: widget.recipe.cookingTime,
+              servings: widget.recipe.servings,
             ),
           ),
 
@@ -67,12 +81,17 @@ class RecipeDetailsScreen extends StatelessWidget {
           // Sticky tab bar
           SliverPersistentHeader(
             pinned: true,
-            delegate: RecipeTabBar(),
+            delegate: RecipeTabBar(
+              selectedTab: _selectedTab,
+              onTabSelected: _onTabSelected,
+            ),
           ),
 
-          // Ingredients list
+          // Tab content (Ingredients or Instructions)
           SliverToBoxAdapter(
-            child: IngredientsList(ingredients: recipe.ingredients),
+            child: _selectedTab == 0
+                ? IngredientsList(ingredients: widget.recipe.ingredients)
+                : InstructionsList(steps: widget.recipe.steps),
           ),
 
           // Bottom spacing

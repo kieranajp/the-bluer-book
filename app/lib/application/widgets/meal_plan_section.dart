@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/recipe_providers.dart';
-import '../styles/typography.dart';
+import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 import 'meal_plan_card.dart';
 
@@ -23,13 +23,13 @@ class MealPlanSection extends ConsumerWidget {
             children: [
               Text(
                 'Meal Plan',
-                style: Typography.sectionHeading,
+                style: TextStyles.sectionHeading,
               ),
               TextButton(
                 onPressed: () {},
                 child: Text(
                   'See All',
-                  style: Typography.button,
+                  style: TextStyles.button,
                 ),
               ),
             ],

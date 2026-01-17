@@ -20,7 +20,7 @@ class RecipeRepository {
 
   Future<List<Recipe>> getFavouriteRecipes() async {
     try {
-      final response = await _apiClient.dio.get('/recipes?isInMealPlan=true');
+      final response = await _apiClient.dio.get('/recipes/meal-plan');
       final Map<String, dynamic> data = response.data;
       final List<dynamic> recipes = data['recipes'];
       return recipes.map((json) => Recipe.fromJson(json)).toList();

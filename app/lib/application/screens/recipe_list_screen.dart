@@ -5,7 +5,7 @@ import '../widgets/recipe_list_item.dart';
 import '../widgets/search_bar.dart';
 import '../widgets/meal_plan_section.dart';
 import '../styles/colours.dart';
-import '../styles/typography.dart';
+import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 
 class RecipeListScreen extends ConsumerWidget {
@@ -27,7 +27,7 @@ class RecipeListScreen extends ConsumerWidget {
               elevation: 0,
               title: Text(
                 'My Kitchen',
-                style: Typography.appBarTitle,
+                style: TextStyles.appBarTitle,
               ),
             ),
 
@@ -52,7 +52,7 @@ class RecipeListScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   'All Recipes',
-                  style: Typography.sectionHeading,
+                  style: TextStyles.sectionHeading,
                 ),
               ),
             ),

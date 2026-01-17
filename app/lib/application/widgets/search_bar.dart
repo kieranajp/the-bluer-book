@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../styles/colours.dart';
-import '../styles/typography.dart';
+import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 import '../styles/decorations.dart';
 
@@ -39,10 +39,10 @@ class RecipeSearchBar extends StatelessWidget {
                 onChanged: onChanged,
                 decoration: InputDecoration(
                   hintText: hintText,
-                  hintStyle: Typography.searchHint,
+                  hintStyle: TextStyles.searchHint,
                   border: InputBorder.none,
                 ),
-                style: Typography.body,
+                style: TextStyles.body,
               ),
             ),
           ],

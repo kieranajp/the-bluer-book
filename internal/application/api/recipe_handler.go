@@ -343,3 +343,21 @@ func (h *RecipeHandler) RemoveFromMealPlan(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNoContent)
 	h.logger.Info().Str("recipe_id", recipeID.String()).Msg("Recipe removed from meal plan")
 }
+
+// GET /api/recipes/meal-plan - List meal plan recipes
+func (h *RecipeHandler) ListMealPlanRecipes(w http.ResponseWriter, r *http.Request) {
+	recipes, err := h.recipeService.ListMealPlanRecipes(r.Context())
+	if err != nil {
+		h.logger.Error().Err(err).Msg("Failed to list meal plan recipes")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "listing_failed", "Failed to list meal plan recipes")
+		return
+	}
+
+	response := map[string]interface{}{
+		"recipes": recipes,
+		"total":   len(recipes),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}

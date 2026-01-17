@@ -19,6 +19,7 @@ func NewRouter(recipeService service.RecipeService, logger logger.Logger) http.H
 
 	mux.HandleFunc("GET /api/recipes", recipeHandler.ListRecipes)
 	mux.HandleFunc("GET /api/recipes/archived", recipeHandler.ListArchivedRecipes)
+	mux.HandleFunc("GET /api/recipes/meal-plan", recipeHandler.ListMealPlanRecipes)
 	mux.HandleFunc("GET /api/recipes/{id}", recipeHandler.GetRecipe)
 	mux.HandleFunc("DELETE /api/recipes/{id}", recipeHandler.DeleteRecipe)
 	mux.HandleFunc("POST /api/recipes/{id}/restore", recipeHandler.RestoreRecipe)

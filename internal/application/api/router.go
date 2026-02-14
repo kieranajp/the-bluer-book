@@ -10,7 +10,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 )
 
-func NewRouter(recipeService service.RecipeService, logger logger.Logger) http.Handler {
+func NewRouter(recipeService service.RecipeService, logger logger.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Create handlers

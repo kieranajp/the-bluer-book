@@ -27,7 +27,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -o bluer-book ./main.go
 
 # Runtime stage
-FROM alpine:3.19
+FROM alpine:3.22
 
 # Install CA certificates and timezone data
 RUN apk add --no-cache ca-certificates tzdata

@@ -9,6 +9,7 @@ import { RecipeDetail } from './components/recipeDetail.js';
 import { RecipeEdit } from './components/recipeEdit.js';
 import { MainContent } from './components/mainContent.js';
 import { LabelFilter } from './components/labelFilter.js';
+import { Chat } from './components/chat.js';
 
 async function startApp() {
   let Alpine;
@@ -33,6 +34,7 @@ async function startApp() {
   Alpine.data('RecipeEdit', () => RecipeEdit(store));
   Alpine.data('MainContent', () => MainContent(store));
   Alpine.data('LabelFilter', () => LabelFilter(store));
+  Alpine.data('Chat', Chat);
 
   window.addNotification = function(message, timeout = 4000) {
     return notify.add(store, message, timeout);

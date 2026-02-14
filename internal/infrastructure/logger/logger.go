@@ -9,6 +9,7 @@ import (
 type Logger interface {
 	Info() *zerolog.Event
 	Debug() *zerolog.Event
+	Warn() *zerolog.Event
 	Error() *zerolog.Event
 }
 
@@ -52,6 +53,10 @@ func (l *zerologLogger) Info() *zerolog.Event {
 
 func (l *zerologLogger) Debug() *zerolog.Event {
 	return l.logger.Debug()
+}
+
+func (l *zerologLogger) Warn() *zerolog.Event {
+	return l.logger.Warn()
 }
 
 func (l *zerologLogger) Error() *zerolog.Event {

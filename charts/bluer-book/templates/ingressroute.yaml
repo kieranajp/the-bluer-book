@@ -13,6 +13,11 @@ spec:
   entryPoints:
     - web  # HTTP entry point - Cloudflare Tunnel handles TLS
   routes:
+  - match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/mcp`)
+    kind: Rule
+    services:
+    - name: {{ .Release.Name }}-mcp
+      port: {{ .Values.mcp.service.port }}
   - match: Host(`{{ .Values.ingress.host }}`)
     kind: Rule
     {{- if .Values.ingress.middlewares }}

@@ -40,9 +40,6 @@ ingress:
 mcp:
   service:
     port: 8082
-  ingress:
-    enabled: true
-    host: "mcp-recipes.kieranajp.uk"
 
 secretName: bluer-book-secrets
 secrets:

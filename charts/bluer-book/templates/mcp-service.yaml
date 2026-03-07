@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-mcp
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Chart.Name }}-mcp
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.mcp.service.port }}
+    targetPort: {{ .Values.mcp.service.port }}
+    protocol: TCP
+    name: http
+  selector:
+    app: {{ .Release.Name }}

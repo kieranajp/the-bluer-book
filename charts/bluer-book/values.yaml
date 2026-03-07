@@ -37,6 +37,13 @@ ingress:
   middlewares:
     - google-auth
 
+mcp:
+  service:
+    port: 8082
+  ingress:
+    enabled: true
+    host: "mcp-recipes.kieranajp.uk"
+
 secretName: bluer-book-secrets
 secrets:
   DB_USER: "bluer_book"

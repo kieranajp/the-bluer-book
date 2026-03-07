@@ -23,11 +23,22 @@ spec:
     spec:
       imagePullSecrets:
       - name: ghcr-secret
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: bluer-book
         image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
         ports:
         - containerPort: {{ .Values.app.service.port }}
+          protocol: TCP
+        - containerPort: {{ .Values.mcp.service.port }}
           protocol: TCP
         envFrom:
         - secretRef:

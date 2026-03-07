@@ -35,7 +35,8 @@ ingress:
   enabled: true
   host: "recipes.kieranajp.uk"
   middlewares:
-    - google-auth
+    - name: ory-auth
+      namespace: auth
 
 mcp:
   service:

@@ -4,30 +4,27 @@ kind: IngressRoute
 metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
-  labels:
-    app.kubernetes.io/name: {{ .Chart.Name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/version: {{ .Chart.AppVersion }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   entryPoints:
-    - web  # HTTP entry point - Cloudflare Tunnel handles TLS
+    - websecure
   routes:
-  - match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/mcp`)
-    kind: Rule
-    services:
-    - name: {{ .Release.Name }}-mcp
-      port: {{ .Values.mcp.service.port }}
-  - match: Host(`{{ .Values.ingress.host }}`)
-    kind: Rule
-    {{- if .Values.ingress.middlewares }}
-    middlewares:
-    {{- range .Values.ingress.middlewares }}
-    - name: {{ . }}
-      namespace: homelab  # Where your google-auth middleware lives
-    {{- end }}
-    {{- end }}
-    services:
-    - name: {{ .Release.Name }}
-      port: {{ .Values.app.service.port }}
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/mcp`)
+      services:
+        - name: {{ .Release.Name }}-mcp
+          port: {{ .Values.mcp.service.port }}
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`)
+      {{- if .Values.ingress.middlewares }}
+      middlewares:
+        {{- range .Values.ingress.middlewares }}
+        - name: {{ .name }}
+          namespace: {{ .namespace }}
+        {{- end }}
+      {{- end }}
+      services:
+        - name: {{ .Release.Name }}
+          port: {{ .Values.app.service.port }}
+  tls:
+    certResolver: letsencrypt
 {{- end }}

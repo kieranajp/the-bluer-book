@@ -8,11 +8,22 @@ spec:
   entryPoints:
     - websecure
   routes:
+    # MCP route — no auth (MCP server handles its own auth)
     - kind: Rule
       match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/mcp`)
       services:
         - name: {{ .Release.Name }}-mcp
           port: {{ .Values.mcp.service.port }}
+    # API routes — JWT bearer auth (for mobile/programmatic clients)
+    - kind: Rule
+      match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/api`)
+      middlewares:
+        - name: jwt-auth
+          namespace: auth
+      services:
+        - name: {{ .Release.Name }}
+          port: {{ .Values.app.service.port }}
+    # Everything else — browser session auth (Google login via Kratos)
     - kind: Rule
       match: Host(`{{ .Values.ingress.host }}`)
       {{- if .Values.ingress.middlewares }}

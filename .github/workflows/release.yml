@@ -29,8 +29,18 @@ jobs:
 
       - run: flutter pub get
 
-      - run: |
-          echo "API_URL=${{ vars.API_URL }}" > env/release.env
+      - name: Build release APK
+        env:
+          API_URL: ${{ vars.API_URL }}
+          OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
+          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
+        run: |
+          printf '%s\n' \
+            "API_URL=${API_URL}" \
+            "OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}" \
+            "OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}" \
+            "OAUTH_SCOPE=bluer-book:api" \
+            > env/release.env
           flutter build apk --release --dart-define-from-file=env/release.env
 
       - name: Upload APK to release

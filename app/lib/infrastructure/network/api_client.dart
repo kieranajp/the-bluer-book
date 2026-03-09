@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../config/api_config.dart';
+import 'auth_interceptor.dart';
 
 class ApiClient {
   late final Dio _dio;
@@ -16,6 +17,9 @@ class ApiClient {
         },
       ),
     );
+
+    // Auth interceptor goes first so the token is attached before logging.
+    _dio.interceptors.add(AuthInterceptor());
 
     _dio.interceptors.add(
       LogInterceptor(

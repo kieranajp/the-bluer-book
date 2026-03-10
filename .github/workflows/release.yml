@@ -39,7 +39,7 @@ jobs:
             "API_URL=${API_URL}" \
             "OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}" \
             "OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}" \
-            "OAUTH_SCOPE=bluer-book:api" \
+            "OAUTH_SCOPE=recipes:api" \
             > env/release.env
           flutter build apk --release --dart-define-from-file=env/release.env
 

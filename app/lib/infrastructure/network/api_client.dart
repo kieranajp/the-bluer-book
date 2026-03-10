@@ -25,7 +25,7 @@ class ApiClient {
       LogInterceptor(
         requestBody: false,
         responseBody: false,
-        requestHeader: false,
+        requestHeader: true,
         responseHeader: true,
         error: true,
         request: true,

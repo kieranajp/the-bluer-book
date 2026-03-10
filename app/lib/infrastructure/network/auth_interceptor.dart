@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
 import '../config/oauth_config.dart';
@@ -61,22 +62,38 @@ class AuthInterceptor extends Interceptor {
       utf8.encode('${OAuthConfig.clientId}:${OAuthConfig.clientSecret}'),
     );
 
-    final response = await _tokenDio.post(
-      OAuthConfig.tokenUrl,
-      data: 'grant_type=client_credentials&scope=${OAuthConfig.scope}',
-      options: Options(
-        headers: {
-          'Authorization': 'Basic $credentials',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      ),
+    developer.log(
+      'Requesting token from ${OAuthConfig.tokenUrl} '
+      'client=${OAuthConfig.clientId} scope=${OAuthConfig.scope}',
+      name: 'AuthInterceptor',
     );
 
-    final body = response.data as Map<String, dynamic>;
-    _accessToken = body['access_token'] as String;
-    final expiresIn = body['expires_in'] as int;
-    _expiresAt = DateTime.now().add(Duration(seconds: expiresIn));
+    try {
+      final response = await _tokenDio.post(
+        OAuthConfig.tokenUrl,
+        data: 'grant_type=client_credentials&scope=${OAuthConfig.scope}',
+        options: Options(
+          headers: {
+            'Authorization': 'Basic $credentials',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        ),
+      );
 
-    return _accessToken!;
+      final body = response.data as Map<String, dynamic>;
+      _accessToken = body['access_token'] as String;
+      final expiresIn = body['expires_in'] as int;
+      _expiresAt = DateTime.now().add(Duration(seconds: expiresIn));
+
+      developer.log('Token obtained, expires in ${expiresIn}s', name: 'AuthInterceptor');
+      return _accessToken!;
+    } on DioException catch (e) {
+      developer.log(
+        'Token request failed: ${e.response?.statusCode} ${e.response?.data}',
+        name: 'AuthInterceptor',
+        level: 1000,
+      );
+      rethrow;
+    }
   }
 }

@@ -16,6 +16,6 @@ class OAuthConfig {
 
   static const String scope = String.fromEnvironment(
     'OAUTH_SCOPE',
-    defaultValue: 'bluer-book:api',
+    defaultValue: 'recipes:api',
   );
 }

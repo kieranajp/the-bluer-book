@@ -6,7 +6,6 @@ import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_list_item.dart';
 import '../widgets/search_bar.dart';
-import '../widgets/meal_plan_section.dart';
 import '../widgets/theme_selector_dialog.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
@@ -103,11 +102,6 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                 child: RecipeSearchBar(
                   onChanged: _onSearchChanged,
                 ),
-              ),
-
-              // Meal plan section
-              const SliverToBoxAdapter(
-                child: MealPlanSection(),
               ),
 
               // All recipes section header
@@ -214,12 +208,6 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
         ),
       ),
 
-      // Add recipe button
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: context.colours.primary,
-        child: const Icon(Icons.add, size: 28, color: Colors.white),
-      ),
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'application/screens/recipe_list_screen.dart';
+import 'application/screens/app_shell.dart';
 import 'application/styles/colours.dart';
 import 'application/providers/theme_provider.dart';
 
@@ -49,7 +49,7 @@ class BluerBook extends ConsumerWidget {
       // Theme mode controlled by provider (System/Light/Dark)
       themeMode: themeMode,
 
-      home: const RecipeListScreen(),
+      home: const AppShell(),
     );
   }
 }

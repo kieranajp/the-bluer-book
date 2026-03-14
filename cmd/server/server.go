@@ -16,6 +16,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api"
+	"github.com/kieranajp/the-bluer-book/internal/application/chat"
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
@@ -106,8 +107,26 @@ func run(c *cli.Context) error {
 	)
 	mcpHandler.RegisterTools(mcpServer)
 
+	// Start MCP server first — the chat handler connects to it as a client
+	go func() {
+		log.Info().Str("address", mcpAddr).Msg("Starting MCP server")
+		httpMCPServer := server.NewStreamableHTTPServer(mcpServer)
+		if err := httpMCPServer.Start(mcpAddr); err != nil {
+			log.Error().Err(err).Msg("MCP server failed")
+			os.Exit(1)
+		}
+	}()
+
+	// Create chat handler (connects to MCP server with retry)
+	var chatHandler *chat.Handler
+	chatHandler, err = chat.NewHandlerWithRetry(mcpAddr, log, 5, 500*time.Millisecond)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create chat handler — chat endpoint will be disabled")
+		chatHandler = nil
+	}
+
 	// Create API router
-	router := api.NewRouter(recipeService, log)
+	router := api.NewRouter(recipeService, chatHandler, log)
 
 	// Create HTTP server
 	httpServer := &http.Server{
@@ -120,16 +139,6 @@ func run(c *cli.Context) error {
 		log.Info().Str("address", listenAddr).Msg("Starting HTTP server")
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Error().Err(err).Msg("HTTP server failed")
-			os.Exit(1)
-		}
-	}()
-
-	// Start MCP server in a goroutine
-	go func() {
-		log.Info().Str("address", mcpAddr).Msg("Starting MCP server")
-		httpMCPServer := server.NewStreamableHTTPServer(mcpServer)
-		if err := httpMCPServer.Start(mcpAddr); err != nil {
-			log.Error().Err(err).Msg("MCP server failed")
 			os.Exit(1)
 		}
 	}()

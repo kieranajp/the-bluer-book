@@ -6,11 +6,12 @@ import (
 	"strings"
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api/middleware"
+	"github.com/kieranajp/the-bluer-book/internal/application/chat"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 )
 
-func NewRouter(recipeService service.RecipeService, logger logger.Logger) http.Handler {
+func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, logger logger.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	// Create handlers
@@ -39,6 +40,11 @@ func NewRouter(recipeService service.RecipeService, logger logger.Logger) http.H
 			http.HandlerFunc(recipeHandler.UpdateRecipe),
 		),
 	)
+
+	// Chat endpoint
+	if chatHandler != nil {
+		mux.HandleFunc("POST /api/chat", chatHandler.HandleChat)
+	}
 
 	// SPA static + fallback handler
 	staticDir := http.Dir("./static")

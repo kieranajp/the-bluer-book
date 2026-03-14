@@ -31,7 +31,7 @@ jobs:
 
       - name: Build release APK
         env:
-          API_URL: ${{ vars.API_URL }}
+          API_URL: ${{ secrets.API_URL }}
           OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
           OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
         run: |

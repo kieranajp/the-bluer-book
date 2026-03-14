@@ -62,10 +62,15 @@ class _AppShellState extends ConsumerState<AppShell> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: context.colours.primary,
-        child: const Icon(Icons.add, size: 28, color: Colors.white),
+      floatingActionButton: SizedBox(
+        width: 56,
+        height: 56,
+        child: FloatingActionButton(
+          onPressed: () {},
+          backgroundColor: context.colours.primary,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.add, size: 28, color: Colors.white),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );

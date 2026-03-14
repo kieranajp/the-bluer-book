@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"sync"
-	"time"
 
 	gomcp "github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/adk/agent"
@@ -182,18 +181,3 @@ func writeSSE(w http.ResponseWriter, flusher http.Flusher, event chatEvent) {
 	flusher.Flush()
 }
 
-// NewHandlerWithRetry attempts to create the chat handler with retries,
-// allowing time for the MCP server to start.
-func NewHandlerWithRetry(mcpAddr string, log logger.Logger, maxRetries int, delay time.Duration) (*Handler, error) {
-	var lastErr error
-	for i := 0; i < maxRetries; i++ {
-		handler, err := NewHandler(mcpAddr, log)
-		if err == nil {
-			return handler, nil
-		}
-		lastErr = err
-		log.Info().Int("attempt", i+1).Err(err).Msg("Chat handler init failed, retrying...")
-		time.Sleep(delay)
-	}
-	return nil, fmt.Errorf("failed to create chat handler after %d attempts: %w", maxRetries, lastErr)
-}

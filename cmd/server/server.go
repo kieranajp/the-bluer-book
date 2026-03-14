@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -107,22 +108,24 @@ func run(c *cli.Context) error {
 	)
 	mcpHandler.RegisterTools(mcpServer)
 
-	// Start MCP server first — the chat handler connects to it as a client
+	// Start MCP server — bind the listener synchronously so it's ready before the chat handler connects
+	mcpListener, err := net.Listen("tcp", mcpAddr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on MCP address %s: %w", mcpAddr, err)
+	}
+	httpMCPServer := server.NewStreamableHTTPServer(mcpServer)
 	go func() {
 		log.Info().Str("address", mcpAddr).Msg("Starting MCP server")
-		httpMCPServer := server.NewStreamableHTTPServer(mcpServer)
-		if err := httpMCPServer.Start(mcpAddr); err != nil {
+		if err := http.Serve(mcpListener, httpMCPServer); err != nil && err != http.ErrServerClosed {
 			log.Error().Err(err).Msg("MCP server failed")
 			os.Exit(1)
 		}
 	}()
 
-	// Create chat handler (connects to MCP server with retry)
-	var chatHandler *chat.Handler
-	chatHandler, err = chat.NewHandlerWithRetry(mcpAddr, log, 5, 500*time.Millisecond)
+	// Create chat handler — MCP server is guaranteed to be listening
+	chatHandler, err := chat.NewHandler(mcpAddr, log)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create chat handler — chat endpoint will be disabled")
-		chatHandler = nil
+		return fmt.Errorf("failed to create chat handler: %w", err)
 	}
 
 	// Create API router

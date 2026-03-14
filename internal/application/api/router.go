@@ -42,9 +42,7 @@ func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, l
 	)
 
 	// Chat endpoint
-	if chatHandler != nil {
-		mux.HandleFunc("POST /api/chat", chatHandler.HandleChat)
-	}
+	mux.HandleFunc("POST /api/chat", chatHandler.HandleChat)
 
 	// SPA static + fallback handler
 	staticDir := http.Dir("./static")

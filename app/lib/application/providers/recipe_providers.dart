@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../infrastructure/network/api_client.dart';
 import '../../infrastructure/recipe_repository.dart';
@@ -17,22 +19,57 @@ final favouriteRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
   return ref.watch(recipeRepositoryProvider).getFavouriteRecipes();
 });
 
-// State notifier for managing meal plan toggles
+// State notifier for managing paginated recipe list with meal plan toggles
 class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
   final RecipeRepository _repository;
   final Ref _ref;
+
+  static const int _pageSize = 20;
+  int _total = 0;
+  bool _isLoadingMore = false;
+  String _currentSearch = '';
 
   RecipeListNotifier(this._repository, this._ref) : super(const AsyncValue.loading()) {
     loadRecipes();
   }
 
-  Future<void> loadRecipes() async {
+  int get total => _total;
+  bool get hasMore => (state.valueOrNull?.length ?? 0) < _total;
+  bool get isLoadingMore => _isLoadingMore;
+
+  Future<void> loadRecipes({String search = ''}) async {
+    _currentSearch = search;
     state = const AsyncValue.loading();
     try {
-      final recipes = await _repository.getAllRecipes();
-      state = AsyncValue.data(recipes);
+      final result = await _repository.getRecipes(limit: _pageSize, offset: 0, search: search);
+      _total = result.total;
+      dev.log('Loaded ${result.recipes.length}/$_total recipes (search="$search")', name: 'RecipeListNotifier');
+      state = AsyncValue.data(result.recipes);
     } catch (e, stack) {
+      dev.log('Failed to load recipes', name: 'RecipeListNotifier', error: e, stackTrace: stack);
       state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !hasMore || !state.hasValue) return;
+    _isLoadingMore = true;
+    try {
+      final currentRecipes = state.value!;
+      final result = await _repository.getRecipes(
+        limit: _pageSize,
+        offset: currentRecipes.length,
+        search: _currentSearch,
+      );
+      _total = result.total;
+      dev.log('Loaded ${result.recipes.length} more recipes (${currentRecipes.length + result.recipes.length}/$_total)',
+          name: 'RecipeListNotifier');
+      state = AsyncValue.data([...currentRecipes, ...result.recipes]);
+    } catch (e, stack) {
+      dev.log('Failed to load more recipes', name: 'RecipeListNotifier', error: e, stackTrace: stack);
+      // Don't replace state with error — keep existing recipes visible
+    } finally {
+      _isLoadingMore = false;
     }
   }
 
@@ -69,7 +106,8 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
 
       // Invalidate favourite recipes to refresh meal plan section
       _ref.invalidate(favouriteRecipesProvider);
-    } catch (e) {
+    } catch (e, stack) {
+      dev.log('Failed to toggle meal plan for $uuid', name: 'RecipeListNotifier', error: e, stackTrace: stack);
       // Revert optimistic update on error
       state = AsyncValue.data(recipes);
       rethrow;
@@ -139,19 +177,7 @@ final recipeDetailProvider = StateNotifierProvider.family<RecipeDetailNotifier, 
 // Search query state
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
-// Filtered recipes based on search query
+// Recipes provider — search is handled server-side via loadRecipes()
 final filteredRecipesProvider = Provider<AsyncValue<List<Recipe>>>((ref) {
-  final recipesAsync = ref.watch(recipeListProvider);
-  final searchQuery = ref.watch(searchQueryProvider).toLowerCase();
-
-  return recipesAsync.whenData((recipes) {
-    if (searchQuery.isEmpty) {
-      return recipes;
-    }
-
-    return recipes.where((recipe) {
-      return recipe.name.toLowerCase().contains(searchQuery) ||
-             (recipe.description?.toLowerCase().contains(searchQuery) ?? false);
-    }).toList();
-  });
+  return ref.watch(recipeListProvider);
 });

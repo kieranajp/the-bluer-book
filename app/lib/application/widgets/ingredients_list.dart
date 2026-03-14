@@ -57,8 +57,14 @@ class IngredientsList extends StatelessWidget {
 
     // Unit
     if (ingredient.unit != null) {
-      final unitText = ingredient.unit!.abbreviation ?? ingredient.unit!.name;
-      buffer.write(' $unitText');
+      final unitText = ingredient.unit!.abbreviation?.isNotEmpty == true
+          ? ingredient.unit!.abbreviation!
+          : ingredient.unit!.name.isNotEmpty
+              ? ingredient.unit!.name
+              : null;
+      if (unitText != null) {
+        buffer.write(' $unitText');
+      }
     }
 
     // Ingredient name

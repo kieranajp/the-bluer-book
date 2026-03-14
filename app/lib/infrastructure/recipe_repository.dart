@@ -9,14 +9,11 @@ String _formatDioError(String action, DioException e) {
   if (status != null) {
     return '$action ($status)';
   }
-  if (e.type == DioExceptionType.connectionTimeout ||
-      e.type == DioExceptionType.receiveTimeout) {
-    return '$action (timeout)';
+  final inner = e.error;
+  if (inner != null) {
+    return '$action ($inner)';
   }
-  if (e.type == DioExceptionType.connectionError) {
-    return '$action (connection error)';
-  }
-  return '$action: ${e.message}';
+  return '$action (${e.type.name}: ${e.message})';
 }
 
 class PaginatedRecipes {

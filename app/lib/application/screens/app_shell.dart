@@ -25,14 +25,11 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
         children: _tabs,
       ),
       bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
         color: context.colours.surface,
         surfaceTintColor: Colors.transparent,
         child: Row(
@@ -50,7 +47,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               isSelected: _currentIndex == 1,
               onTap: () => setState(() => _currentIndex = 1),
             ),
-            const SizedBox(width: 48), // gap for FAB
+            _AddButton(colour: context.colours.primary),
             _NavItem(
               icon: Icons.chat_bubble_outline,
               label: 'Chat',
@@ -62,17 +59,29 @@ class _AppShellState extends ConsumerState<AppShell> {
           ],
         ),
       ),
-      floatingActionButton: SizedBox(
-        width: 56,
-        height: 56,
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: context.colours.primary,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, size: 28, color: Colors.white),
-        ),
+    );
+  }
+}
+
+class _AddButton extends StatelessWidget {
+  final Color colour;
+
+  const _AddButton({required this.colour});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: colour,
+        shape: BoxShape.circle,
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      child: IconButton(
+        onPressed: () {},
+        icon: const Icon(Icons.add, size: 28, color: Colors.white),
+        padding: EdgeInsets.zero,
+      ),
     );
   }
 }

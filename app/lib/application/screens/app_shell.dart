@@ -30,14 +30,22 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _tabs,
-      ),
-      bottomNavigationBar: _FloatingNavBar(
-        currentIndex: _currentIndex,
-        onTabSelected: (i) => setState(() => _currentIndex = i),
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: _tabs,
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _FloatingNavBar(
+              currentIndex: _currentIndex,
+              onTabSelected: (i) => setState(() => _currentIndex = i),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -67,7 +75,7 @@ class _FloatingNavBar extends StatelessWidget {
           child: Container(
             height: 64,
             decoration: BoxDecoration(
-              color: context.colours.surface.withValues(alpha: 0.85),
+              color: context.colours.surface.withValues(alpha: 0.65),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
                 color: context.colours.border.withValues(alpha: 0.5),

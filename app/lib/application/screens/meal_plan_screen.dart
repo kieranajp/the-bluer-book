@@ -4,6 +4,7 @@ import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/meal_plan_card.dart';
 import '../widgets/theme_selector_dialog.dart';
+import '../widgets/empty_state.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
@@ -62,29 +63,12 @@ class MealPlanScreen extends ConsumerWidget {
             ),
             favouriteRecipesAsync.when(
               data: (recipes) => recipes.isEmpty
-                  ? SliverFillRemaining(
+                  ? const SliverFillRemaining(
                       hasScrollBody: false,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.calendar_today, size: 48,
-                                color: context.colours.textSecondary.withValues(alpha: 0.4)),
-                            const SizedBox(height: Spacing.m),
-                            Text(
-                              'No recipes in your meal plan',
-                              style: TextStyle(color: context.colours.textSecondary),
-                            ),
-                            const SizedBox(height: Spacing.xs),
-                            Text(
-                              'Star some recipes to build your meal plan',
-                              style: TextStyle(
-                                color: context.colours.textSecondary.withValues(alpha: 0.6),
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
+                      child: EmptyState(
+                        icon: Icons.calendar_today,
+                        title: 'No recipes in your meal plan',
+                        subtitle: 'Star some recipes to build your meal plan',
                       ),
                     )
                   : SliverPadding(
@@ -108,24 +92,13 @@ class MealPlanScreen extends ConsumerWidget {
               ),
               error: (error, stack) => SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.cloud_off, size: 48,
-                          color: context.colours.textSecondary.withValues(alpha: 0.4)),
-                      const SizedBox(height: Spacing.m),
-                      Text(
-                        'Couldn\'t load meal plan',
-                        style: TextStyle(color: context.colours.textSecondary),
-                      ),
-                      const SizedBox(height: Spacing.m),
-                      OutlinedButton.icon(
-                        onPressed: () => ref.invalidate(favouriteRecipesProvider),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
+                child: EmptyState(
+                  icon: Icons.cloud_off,
+                  title: 'Couldn\'t load meal plan',
+                  action: OutlinedButton.icon(
+                    onPressed: () => ref.invalidate(favouriteRecipesProvider),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
                   ),
                 ),
               ),

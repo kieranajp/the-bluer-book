@@ -13,6 +13,8 @@ class Spacing {
   static const searchBarHeight = 48.0;
   static const mealPlanHeight = 240.0;
   static const bottomSpacer = 96.0;
+  static const thumbnailSize = 96.0;
+  static const mealPlanImageHeight = 140.0;
 
   // EdgeInsets presets
   static const horizontal = EdgeInsets.symmetric(horizontal: m);

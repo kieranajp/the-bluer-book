@@ -84,4 +84,17 @@ class TextStyles {
         fontWeight: FontWeight.w500,
         color: context.colours.textSecondary,
       );
+
+  // Card / list item text
+  static TextStyle cardTitle(BuildContext context) => GoogleFonts.workSans(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: context.colours.textPrimary,
+      );
+
+  static TextStyle cardSubtitle(BuildContext context) => GoogleFonts.workSans(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: context.colours.textPrimary,
+      );
 }

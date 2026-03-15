@@ -7,6 +7,7 @@ import '../providers/recipe_providers.dart';
 import '../widgets/recipe_list_item.dart';
 import '../widgets/search_bar.dart';
 import '../widgets/theme_selector_dialog.dart';
+import '../widgets/empty_state.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
@@ -124,23 +125,11 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
               allRecipesAsync.when(
                 data: (recipes) => recipes.isEmpty
                     ? SliverToBoxAdapter(
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(Spacing.xl),
-                            child: Column(
-                              children: [
-                                Icon(Icons.restaurant_menu, size: 48,
-                                    color: context.colours.textSecondary.withValues(alpha: 0.4)),
-                                const SizedBox(height: Spacing.m),
-                                Text(
-                                  ref.watch(searchQueryProvider).isNotEmpty
-                                      ? 'No recipes match your search'
-                                      : 'No recipes yet',
-                                  style: TextStyle(color: context.colours.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
+                        child: EmptyState(
+                          icon: Icons.restaurant_menu,
+                          title: ref.watch(searchQueryProvider).isNotEmpty
+                              ? 'No recipes match your search'
+                              : 'No recipes yet',
                         ),
                       )
                     : SliverList(
@@ -163,28 +152,15 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                   ),
                 ),
                 error: (error, stack) => SliverToBoxAdapter(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(Spacing.xl),
-                      child: Column(
-                        children: [
-                          Icon(Icons.cloud_off, size: 48,
-                              color: context.colours.textSecondary.withValues(alpha: 0.4)),
-                          const SizedBox(height: Spacing.m),
-                          Text(
-                            'Couldn\'t load recipes',
-                            style: TextStyle(color: context.colours.textSecondary),
-                          ),
-                          const SizedBox(height: Spacing.m),
-                          OutlinedButton.icon(
-                            onPressed: () => notifier.loadRecipes(
-                              search: ref.read(searchQueryProvider),
-                            ),
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Retry'),
-                          ),
-                        ],
+                  child: EmptyState(
+                    icon: Icons.cloud_off,
+                    title: 'Couldn\'t load recipes',
+                    action: OutlinedButton.icon(
+                      onPressed: () => notifier.loadRecipes(
+                        search: ref.read(searchQueryProvider),
                       ),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
                     ),
                   ),
                 ),

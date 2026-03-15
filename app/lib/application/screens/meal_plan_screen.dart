@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/meal_plan_card.dart';
-import '../widgets/theme_selector_dialog.dart';
 import '../widgets/empty_state.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
@@ -48,18 +47,6 @@ class MealPlanScreen extends ConsumerWidget {
                 'Meal Plan',
                 style: TextStyles.appBarTitle(context),
               ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.brightness_6),
-                  tooltip: 'Theme',
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const ThemeSelectorDialog(),
-                    );
-                  },
-                ),
-              ],
             ),
             favouriteRecipesAsync.when(
               data: (recipes) => recipes.isEmpty

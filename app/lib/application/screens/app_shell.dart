@@ -5,6 +5,7 @@ import '../styles/text_styles.dart';
 import 'recipe_list_screen.dart';
 import 'meal_plan_screen.dart';
 import 'chat_screen.dart';
+import 'settings_screen.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -20,6 +21,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     RecipeListScreen(),
     MealPlanScreen(),
     ChatScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -54,8 +56,12 @@ class _AppShellState extends ConsumerState<AppShell> {
               isSelected: _currentIndex == 2,
               onTap: () => setState(() => _currentIndex = 2),
             ),
-            // Invisible spacer to balance the row
-            const SizedBox(width: 48),
+            _NavItem(
+              icon: Icons.settings,
+              label: 'Settings',
+              isSelected: _currentIndex == 3,
+              onTap: () => setState(() => _currentIndex = 3),
+            ),
           ],
         ),
       ),

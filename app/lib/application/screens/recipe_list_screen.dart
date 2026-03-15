@@ -6,7 +6,6 @@ import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_list_item.dart';
 import '../widgets/search_bar.dart';
-import '../widgets/theme_selector_dialog.dart';
 import '../widgets/empty_state.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
@@ -84,18 +83,6 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                   'My Kitchen',
                   style: TextStyles.appBarTitle(context),
                 ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.brightness_6),
-                    tooltip: 'Theme',
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => const ThemeSelectorDialog(),
-                      );
-                    },
-                  ),
-                ],
               ),
 
               // Search bar

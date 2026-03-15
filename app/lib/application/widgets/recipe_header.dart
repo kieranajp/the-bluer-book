@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/label.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
+import 'label_tag.dart';
 
 class RecipeHeader extends StatelessWidget {
   final String name;
@@ -43,62 +44,11 @@ class RecipeHeader extends StatelessWidget {
 
           // Tags
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: labels.map((label) {
-              return _RecipeTag(
-                text: label.name,
-                colour: label.colour,
-              );
-            }).toList(),
+            spacing: Spacing.xs,
+            runSpacing: Spacing.xs,
+            children: labels.map((label) => LabelTagFull(label: label)).toList(),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RecipeTag extends StatelessWidget {
-  final String text;
-  final String? colour;
-
-  const _RecipeTag({
-    required this.text,
-    this.colour,
-  });
-
-  Color _getLabelColor() {
-    if (colour == null) return const Color(0xFF4E6983);
-
-    try {
-      if (colour!.startsWith('#')) {
-        return Color(int.parse(colour!.substring(1), radix: 16) + 0xFF000000);
-      }
-      return const Color(0xFF4E6983);
-    } catch (e) {
-      return const Color(0xFF4E6983);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tagColor = _getLabelColor();
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 6,
-      ),
-      decoration: BoxDecoration(
-        color: tagColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: tagColor.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Text(
-        text.toUpperCase(),
-        style: TextStyles.tag(context).copyWith(color: tagColor),
       ),
     );
   }

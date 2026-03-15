@@ -4,6 +4,7 @@ import '../providers/chat_providers.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
+import '../widgets/empty_state.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -79,19 +80,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             // Messages
             Expanded(
               child: messages.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.chat_bubble_outline, size: 48,
-                              color: context.colours.textSecondary.withValues(alpha: 0.4)),
-                          const SizedBox(height: Spacing.m),
-                          Text(
-                            'Ask me about recipes...',
-                            style: TextStyle(color: context.colours.textSecondary),
-                          ),
-                        ],
-                      ),
+                  ? const EmptyState(
+                      icon: Icons.chat_bubble_outline,
+                      title: 'Ask me about recipes...',
                     )
                   : ListView.builder(
                       controller: _scrollController,

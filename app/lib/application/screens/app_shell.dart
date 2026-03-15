@@ -1,10 +1,14 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
+import '../styles/spacing.dart';
 import 'recipe_list_screen.dart';
 import 'meal_plan_screen.dart';
 import 'chat_screen.dart';
+import 'settings_screen.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -20,6 +24,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     RecipeListScreen(),
     MealPlanScreen(),
     ChatScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -30,49 +35,100 @@ class _AppShellState extends ConsumerState<AppShell> {
         index: _currentIndex,
         children: _tabs,
       ),
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        color: context.colours.surface,
-        surfaceTintColor: Colors.transparent,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _NavItem(
-              icon: Icons.restaurant_menu,
-              label: 'Recipes',
-              isSelected: _currentIndex == 0,
-              onTap: () => setState(() => _currentIndex = 0),
+      bottomNavigationBar: _FloatingNavBar(
+        currentIndex: _currentIndex,
+        onTabSelected: (i) => setState(() => _currentIndex = i),
+      ),
+    );
+  }
+}
+
+class _FloatingNavBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTabSelected;
+
+  const _FloatingNavBar({
+    required this.currentIndex,
+    required this.onTabSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        Spacing.m, 0, Spacing.m, bottomPadding + Spacing.s,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: Container(
+            height: 64,
+            decoration: BoxDecoration(
+              color: context.colours.surface.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: context.colours.border.withValues(alpha: 0.5),
+              ),
             ),
-            _NavItem(
-              icon: Icons.calendar_today,
-              label: 'Meal Plan',
-              isSelected: _currentIndex == 1,
-              onTap: () => setState(() => _currentIndex = 1),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _NavItem(
+                  icon: Icons.restaurant_menu,
+                  label: 'Recipes',
+                  isSelected: currentIndex == 0,
+                  onTap: () => onTabSelected(0),
+                ),
+                _NavItem(
+                  icon: Icons.calendar_today,
+                  label: 'Meal Plan',
+                  isSelected: currentIndex == 1,
+                  onTap: () => onTabSelected(1),
+                ),
+                _AddButton(colour: context.colours.primary),
+                _NavItem(
+                  icon: Icons.chat_bubble_outline,
+                  label: 'Chat',
+                  isSelected: currentIndex == 2,
+                  onTap: () => onTabSelected(2),
+                ),
+                _NavItem(
+                  icon: Icons.settings,
+                  label: 'Settings',
+                  isSelected: currentIndex == 3,
+                  onTap: () => onTabSelected(3),
+                ),
+              ],
             ),
-            const SizedBox(width: 48), // gap for FAB
-            _NavItem(
-              icon: Icons.chat_bubble_outline,
-              label: 'Chat',
-              isSelected: _currentIndex == 2,
-              onTap: () => setState(() => _currentIndex = 2),
-            ),
-            // Invisible spacer to balance the row
-            const SizedBox(width: 48),
-          ],
+          ),
         ),
       ),
-      floatingActionButton: SizedBox(
-        width: 56,
-        height: 56,
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: context.colours.primary,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, size: 28, color: Colors.white),
-        ),
+    );
+  }
+}
+
+class _AddButton extends StatelessWidget {
+  final Color colour;
+
+  const _AddButton({required this.colour});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: colour,
+        shape: BoxShape.circle,
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      child: IconButton(
+        onPressed: () {},
+        icon: const Icon(Icons.add, size: 24, color: Colors.white),
+        padding: EdgeInsets.zero,
+      ),
     );
   }
 }
@@ -100,12 +156,12 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 4),
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 2),
             Text(
               label,
               style: isSelected

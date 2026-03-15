@@ -7,9 +7,9 @@ import '../widgets/recipe_stats_card.dart';
 import '../widgets/recipe_tab_bar.dart';
 import '../widgets/ingredients_list.dart';
 import '../widgets/instructions_list.dart';
+import '../widgets/meal_plan_toggle_button.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
-import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 
 class RecipeDetailsScreen extends ConsumerStatefulWidget {
@@ -32,6 +32,16 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch the recipe list to get the latest favourite state
+    final recipeListAsync = ref.watch(recipeListProvider);
+    final currentRecipe = recipeListAsync.maybeWhen(
+      data: (recipes) => recipes.firstWhere(
+        (r) => r.uuid == widget.recipe.uuid,
+        orElse: () => widget.recipe,
+      ),
+      orElse: () => widget.recipe,
+    );
+
     return Scaffold(
       backgroundColor: context.colours.background,
       body: CustomScrollView(
@@ -77,7 +87,10 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
 
           // Add to Meal Plan button
           SliverToBoxAdapter(
-            child: _AddToMealPlanButton(recipe: widget.recipe),
+            child: MealPlanFullButton(
+              uuid: widget.recipe.uuid,
+              isFavourite: currentRecipe.isFavourite,
+            ),
           ),
 
           // Sticky tab bar
@@ -101,90 +114,6 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
             child: SizedBox(height: Spacing.bottomSpacer),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AddToMealPlanButton extends ConsumerWidget {
-  final Recipe recipe;
-
-  const _AddToMealPlanButton({required this.recipe});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Watch the recipe list to get the latest state
-    final recipeListAsync = ref.watch(recipeListProvider);
-
-    // Find the current recipe in the list to get its updated state
-    final currentRecipe = recipeListAsync.maybeWhen(
-      data: (recipes) => recipes.firstWhere(
-        (r) => r.uuid == recipe.uuid,
-        orElse: () => recipe,
-      ),
-      orElse: () => recipe,
-    );
-
-    final isInMealPlan = currentRecipe.isFavourite;
-
-    return Padding(
-      padding: const EdgeInsets.all(Spacing.m),
-      child: SizedBox(
-        width: double.infinity,
-        height: 48,
-        child: ElevatedButton(
-          onPressed: () async {
-            final notifier = ref.read(recipeListProvider.notifier);
-            try {
-              await notifier.toggleMealPlan(recipe.uuid);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isInMealPlan
-                          ? 'Removed from meal plan'
-                          : 'Added to meal plan',
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Failed to update meal plan'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isInMealPlan
-                ? context.colours.textSecondary.withValues(alpha: 0.3)
-                : context.colours.primary,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 0,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                isInMealPlan ? Icons.star : Icons.star_border,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                isInMealPlan ? 'Remove from Meal Plan' : 'Add to Meal Plan',
-                style: TextStyles.buttonText(context),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

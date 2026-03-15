@@ -15,4 +15,18 @@ class Decorations {
           ),
         ],
       );
+
+  /// Standard card decoration used by recipe list items, meal plan cards, etc.
+  static BoxDecoration card(BuildContext context) => BoxDecoration(
+        color: context.colours.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.colours.border),
+        boxShadow: [
+          BoxShadow(
+            color: context.colours.shadow,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      );
 }

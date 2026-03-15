@@ -49,3 +49,4 @@ secrets:
   DB_NAME: "bluer_book"
   DB_HOST: "bluer-book-postgresql"
   DB_PORT: "5432"
+  GOOGLE_API_KEY: "changeme"

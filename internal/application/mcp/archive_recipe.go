@@ -42,7 +42,7 @@ func (h *RecipeMCPHandler) ArchiveRecipe(ctx context.Context, req mcp.CallToolRe
 	h.logger.Info().Str("recipe_id", recipeIDStr).Str("name", existingRecipe.Name).Msg("Recipe archived via MCP")
 
 	// Return success confirmation with archived recipe uuid
-	response := map[string]interface{}{
+	response := map[string]any{
 		"success":     true,
 		"message":     fmt.Sprintf("Successfully archived recipe: %s", existingRecipe.Name),
 		"recipe_id":   recipeIDStr,

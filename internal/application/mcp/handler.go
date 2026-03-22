@@ -128,4 +128,30 @@ func (h *RecipeMCPHandler) RegisterTools(s *server.MCPServer) {
 		),
 		h.ArchiveRecipe,
 	)
+
+	// Register add_to_meal_plan tool
+	s.AddTool(
+		mcp.NewTool("add_to_meal_plan",
+			mcp.WithDescription("Add a recipe to the meal plan"),
+			mcp.WithString("recipe_id", mcp.Required(), mcp.Description("UUID of the recipe to add to the meal plan")),
+		),
+		h.AddToMealPlan,
+	)
+
+	// Register remove_from_meal_plan tool
+	s.AddTool(
+		mcp.NewTool("remove_from_meal_plan",
+			mcp.WithDescription("Remove a recipe from the meal plan"),
+			mcp.WithString("recipe_id", mcp.Required(), mcp.Description("UUID of the recipe to remove from the meal plan")),
+		),
+		h.RemoveFromMealPlan,
+	)
+
+	// Register list_meal_plan tool
+	s.AddTool(
+		mcp.NewTool("list_meal_plan",
+			mcp.WithDescription("List all recipes currently in the meal plan"),
+		),
+		h.ListMealPlan,
+	)
 }

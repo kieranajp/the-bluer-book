@@ -86,7 +86,7 @@ func (m *ValidationMiddleware) ValidateCreateRecipe(next http.Handler) http.Hand
 func (m *ValidationMiddleware) writeValidationError(w http.ResponseWriter, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"error": map[string]string{
 			"code":    code,
 			"message": message,

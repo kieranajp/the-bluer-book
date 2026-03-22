@@ -34,22 +34,22 @@ func (h *RecipeMCPHandler) GetRecipe(ctx context.Context, req mcp.CallToolReques
 	}
 
 	// Format response based on requested section
-	var response interface{}
+	var response any
 	switch section {
 	case "ingredients":
-		response = map[string]interface{}{
+		response = map[string]any{
 			"recipe_id":   recipe.UUID.String(),
 			"name":        recipe.Name,
 			"ingredients": recipe.Ingredients,
 		}
 	case "steps":
-		response = map[string]interface{}{
+		response = map[string]any{
 			"recipe_id": recipe.UUID.String(),
 			"name":      recipe.Name,
 			"steps":     recipe.Steps,
 		}
 	case "summary":
-		response = map[string]interface{}{
+		response = map[string]any{
 			"recipe_id":   recipe.UUID.String(),
 			"name":        recipe.Name,
 			"description": recipe.Description,

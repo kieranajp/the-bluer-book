@@ -38,7 +38,7 @@ func (h *RecipeMCPHandler) RemoveFromMealPlan(ctx context.Context, req mcp.CallT
 
 	h.logger.Info().Str("recipe_id", recipeIDStr).Str("name", existingRecipe.Name).Msg("Recipe removed from meal plan via MCP")
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"success":     true,
 		"message":     fmt.Sprintf("Removed '%s' from the meal plan", existingRecipe.Name),
 		"recipe_id":   recipeIDStr,

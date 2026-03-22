@@ -62,7 +62,7 @@ func (h *RecipeMCPHandler) UpdateRecipe(ctx context.Context, req mcp.CallToolReq
 
 	// Parse and update ingredients if provided
 	args := req.GetArguments()
-	if ingredientsData, ok := args["ingredients"].([]interface{}); ok && len(ingredientsData) > 0 {
+	if ingredientsData, ok := args["ingredients"].([]any); ok && len(ingredientsData) > 0 {
 		ingredients, err := h.parseIngredients(ingredientsData)
 		if err != nil {
 			return nil, fmt.Errorf("invalid ingredients: %w", err)
@@ -71,7 +71,7 @@ func (h *RecipeMCPHandler) UpdateRecipe(ctx context.Context, req mcp.CallToolReq
 	}
 
 	// Parse and update steps if provided
-	if stepsData, ok := args["steps"].([]interface{}); ok && len(stepsData) > 0 {
+	if stepsData, ok := args["steps"].([]any); ok && len(stepsData) > 0 {
 		steps, err := h.parseSteps(stepsData)
 		if err != nil {
 			return nil, fmt.Errorf("invalid steps: %w", err)
@@ -80,7 +80,7 @@ func (h *RecipeMCPHandler) UpdateRecipe(ctx context.Context, req mcp.CallToolReq
 	}
 
 	// Parse and update labels if provided
-	if labelsData, ok := args["labels"].([]interface{}); ok {
+	if labelsData, ok := args["labels"].([]any); ok {
 		labels, err := h.parseLabels(labelsData)
 		if err != nil {
 			return nil, fmt.Errorf("invalid labels: %w", err)

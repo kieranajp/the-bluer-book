@@ -38,7 +38,7 @@ func (h *RecipeMCPHandler) AddToMealPlan(ctx context.Context, req mcp.CallToolRe
 
 	h.logger.Info().Str("recipe_id", recipeIDStr).Str("name", existingRecipe.Name).Msg("Recipe added to meal plan via MCP")
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"success":     true,
 		"message":     fmt.Sprintf("Added '%s' to the meal plan", existingRecipe.Name),
 		"recipe_id":   recipeIDStr,

@@ -25,7 +25,7 @@ func (h *RecipeMCPHandler) CreateRecipe(ctx context.Context, req mcp.CallToolReq
 
 	// Parse ingredients array
 	args := req.GetArguments()
-	ingredientsData, ok := args["ingredients"].([]interface{})
+	ingredientsData, ok := args["ingredients"].([]any)
 	if !ok || len(ingredientsData) == 0 {
 		return nil, fmt.Errorf("at least one ingredient is required")
 	}
@@ -36,7 +36,7 @@ func (h *RecipeMCPHandler) CreateRecipe(ctx context.Context, req mcp.CallToolReq
 	}
 
 	// Parse steps array
-	stepsData, ok := args["steps"].([]interface{})
+	stepsData, ok := args["steps"].([]any)
 	if !ok || len(stepsData) == 0 {
 		return nil, fmt.Errorf("at least one step is required")
 	}
@@ -47,7 +47,7 @@ func (h *RecipeMCPHandler) CreateRecipe(ctx context.Context, req mcp.CallToolReq
 	}
 
 	// Parse labels array
-	labelsData, _ := args["labels"].([]interface{})
+	labelsData, _ := args["labels"].([]any)
 	labels, err := h.parseLabels(labelsData)
 	if err != nil {
 		return nil, fmt.Errorf("invalid labels: %w", err)
@@ -76,7 +76,7 @@ func (h *RecipeMCPHandler) CreateRecipe(ctx context.Context, req mcp.CallToolReq
 	h.logger.Info().Str("recipe_id", savedRecipe.UUID.String()).Str("name", savedRecipe.Name).Msg("Recipe created via MCP")
 
 	// Format response for LLM
-	response := map[string]interface{}{
+	response := map[string]any{
 		"success":   true,
 		"recipe_id": savedRecipe.UUID.String(),
 		"name":      savedRecipe.Name,
@@ -89,11 +89,11 @@ func (h *RecipeMCPHandler) CreateRecipe(ctx context.Context, req mcp.CallToolReq
 }
 
 // Helper functions for parsing MCP arrays into domain objects
-func (h *RecipeMCPHandler) parseIngredients(data []interface{}) ([]recipe.RecipeIngredient, error) {
+func (h *RecipeMCPHandler) parseIngredients(data []any) ([]recipe.RecipeIngredient, error) {
 	ingredients := make([]recipe.RecipeIngredient, 0, len(data))
 
 	for i, item := range data {
-		ingredientMap, ok := item.(map[string]interface{})
+		ingredientMap, ok := item.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("ingredient %d must be an object", i)
 		}
@@ -122,7 +122,7 @@ func (h *RecipeMCPHandler) parseIngredients(data []interface{}) ([]recipe.Recipe
 	return ingredients, nil
 }
 
-func (h *RecipeMCPHandler) parseSteps(data []interface{}) ([]recipe.Step, error) {
+func (h *RecipeMCPHandler) parseSteps(data []any) ([]recipe.Step, error) {
 	steps := make([]recipe.Step, 0, len(data))
 
 	for i, item := range data {
@@ -132,7 +132,7 @@ func (h *RecipeMCPHandler) parseSteps(data []interface{}) ([]recipe.Step, error)
 		switch v := item.(type) {
 		case string:
 			description = v
-		case map[string]interface{}:
+		case map[string]any:
 			desc, ok := v["description"].(string)
 			if !ok {
 				return nil, fmt.Errorf("step %d must have a description", i)
@@ -155,7 +155,7 @@ func (h *RecipeMCPHandler) parseSteps(data []interface{}) ([]recipe.Step, error)
 	return steps, nil
 }
 
-func (h *RecipeMCPHandler) parseLabels(data []interface{}) ([]recipe.Label, error) {
+func (h *RecipeMCPHandler) parseLabels(data []any) ([]recipe.Label, error) {
 	if len(data) == 0 {
 		return []recipe.Label{}, nil
 	}
@@ -163,7 +163,7 @@ func (h *RecipeMCPHandler) parseLabels(data []interface{}) ([]recipe.Label, erro
 	labels := make([]recipe.Label, 0, len(data))
 
 	for i, item := range data {
-		labelMap, ok := item.(map[string]interface{})
+		labelMap, ok := item.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("label %d must be an object", i)
 		}

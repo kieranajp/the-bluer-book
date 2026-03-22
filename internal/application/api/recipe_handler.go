@@ -123,7 +123,7 @@ func (h *RecipeHandler) ListRecipes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"recipes": recipes,
 		"total":   total,
 		"limit":   limit,
@@ -137,7 +137,7 @@ func (h *RecipeHandler) ListRecipes(w http.ResponseWriter, r *http.Request) {
 func (h *RecipeHandler) writeErrorResponse(w http.ResponseWriter, statusCode int, errorType, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"error": map[string]string{
 			"code":    errorType,
 			"message": message,
@@ -279,7 +279,7 @@ func (h *RecipeHandler) ListArchivedRecipes(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"recipes": recipes,
 		"total":   total,
 		"limit":   limit,
@@ -353,7 +353,7 @@ func (h *RecipeHandler) ListMealPlanRecipes(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"recipes": recipes,
 		"total":   len(recipes),
 	}

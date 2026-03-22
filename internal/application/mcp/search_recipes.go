@@ -21,11 +21,11 @@ func (h *RecipeMCPHandler) SearchRecipes(ctx context.Context, req mcp.CallToolRe
 	}
 
 	// Format response based on requested format
-	var response map[string]interface{}
+	var response map[string]any
 	if format == "summary" {
-		summaries := make([]map[string]interface{}, len(recipes))
+		summaries := make([]map[string]any, len(recipes))
 		for i, recipe := range recipes {
-			summaries[i] = map[string]interface{}{
+			summaries[i] = map[string]any{
 				"id":          recipe.UUID.String(),
 				"name":        recipe.Name,
 				"description": recipe.Description,
@@ -34,14 +34,14 @@ func (h *RecipeMCPHandler) SearchRecipes(ctx context.Context, req mcp.CallToolRe
 				"servings":    recipe.Servings,
 			}
 		}
-		response = map[string]interface{}{
+		response = map[string]any{
 			"recipes": summaries,
 			"total":   total,
 			"query":   query,
 			"format":  "summary",
 		}
 	} else {
-		response = map[string]interface{}{
+		response = map[string]any{
 			"recipes": recipes,
 			"total":   total,
 			"query":   query,

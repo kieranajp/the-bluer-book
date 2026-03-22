@@ -15,9 +15,9 @@ func (h *RecipeMCPHandler) ListMealPlan(ctx context.Context, req mcp.CallToolReq
 		return nil, fmt.Errorf("failed to list meal plan: %w", err)
 	}
 
-	summaries := make([]map[string]interface{}, len(recipes))
+	summaries := make([]map[string]any, len(recipes))
 	for i, r := range recipes {
-		summaries[i] = map[string]interface{}{
+		summaries[i] = map[string]any{
 			"id":          r.UUID.String(),
 			"name":        r.Name,
 			"description": r.Description,
@@ -27,7 +27,7 @@ func (h *RecipeMCPHandler) ListMealPlan(ctx context.Context, req mcp.CallToolReq
 		}
 	}
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"recipes": summaries,
 		"total":   len(recipes),
 	}

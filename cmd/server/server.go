@@ -21,6 +21,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
 )
@@ -96,8 +97,12 @@ func run(c *cli.Context) error {
 	queries := db.New(sqlDB)
 	repo := repository.NewRecipeRepository(queries, sqlDB, log)
 
+	// Create probes
+	recipeProbe := metrics.NewRecipeProbe(log)
+	chatProbe := metrics.NewChatProbe(log)
+
 	// Initialize services
-	recipeService := service.NewRecipeService(repo)
+	recipeService := service.NewRecipeService(repo, recipeProbe)
 
 	// Create MCP handler
 	mcpHandler := mcp.NewRecipeMCPHandler(recipeService, log)
@@ -123,7 +128,7 @@ func run(c *cli.Context) error {
 	}()
 
 	// Create chat handler — MCP server is guaranteed to be listening
-	chatHandler, err := chat.NewHandler(mcpAddr, log)
+	chatHandler, err := chat.NewHandler(mcpAddr, log, chatProbe)
 	if err != nil {
 		return fmt.Errorf("failed to create chat handler: %w", err)
 	}

@@ -24,7 +24,7 @@ class ApiClient {
     _dio.interceptors.add(
       LogInterceptor(
         requestBody: false,
-        responseBody: false,
+        responseBody: true,
         requestHeader: true,
         responseHeader: true,
         error: true,

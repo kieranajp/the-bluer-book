@@ -67,9 +67,8 @@ func (m *ValidationMiddleware) ValidateCreateRecipe(next http.Handler) http.Hand
 				m.writeValidationError(w, "missing_ingredient_name", "Ingredient name is required")
 				return
 			}
-			// Unit-less ingredients (e.g. "salt") may have zero quantity
-			if ingredient.Unit.Name != "" && ingredient.Quantity <= 0 {
-				m.writeValidationError(w, "invalid_quantity", "Ingredient quantity must be greater than 0")
+			if ingredient.Quantity < 0 {
+				m.writeValidationError(w, "invalid_quantity", "Ingredient quantity must not be negative")
 				return
 			}
 		}
@@ -81,6 +80,7 @@ func (m *ValidationMiddleware) ValidateCreateRecipe(next http.Handler) http.Hand
 }
 
 func (m *ValidationMiddleware) writeValidationError(w http.ResponseWriter, code, message string) {
+	m.logger.Warn().Str("code", code).Str("message", message).Msg("validation error")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
 	json.NewEncoder(w).Encode(map[string]any{

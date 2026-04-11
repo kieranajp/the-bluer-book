@@ -11,7 +11,11 @@ class AuthInterceptor extends Interceptor {
   DateTime? _expiresAt;
 
   // Separate Dio instance for token requests to avoid interceptor recursion.
-  final Dio _tokenDio = Dio();
+  late final Dio _tokenDio;
+
+  AuthInterceptor({Dio? tokenDio}) {
+    _tokenDio = tokenDio ?? Dio();
+  }
 
   @override
   void onRequest(

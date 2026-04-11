@@ -94,11 +94,13 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
     state = const AsyncValue.loading();
     try {
       final result = await _repository.getRecipes(limit: _pageSize, offset: 0, search: search);
+      if (!mounted) return;
       _total = result.total;
       dev.log('Loaded ${result.recipes.length}/$_total recipes (search="$search")', name: 'RecipeListNotifier');
       state = AsyncValue.data(result.recipes);
     } catch (e, stack) {
       dev.log('Failed to load recipes', name: 'RecipeListNotifier', error: e, stackTrace: stack);
+      if (!mounted) return;
       state = AsyncValue.error(e, stack);
     }
   }
@@ -113,6 +115,7 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
         offset: currentRecipes.length,
         search: _currentSearch,
       );
+      if (!mounted) return;
       _total = result.total;
       dev.log('Loaded ${result.recipes.length} more recipes (${currentRecipes.length + result.recipes.length}/$_total)',
           name: 'RecipeListNotifier');
@@ -142,7 +145,10 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
         updatedList[index] = updated;
         state = AsyncValue.data(updatedList);
       },
-      revert: () => state = AsyncValue.data(recipes),
+      revert: () {
+        if (!mounted) return;
+        state = AsyncValue.data(recipes);
+      },
       providersToInvalidate: [favouriteRecipesProvider],
     );
   }
@@ -163,8 +169,10 @@ class RecipeDetailNotifier extends StateNotifier<AsyncValue<Recipe?>> {
     state = const AsyncValue.loading();
     try {
       final recipe = await _repository.getRecipe(id);
+      if (!mounted) return;
       state = AsyncValue.data(recipe);
     } catch (e, stack) {
+      if (!mounted) return;
       state = AsyncValue.error(e, stack);
     }
   }
@@ -178,8 +186,14 @@ class RecipeDetailNotifier extends StateNotifier<AsyncValue<Recipe?>> {
       repository: _repository,
       ref: _ref,
       getCurrentRecipe: () => recipe,
-      applyOptimistic: (updated) => state = AsyncValue.data(updated),
-      revert: () => state = AsyncValue.data(recipe),
+      applyOptimistic: (updated) {
+        if (!mounted) return;
+        state = AsyncValue.data(updated);
+      },
+      revert: () {
+        if (!mounted) return;
+        state = AsyncValue.data(recipe);
+      },
       providersToInvalidate: [favouriteRecipesProvider, recipeListProvider],
     );
   }

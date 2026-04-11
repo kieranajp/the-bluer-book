@@ -1,8 +1,6 @@
 services:
   db:
-    build:
-      context: .
-      dockerfile: docker/postgres/Dockerfile
+    image: postgres:17.5-alpine
     ports:
       - 5432:5432
     restart: unless-stopped
@@ -10,6 +8,18 @@ services:
       - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  migrate:
+    profiles:
+      - app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["./bluer-book", "migrate"]
+    depends_on:
+      - db
+    env_file:
+      - .env
 
   app:
     profiles:
@@ -20,7 +30,8 @@ services:
     ports:
       - 8080:8080
     depends_on:
-      - db
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
     env_file:
       - .env

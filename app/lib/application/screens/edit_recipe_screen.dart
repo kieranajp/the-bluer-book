@@ -40,14 +40,14 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
 
     try {
       final success = await notifier.save();
-      if (success && mounted) {
+      if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Recipe updated')),
         );
         Navigator.pop(context);
       }
     } catch (_) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to save recipe')),
         );
@@ -125,7 +125,7 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         final shouldPop = await _onWillPop();
-        if (shouldPop && mounted) Navigator.pop(context);
+        if (shouldPop && context.mounted) Navigator.pop(context);
       },
       child: Scaffold(
         backgroundColor: context.colours.background,
@@ -135,7 +135,7 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
             icon: const Icon(Icons.close),
             onPressed: () async {
               final shouldPop = await _onWillPop();
-              if (shouldPop && mounted) Navigator.pop(context);
+              if (shouldPop && context.mounted) Navigator.pop(context);
             },
           ),
           title: Text('Edit Recipe', style: TextStyles.appBarTitle(context)),

@@ -36,7 +36,7 @@ List<HighlightSegment> highlightIngredients(
     final alternation =
         variants.map((v) => RegExp.escape(v)).join('|');
     final pattern = RegExp(
-      r'\b(' + alternation + r')\b',
+      '\\b($alternation)\\b',
       caseSensitive: false,
     );
     entries.add(_PatternEntry(pattern, ingredient, name.length));
@@ -102,7 +102,7 @@ Set<String> _pluralVariants(String name) {
 
   // Already plural ending in "ies" → add "y" singular (cherries → cherry)
   if (lower.endsWith('ies')) {
-    variants.add(name.substring(0, name.length - 3) + 'y');
+    variants.add('${name.substring(0, name.length - 3)}y');
   }
   // Already plural ending in "es" → add base without "es" (tomatoes → tomato)
   else if (lower.endsWith('es')) {
@@ -117,13 +117,13 @@ Set<String> _pluralVariants(String name) {
   if (lower.endsWith('y') &&
       lower.length > 1 &&
       !'aeiou'.contains(lower[lower.length - 2])) {
-    variants.add(name.substring(0, name.length - 1) + 'ies');
+    variants.add('${name.substring(0, name.length - 1)}ies');
   }
 
   // Add simple "s" and "es" plurals
   if (!lower.endsWith('s')) {
-    variants.add(name + 's');
-    variants.add(name + 'es');
+    variants.add('${name}s');
+    variants.add('${name}es');
   }
 
   return variants;

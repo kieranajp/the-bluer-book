@@ -2,29 +2,27 @@
 FROM golang:1.26-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata nodejs npm
+RUN apk add --no-cache git ca-certificates tzdata
 
 # Set working directory
 WORKDIR /app
 
 # Copy dependency files
-COPY go.mod go.sum package.json package-lock.json* ./
+COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
-RUN npm ci
 
 # Copy source code
 COPY . .
-
-# Build CSS
-RUN npm run css
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags='-w -s -extldflags "-static"' \
     -a -installsuffix cgo \
     -o bluer-book ./main.go
+
+# ----------
 
 # Runtime stage
 FROM alpine:3.19
@@ -40,9 +38,6 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /app/bluer-book .
-
-# Copy static assets (if they exist)
-COPY --from=builder /app/static ./static
 
 # Change ownership to appuser
 RUN chown -R appuser:appuser /app

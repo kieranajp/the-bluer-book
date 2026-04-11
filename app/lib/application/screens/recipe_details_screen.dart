@@ -11,6 +11,7 @@ import '../widgets/meal_plan_toggle_button.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
 import '../styles/spacing.dart';
+import 'edit_recipe_screen.dart';
 
 class RecipeDetailsScreen extends ConsumerStatefulWidget {
   final Recipe recipe;
@@ -62,6 +63,25 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
                 ),
               ),
             ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.all(Spacing.xs),
+                child: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.black),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            EditRecipeScreen(recipe: currentRecipe),
+                      ),
+                    ),
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: RecipeHeroImage(imageUrl: widget.recipe.imageUrl),
             ),

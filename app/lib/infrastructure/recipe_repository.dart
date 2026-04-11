@@ -104,6 +104,21 @@ class RecipeRepository {
     }
   }
 
+  Future<Recipe> updateRecipe(String uuid, Recipe recipe) async {
+    try {
+      dev.log('Updating recipe $uuid', name: 'RecipeRepository');
+      final response = await _apiClient.dio.put(
+        '/recipes/$uuid',
+        data: recipe.toJson(),
+      );
+      return Recipe.fromJson(response.data);
+    } on DioException catch (e, stack) {
+      dev.log('Failed to update recipe $uuid: ${e.message}',
+          name: 'RecipeRepository', error: e, stackTrace: stack);
+      throw Exception(_formatDioError('Failed to update recipe', e));
+    }
+  }
+
   Future<void> removeFromMealPlan(String uuid) async {
     try {
       dev.log('Removing $uuid from meal plan', name: 'RecipeRepository');

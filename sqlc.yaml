@@ -2,11 +2,11 @@ version: "2"
 sql:
   - engine: postgresql
     schema:
-      - "migrations/01_schema.sql"
-      - "migrations/02_soft_delete.sql"
-      - "migrations/03_meal_planning.sql"
-      - "migrations/04_add_preparation.sql"
-      - "migrations/05_add_ingredient_component.sql"
+      - "migrations/00002_schema.sql"
+      - "migrations/00003_soft_delete.sql"
+      - "migrations/00004_meal_planning.sql"
+      - "migrations/00005_add_preparation.sql"
+      - "migrations/00006_add_ingredient_component.sql"
     queries: "internal/infrastructure/storage/queries"
     gen:
       go:

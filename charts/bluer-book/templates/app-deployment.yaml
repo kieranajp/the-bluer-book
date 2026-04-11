@@ -29,6 +29,18 @@ spec:
         runAsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+      - name: migrate
+        image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
+        command: ["./bluer-book", "migrate"]
+        envFrom:
+        - secretRef:
+            name: {{ .Values.secretName }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
       containers:
       - name: bluer-book
         image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}

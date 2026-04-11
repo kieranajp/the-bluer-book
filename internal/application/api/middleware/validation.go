@@ -67,12 +67,9 @@ func (m *ValidationMiddleware) ValidateCreateRecipe(next http.Handler) http.Hand
 				m.writeValidationError(w, "missing_ingredient_name", "Ingredient name is required")
 				return
 			}
-			if ingredient.Quantity <= 0 {
+			// Unit-less ingredients (e.g. "salt") may have zero quantity
+			if ingredient.Unit.Name != "" && ingredient.Quantity <= 0 {
 				m.writeValidationError(w, "invalid_quantity", "Ingredient quantity must be greater than 0")
-				return
-			}
-			if ingredient.Unit.Name == "" {
-				m.writeValidationError(w, "missing_unit", "Ingredient unit is required")
 				return
 			}
 		}

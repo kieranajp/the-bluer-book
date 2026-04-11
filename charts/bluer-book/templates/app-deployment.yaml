@@ -77,7 +77,7 @@ spec:
           failureThreshold: 3
         startupProbe:
           httpGet:
-            path: /
+            path: /health
             port: {{ .Values.app.service.port }}
           initialDelaySeconds: 10
           periodSeconds: 5

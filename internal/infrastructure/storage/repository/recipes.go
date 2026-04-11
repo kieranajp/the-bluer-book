@@ -573,6 +573,8 @@ func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec r
 			IngredientID: ingRow.Uuid,
 			UnitID:       uuidToNullUUID(&unitRow.Uuid),
 			Quantity:     sql.NullFloat64{Float64: ri.Quantity, Valid: true},
+			Preparation:  sql.NullString{String: ri.Preparation, Valid: ri.Preparation != ""},
+			Component:    sql.NullString{String: ri.Component, Valid: ri.Component != ""},
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		})

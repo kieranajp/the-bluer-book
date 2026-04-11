@@ -10,34 +10,94 @@ class IngredientsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasComponents = ingredients.any(
+      (i) => i.component != null && i.component!.isNotEmpty,
+    );
+
+    if (!hasComponents) {
+      return _buildFlatList(context);
+    }
+    return _buildGroupedList(context);
+  }
+
+  Widget _buildFlatList(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(Spacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: ingredients.map((ingredient) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: Spacing.s),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 8.0, right: 12.0),
-                  child: Icon(
-                    Icons.circle,
-                    size: 6,
-                    color: Color(0xFF67737E),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    _formatIngredient(ingredient),
-                    style: TextStyles.bodyText(context),
-                  ),
-                ),
-              ],
-            ),
-          );
+          return _buildIngredientRow(context, ingredient);
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildGroupedList(BuildContext context) {
+    // Group ingredients by component, preserving order from the API
+    final Map<String, List<Ingredient>> groups = {};
+    for (final ingredient in ingredients) {
+      final key = (ingredient.component != null && ingredient.component!.isNotEmpty)
+          ? ingredient.component!
+          : '';
+      groups.putIfAbsent(key, () => []);
+      groups[key]!.add(ingredient);
+    }
+
+    // Uncategorised first, then named components in the order they appear
+    final orderedKeys = <String>[];
+    if (groups.containsKey('')) {
+      orderedKeys.add('');
+    }
+    for (final key in groups.keys) {
+      if (key.isNotEmpty && !orderedKeys.contains(key)) {
+        orderedKeys.add(key);
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(Spacing.m),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: orderedKeys.expand((component) {
+          final items = groups[component]!;
+          return [
+            if (component.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: Spacing.s, bottom: Spacing.xs),
+                child: Text(
+                  'For the $component',
+                  style: TextStyles.sectionHeading(context),
+                ),
+              ),
+            ],
+            ...items.map((ingredient) => _buildIngredientRow(context, ingredient)),
+          ];
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildIngredientRow(BuildContext context, Ingredient ingredient) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Spacing.s),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 8.0, right: 12.0),
+            child: Icon(
+              Icons.circle,
+              size: 6,
+              color: Color(0xFF67737E),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              _formatIngredient(ingredient),
+              style: TextStyles.bodyText(context),
+            ),
+          ),
+        ],
       ),
     );
   }

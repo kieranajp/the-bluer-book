@@ -54,6 +54,7 @@ type RecipeIngredient struct {
 	Unit        Unit       `json:"unit"`
 	Quantity    float64    `json:"quantity"`
 	Preparation string     `json:"preparation"`
+	Component   string     `json:"component"`
 }
 
 type Label struct {

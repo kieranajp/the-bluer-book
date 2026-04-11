@@ -106,6 +106,7 @@ func (h *RecipeMCPHandler) parseIngredients(data []any) ([]recipe.RecipeIngredie
 		quantity, _ := ingredientMap["quantity"].(float64)
 		unit, _ := ingredientMap["unit"].(string)
 		preparation, _ := ingredientMap["preparation"].(string)
+		component, _ := ingredientMap["component"].(string)
 
 		ingredients = append(ingredients, recipe.RecipeIngredient{
 			Ingredient: recipe.Ingredient{
@@ -116,6 +117,7 @@ func (h *RecipeMCPHandler) parseIngredients(data []any) ([]recipe.RecipeIngredie
 			},
 			Quantity:    quantity,
 			Preparation: preparation,
+			Component:   component,
 		})
 	}
 

@@ -61,10 +61,12 @@ INSERT INTO recipe_ingredient (
     ingredient_id,
     unit_id,
     quantity,
+    preparation,
+    component,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7, $8
 ) RETURNING *;
 
 -- name: CreateLabel :one
@@ -156,7 +158,8 @@ FROM recipe_ingredient ri
 JOIN ingredients i ON ri.ingredient_id = i.uuid
 LEFT JOIN units u ON ri.unit_id = u.uuid
 INNER JOIN recipes r ON ri.recipe_id = r.uuid
-WHERE ri.recipe_id = $1 AND r.archived_at IS NULL;
+WHERE ri.recipe_id = $1 AND r.archived_at IS NULL
+ORDER BY ri.component NULLS FIRST, ri.created_at ASC;
 
 -- name: GetLabelsByRecipeID :many
 SELECT l.*

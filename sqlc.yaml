@@ -5,6 +5,8 @@ sql:
       - "migrations/01_schema.sql"
       - "migrations/02_soft_delete.sql"
       - "migrations/03_meal_planning.sql"
+      - "migrations/04_add_preparation.sql"
+      - "migrations/05_add_ingredient_component.sql"
     queries: "internal/infrastructure/storage/queries"
     gen:
       go:

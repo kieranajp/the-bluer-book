@@ -10,6 +10,7 @@ class Ingredient with _$Ingredient {
     @JsonKey(name: 'ingredient') required IngredientDetail detail,
     IngredientUnit? unit,
     String? preparation,
+    String? component,
   }) = _Ingredient;
 
   factory Ingredient.fromJson(Map<String, dynamic> json) => _$IngredientFromJson(json);

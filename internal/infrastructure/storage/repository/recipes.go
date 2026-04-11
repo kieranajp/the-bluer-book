@@ -173,6 +173,8 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) (*
 			IngredientID: ingRow.Uuid,
 			UnitID:       uuidToNullUUID(&unitRow.Uuid),
 			Quantity:     sql.NullFloat64{Float64: ri.Quantity, Valid: true},
+			Preparation:  sql.NullString{String: ri.Preparation, Valid: ri.Preparation != ""},
+			Component:    sql.NullString{String: ri.Component, Valid: ri.Component != ""},
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		})
@@ -400,7 +402,9 @@ func (r *recipeRepository) buildRecipeFromRows(ctx context.Context, q *db.Querie
 				Name:         ingRow.UnitName.String,
 				Abbreviation: ingRow.UnitAbbreviation.String,
 			},
-			Quantity: ingRow.Quantity.Float64,
+			Quantity:    ingRow.Quantity.Float64,
+			Preparation: ingRow.Preparation.String,
+			Component:   ingRow.Component.String,
 		}
 	}
 	rec.Ingredients = ingredients

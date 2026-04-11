@@ -126,7 +126,10 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
           SliverToBoxAdapter(
             child: _selectedTab == 0
                 ? IngredientsList(ingredients: widget.recipe.ingredients)
-                : InstructionsList(steps: widget.recipe.steps),
+                : InstructionsList(
+                    steps: widget.recipe.steps,
+                    ingredients: widget.recipe.ingredients,
+                  ),
           ),
 
           // Bottom spacing

@@ -48,5 +48,10 @@ func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, l
 	// Chat endpoint
 	mux.HandleFunc("POST /api/chat", chatHandler.HandleChat)
 
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
 	return metrics.HTTPMetrics(mux)
 }

@@ -53,5 +53,5 @@ func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, l
 		w.Write([]byte("OK"))
 	})
 
-	return metrics.HTTPMetrics(mux)
+	return metrics.HTTPMetrics(middleware.AccessLog(logger, mux))
 }

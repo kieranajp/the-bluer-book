@@ -29,17 +29,25 @@ func normalizePath(path string) string {
 	return uuidPattern.ReplaceAllString(path, "{id}")
 }
 
-type statusRecorder struct {
+type StatusRecorder struct {
 	http.ResponseWriter
 	statusCode int
 }
 
-func (r *statusRecorder) WriteHeader(code int) {
+func NewStatusRecorder(w http.ResponseWriter) *StatusRecorder {
+	return &StatusRecorder{ResponseWriter: w, statusCode: http.StatusOK}
+}
+
+func (r *StatusRecorder) WriteHeader(code int) {
 	r.statusCode = code
 	r.ResponseWriter.WriteHeader(code)
 }
 
-func (r *statusRecorder) Flush() {
+func (r *StatusRecorder) StatusCode() int {
+	return r.statusCode
+}
+
+func (r *StatusRecorder) Flush() {
 	if f, ok := r.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
@@ -54,12 +62,12 @@ func HTTPMetrics(next http.Handler) http.Handler {
 		}
 
 		start := time.Now()
-		rec := &statusRecorder{ResponseWriter: w, statusCode: http.StatusOK}
+		rec := NewStatusRecorder(w)
 
 		next.ServeHTTP(rec, r)
 
 		route := normalizePath(r.URL.Path)
-		status := strconv.Itoa(rec.statusCode)
+		status := strconv.Itoa(rec.StatusCode())
 		duration := time.Since(start).Seconds()
 
 		httpRequestDuration.WithLabelValues(r.Method, route, status).Observe(duration)

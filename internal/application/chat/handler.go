@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	gomcp "github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/adk/agent"
@@ -25,6 +26,7 @@ type Handler struct {
 	runner         *runner.Runner
 	sessionService session.Service
 	logger         logger.Logger
+	probe          Probe
 	mu             sync.Mutex
 }
 
@@ -39,7 +41,7 @@ type chatEvent struct {
 	SessionID string `json:"session_id,omitempty"`
 }
 
-func NewHandler(mcpAddr string, log logger.Logger) (*Handler, error) {
+func NewHandler(mcpAddr string, log logger.Logger, probe Probe) (*Handler, error) {
 	ctx := context.Background()
 
 	apiKey := os.Getenv("GOOGLE_API_KEY")
@@ -98,6 +100,7 @@ When creating or updating recipes, confirm the details with the user before proc
 		runner:         r,
 		sessionService: sessionService,
 		logger:         log,
+		probe:          probe,
 	}, nil
 }
 
@@ -126,11 +129,15 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 		h.mu.Unlock()
 		if err != nil {
 			h.logger.Error().Err(err).Msg("Failed to create session")
+			h.probe.ChatError(err)
 			http.Error(w, `{"error":"failed to create session"}`, http.StatusInternalServerError)
 			return
 		}
 		sessionID = resp.Session.ID()
+		h.probe.SessionCreated(sessionID)
 	}
+
+	h.probe.MessageReceived(sessionID)
 
 	// Set SSE headers
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -146,11 +153,15 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 
 	userMsg := genai.NewContentFromText(req.Message, genai.RoleUser)
 
+	start := time.Now()
+	var streamParts int
+
 	for event, err := range h.runner.Run(ctx, userID, sessionID, userMsg, agent.RunConfig{
 		StreamingMode: agent.StreamingModeSSE,
 	}) {
 		if err != nil {
 			h.logger.Error().Err(err).Msg("Agent run error")
+			h.probe.ChatError(err)
 			writeSSE(w, flusher, chatEvent{Content: "Sorry, something went wrong.", Done: true, SessionID: sessionID})
 			return
 		}
@@ -158,6 +169,7 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 		if event.Content != nil {
 			for _, part := range event.Content.Parts {
 				if part.Text != "" {
+					streamParts++
 					writeSSE(w, flusher, chatEvent{
 						Content:   part.Text,
 						Done:      event.IsFinalResponse(),
@@ -167,6 +179,8 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	h.probe.ResponseCompleted(sessionID, time.Since(start), streamParts)
 
 	// Send final done event
 	writeSSE(w, flusher, chatEvent{Done: true, SessionID: sessionID})
@@ -180,4 +194,3 @@ func writeSSE(w http.ResponseWriter, flusher http.Flusher, event chatEvent) {
 	fmt.Fprintf(w, "data: %s\n\n", data)
 	flusher.Flush()
 }
-

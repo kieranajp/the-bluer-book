@@ -2,17 +2,21 @@ package api
 
 import (
 	"net/http"
-	"path/filepath"
-	"strings"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api/middleware"
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 )
 
 func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, logger logger.Logger) http.Handler {
 	mux := http.NewServeMux()
+
+	// Prometheus metrics endpoint
+	mux.Handle("GET /metrics", promhttp.Handler())
 
 	// Create handlers
 	recipeHandler := NewRecipeHandler(recipeService, logger)
@@ -44,40 +48,5 @@ func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, l
 	// Chat endpoint
 	mux.HandleFunc("POST /api/chat", chatHandler.HandleChat)
 
-	// SPA static + fallback handler
-	staticDir := http.Dir("./static")
-	fileServer := http.FileServer(staticDir)
-
-	mux.Handle("GET /", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// If root, serve normally (will serve index.html by default)
-		if r.URL.Path == "/" || r.URL.Path == "" {
-			fileServer.ServeHTTP(w, r)
-			return
-		}
-
-		// Prevent directory traversal
-		cleanPath := filepath.Clean(r.URL.Path)
-		// Basic heuristic: if path contains a dot, treat as static asset attempt
-		if strings.Contains(filepath.Base(cleanPath), ".") {
-			fileServer.ServeHTTP(w, r)
-			return
-		}
-
-		// Attempt to open (in case it's an actual static folder/file without extension)
-		f, err := staticDir.Open(strings.TrimPrefix(cleanPath, "/"))
-		if err == nil {
-			stat, statErr := f.Stat()
-			_ = f.Close()
-			if statErr == nil && !stat.IsDir() {
-				// Serve existing file
-				fileServer.ServeHTTP(w, r)
-				return
-			}
-		}
-
-		// Fallback: serve index.html for client-side route
-		http.ServeFile(w, r, "./static/index.html")
-	}))
-
-	return mux
+	return metrics.HTTPMetrics(mux)
 }

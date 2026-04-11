@@ -26,22 +26,29 @@ type RecipeService interface {
 }
 
 type recipeService struct {
-	repo repository.RecipeRepository
+	repo  repository.RecipeRepository
+	probe recipe.Probe
 }
 
-func NewRecipeService(repo repository.RecipeRepository) RecipeService {
+func NewRecipeService(repo repository.RecipeRepository, probe recipe.Probe) RecipeService {
 	return &recipeService{
-		repo: repo,
+		repo:  repo,
+		probe: probe,
 	}
 }
 
-func (s *recipeService) CreateRecipe(ctx context.Context, recipe recipe.Recipe) (*recipe.Recipe, error) {
-	// Generate UUID if not provided
-	if recipe.UUID == uuid.Nil {
-		recipe.UUID = uuid.New()
+func (s *recipeService) CreateRecipe(ctx context.Context, r recipe.Recipe) (*recipe.Recipe, error) {
+	if r.UUID == uuid.Nil {
+		r.UUID = uuid.New()
 	}
 
-	return s.repo.SaveRecipe(ctx, recipe)
+	result, err := s.repo.SaveRecipe(ctx, r)
+	if err != nil {
+		s.probe.RecipeError("create", err)
+		return nil, err
+	}
+	s.probe.RecipeCreated(result.Name)
+	return result, nil
 }
 
 func (s *recipeService) GetRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error) {
@@ -49,37 +56,58 @@ func (s *recipeService) GetRecipe(ctx context.Context, id uuid.UUID) (*recipe.Re
 }
 
 func (s *recipeService) ListRecipes(ctx context.Context, limit, offset int, search string, labels []string) ([]*recipe.Recipe, int, error) {
-	return s.repo.ListRecipes(ctx, limit, offset, search, labels)
+	recipes, total, err := s.repo.ListRecipes(ctx, limit, offset, search, labels)
+	if err != nil {
+		s.probe.RecipeError("search", err)
+		return nil, 0, err
+	}
+	s.probe.RecipeSearched(total)
+	return recipes, total, nil
 }
 
-func (s *recipeService) UpdateRecipe(ctx context.Context, id uuid.UUID, recipe recipe.Recipe) (*recipe.Recipe, error) {
-	// Check if recipe exists and is not already archived
+func (s *recipeService) UpdateRecipe(ctx context.Context, id uuid.UUID, r recipe.Recipe) (*recipe.Recipe, error) {
 	existingRecipe, err := s.repo.GetRecipeByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	if existingRecipe == nil {
-		return nil, nil // Recipe not found
+		return nil, nil
 	}
 
-	return s.repo.UpdateRecipe(ctx, id, recipe)
+	result, err := s.repo.UpdateRecipe(ctx, id, r)
+	if err != nil {
+		s.probe.RecipeError("update", err)
+		return nil, err
+	}
+	s.probe.RecipeUpdated(result.Name)
+	return result, nil
 }
 
 func (s *recipeService) ArchiveRecipe(ctx context.Context, id uuid.UUID) error {
-	// Check if recipe exists and is not already archived
-	recipe, err := s.repo.GetRecipeByID(ctx, id)
+	r, err := s.repo.GetRecipeByID(ctx, id)
 	if err != nil {
 		return err
 	}
-	if recipe == nil {
-		return nil // Recipe not found or already archived
+	if r == nil {
+		return nil
 	}
 
-	return s.repo.ArchiveRecipe(ctx, id)
+	if err := s.repo.ArchiveRecipe(ctx, id); err != nil {
+		s.probe.RecipeError("archive", err)
+		return err
+	}
+	s.probe.RecipeArchived(id.String())
+	return nil
 }
 
 func (s *recipeService) RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error) {
-	return s.repo.RestoreRecipe(ctx, id)
+	result, err := s.repo.RestoreRecipe(ctx, id)
+	if err != nil {
+		s.probe.RecipeError("restore", err)
+		return nil, err
+	}
+	s.probe.RecipeRestored(id.String())
+	return result, nil
 }
 
 func (s *recipeService) ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error) {
@@ -87,11 +115,21 @@ func (s *recipeService) ListArchivedRecipes(ctx context.Context, limit, offset i
 }
 
 func (s *recipeService) AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error {
-	return s.repo.AddToMealPlan(ctx, recipeID)
+	if err := s.repo.AddToMealPlan(ctx, recipeID); err != nil {
+		s.probe.RecipeError("meal_plan_add", err)
+		return err
+	}
+	s.probe.MealPlanChanged("add", recipeID.String())
+	return nil
 }
 
 func (s *recipeService) RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error {
-	return s.repo.RemoveFromMealPlan(ctx, recipeID)
+	if err := s.repo.RemoveFromMealPlan(ctx, recipeID); err != nil {
+		s.probe.RecipeError("meal_plan_remove", err)
+		return err
+	}
+	s.probe.MealPlanChanged("remove", recipeID.String())
+	return nil
 }
 
 func (s *recipeService) ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error) {

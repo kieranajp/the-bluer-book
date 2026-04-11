@@ -170,6 +170,23 @@ SELECT p.* FROM photos p
 INNER JOIN recipes r ON p.entity_id = r.uuid
 WHERE p.entity_type = 'recipe' AND p.entity_id = $1 AND r.archived_at IS NULL;
 
+-- name: DeleteStepsByRecipeID :exec
+DELETE FROM steps WHERE recipe_id = $1;
+
+-- name: DeleteRecipeIngredientsByRecipeID :exec
+DELETE FROM recipe_ingredient WHERE recipe_id = $1;
+
+-- name: DeleteRecipeLabelsByRecipeID :exec
+DELETE FROM recipe_label WHERE recipe_id = $1;
+
+-- name: DeletePhotosByRecipeID :exec
+DELETE FROM photos WHERE entity_type = 'recipe' AND entity_id = $1;
+
+-- name: DeleteStepPhotosByRecipeID :exec
+DELETE FROM photos
+WHERE entity_type = 'step'
+  AND entity_id IN (SELECT uuid FROM steps WHERE recipe_id = $1);
+
 -- name: UpdateRecipe :one
 UPDATE recipes SET
     name = $2,

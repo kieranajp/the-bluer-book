@@ -440,19 +440,31 @@ func (r *recipeRepository) buildRecipeFromRows(ctx context.Context, q *db.Querie
 func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec recipe.Recipe) (*recipe.Recipe, error) {
 	now := time.Now()
 
-	// Update the recipe
-	updatedRecipe, err := r.db.UpdateRecipe(ctx, db.UpdateRecipeParams{
+	tx, err := r.sqlDB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	q := db.New(tx)
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	// Update basic recipe fields
+	updatedRecipe, err := q.UpdateRecipe(ctx, db.UpdateRecipeParams{
 		Uuid:        id,
 		Name:        rec.Name,
 		Description: sql.NullString{String: rec.Description, Valid: rec.Description != ""},
-		CookTime:    sql.NullInt32{Int32: rec.CookTime, Valid: rec.CookTime != 0},
-		PrepTime:    sql.NullInt32{Int32: rec.PrepTime, Valid: rec.PrepTime != 0},
-		Servings:    sql.NullInt16{Int16: rec.Servings, Valid: rec.Servings != 0},
+		CookTime:    sql.NullInt32{Int32: rec.CookTime, Valid: rec.CookTime > 0},
+		PrepTime:    sql.NullInt32{Int32: rec.PrepTime, Valid: rec.PrepTime > 0},
+		Servings:    sql.NullInt16{Int16: rec.Servings, Valid: rec.Servings > 0},
 		MainPhotoID: uuid.NullUUID{}, // TODO: Handle main photo update
 		Url:         sql.NullString{String: rec.Url, Valid: rec.Url != ""},
 		UpdatedAt:   now,
 	})
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, recipe.RecipeNotFoundError{ID: id}
@@ -460,18 +472,147 @@ func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec r
 		return nil, err
 	}
 
-	// Build complete recipe object
-	result, err := r.buildRecipeFromRows(ctx, r.db, updatedRecipe.Uuid, updatedRecipe.Name,
-		updatedRecipe.Description, updatedRecipe.CookTime, updatedRecipe.PrepTime,
-		updatedRecipe.Servings, updatedRecipe.Url, updatedRecipe.CreatedAt,
-		updatedRecipe.UpdatedAt, uuid.NullUUID{}, sql.NullString{})
+	recipeID := updatedRecipe.Uuid
+	recipeNullUUID := uuid.NullUUID{UUID: recipeID, Valid: true}
 
+	// Delete existing step photos, steps, ingredients, and labels
+	err = q.DeleteStepPhotosByRecipeID(ctx, recipeNullUUID)
+	if err != nil {
+		return nil, err
+	}
+	err = q.DeleteStepsByRecipeID(ctx, recipeNullUUID)
+	if err != nil {
+		return nil, err
+	}
+	err = q.DeleteRecipeIngredientsByRecipeID(ctx, recipeID)
+	if err != nil {
+		return nil, err
+	}
+	err = q.DeleteRecipeLabelsByRecipeID(ctx, recipeID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Re-insert steps
+	for _, step := range rec.Steps {
+		stepUUID := uuid.New()
+		stepRow, err := q.CreateStep(ctx, db.CreateStepParams{
+			Uuid:        stepUUID,
+			RecipeID:    uuidToNullUUID(&recipeID),
+			StepOrder:   step.Order,
+			Description: sql.NullString{String: step.Description, Valid: step.Description != ""},
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		})
+		if err != nil {
+			return nil, err
+		}
+		r.logger.Info().Msgf("Inserted step %d for recipe %s", step.Order, recipeID)
+		// Insert step photos
+		for _, photo := range step.Photos {
+			_, err := q.CreatePhoto(ctx, db.CreatePhotoParams{
+				Uuid:       uuid.New(),
+				Url:        photo.URL,
+				EntityType: "step",
+				EntityID:   stepRow.Uuid,
+				CreatedAt:  now,
+				UpdatedAt:  now,
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// Re-insert ingredients and recipe_ingredient
+	ingredientSet := make(map[uuid.UUID]bool)
+	for _, ri := range rec.Ingredients {
+		var ingRow db.Ingredient
+		ingRow, err = q.GetIngredientByName(ctx, ri.Ingredient.Name)
+		if err == sql.ErrNoRows {
+			ingRow, err = q.CreateIngredient(ctx, db.CreateIngredientParams{
+				Uuid:      uuid.New(),
+				Name:      ri.Ingredient.Name,
+				CreatedAt: now,
+				UpdatedAt: now,
+			})
+			if err != nil {
+				return nil, err
+			}
+		} else if err != nil {
+			return nil, err
+		}
+		if ingredientSet[ingRow.Uuid] {
+			continue
+		}
+		ingredientSet[ingRow.Uuid] = true
+
+		var unitRow db.Unit
+		unitRow, err = q.GetUnitByName(ctx, ri.Unit.Name)
+		if err == sql.ErrNoRows {
+			unitRow, err = q.CreateUnit(ctx, db.CreateUnitParams{
+				Uuid:         uuid.New(),
+				Name:         ri.Unit.Name,
+				Abbreviation: sql.NullString{String: ri.Unit.Abbreviation, Valid: ri.Unit.Abbreviation != ""},
+				CreatedAt:    now,
+				UpdatedAt:    now,
+			})
+			if err != nil {
+				return nil, err
+			}
+		} else if err != nil {
+			return nil, err
+		}
+
+		_, err = q.CreateRecipeIngredient(ctx, db.CreateRecipeIngredientParams{
+			RecipeID:     recipeID,
+			IngredientID: ingRow.Uuid,
+			UnitID:       uuidToNullUUID(&unitRow.Uuid),
+			Quantity:     sql.NullFloat64{Float64: ri.Quantity, Valid: true},
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Re-insert labels and recipe_label
+	for _, label := range rec.Labels {
+		var labelRow db.Label
+		labelRow, err = q.GetLabelByName(ctx, label.Name)
+		if err == sql.ErrNoRows {
+			labelRow, err = q.CreateLabel(ctx, db.CreateLabelParams{
+				Uuid:      uuid.New(),
+				Name:      label.Name,
+				Color:     sql.NullString{String: label.Color, Valid: label.Color != ""},
+				CreatedAt: now,
+				UpdatedAt: now,
+			})
+			if err != nil {
+				return nil, err
+			}
+		} else if err != nil {
+			return nil, err
+		}
+		_, err = q.CreateRecipeLabel(ctx, db.CreateRecipeLabelParams{
+			RecipeID:  recipeID,
+			LabelID:   labelRow.Uuid,
+			CreatedAt: now,
+			UpdatedAt: now,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	r.logger.Info().Str("recipe_id", id.String()).Msg("Recipe updated successfully")
-	return result, nil
+
+	rec.UUID = recipeID
+	rec.CreatedAt = updatedRecipe.CreatedAt
+	rec.UpdatedAt = now
+
+	return &rec, nil
 }
 
 func (r *recipeRepository) ArchiveRecipe(ctx context.Context, id uuid.UUID) error {

@@ -241,7 +241,7 @@ void main() {
       notifier().addIngredient();
       expect(state().ingredients.length, initialCount + 1);
       expect(state().ingredients.last.name, '');
-      expect(state().ingredients.last.quantity, 1);
+      expect(state().ingredients.last.quantity, 0);
     });
 
     test('removeIngredient removes at index', () {
@@ -346,25 +346,34 @@ void main() {
       expect(notifier().validate(), 'All ingredients must have a name');
     });
 
-    test('ingredient with zero quantity returns error', () {
+    test('ingredient with zero quantity is valid (e.g. "salt")', () {
       final ing = container
           .read(editRecipeProvider(recipe))
           .ingredients[0]
           .clone()
         ..quantity = 0;
       notifier().updateIngredient(0, ing);
-      expect(
-          notifier().validate(), 'Ingredient quantity must be greater than 0');
+      expect(notifier().validate(), isNull);
     });
 
-    test('ingredient with empty unit returns error', () {
+    test('ingredient with negative quantity returns error', () {
+      final ing = container
+          .read(editRecipeProvider(recipe))
+          .ingredients[0]
+          .clone()
+        ..quantity = -1;
+      notifier().updateIngredient(0, ing);
+      expect(notifier().validate(), 'Ingredient quantity cannot be negative');
+    });
+
+    test('ingredient with empty unit is valid', () {
       final ing = container
           .read(editRecipeProvider(recipe))
           .ingredients[0]
           .clone()
         ..unitName = '';
       notifier().updateIngredient(0, ing);
-      expect(notifier().validate(), 'All ingredients must have a unit');
+      expect(notifier().validate(), isNull);
     });
 
     test('empty steps list returns error', () {

@@ -13,8 +13,14 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
+# Install sqlc
+RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
 # Copy source code
 COPY . .
+
+# Generate sqlc code
+RUN sqlc generate
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \

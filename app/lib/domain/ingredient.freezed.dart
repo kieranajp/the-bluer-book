@@ -26,6 +26,7 @@ mixin _$Ingredient {
   IngredientDetail get detail => throw _privateConstructorUsedError;
   IngredientUnit? get unit => throw _privateConstructorUsedError;
   String? get preparation => throw _privateConstructorUsedError;
+  String? get component => throw _privateConstructorUsedError;
 
   /// Serializes this Ingredient to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -49,6 +50,7 @@ abstract class $IngredientCopyWith<$Res> {
     @JsonKey(name: 'ingredient') IngredientDetail detail,
     IngredientUnit? unit,
     String? preparation,
+    String? component,
   });
 
   $IngredientDetailCopyWith<$Res> get detail;
@@ -74,6 +76,7 @@ class _$IngredientCopyWithImpl<$Res, $Val extends Ingredient>
     Object? detail = null,
     Object? unit = freezed,
     Object? preparation = freezed,
+    Object? component = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -92,6 +95,10 @@ class _$IngredientCopyWithImpl<$Res, $Val extends Ingredient>
             preparation: freezed == preparation
                 ? _value.preparation
                 : preparation // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            component: freezed == component
+                ? _value.component
+                : component // ignore: cast_nullable_to_non_nullable
                       as String?,
           )
           as $Val,
@@ -137,6 +144,7 @@ abstract class _$$IngredientImplCopyWith<$Res>
     @JsonKey(name: 'ingredient') IngredientDetail detail,
     IngredientUnit? unit,
     String? preparation,
+    String? component,
   });
 
   @override
@@ -163,6 +171,7 @@ class __$$IngredientImplCopyWithImpl<$Res>
     Object? detail = null,
     Object? unit = freezed,
     Object? preparation = freezed,
+    Object? component = freezed,
   }) {
     return _then(
       _$IngredientImpl(
@@ -182,6 +191,10 @@ class __$$IngredientImplCopyWithImpl<$Res>
             ? _value.preparation
             : preparation // ignore: cast_nullable_to_non_nullable
                   as String?,
+        component: freezed == component
+            ? _value.component
+            : component // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -195,6 +208,7 @@ class _$IngredientImpl implements _Ingredient {
     @JsonKey(name: 'ingredient') required this.detail,
     this.unit,
     this.preparation,
+    this.component,
   });
 
   factory _$IngredientImpl.fromJson(Map<String, dynamic> json) =>
@@ -209,10 +223,12 @@ class _$IngredientImpl implements _Ingredient {
   final IngredientUnit? unit;
   @override
   final String? preparation;
+  @override
+  final String? component;
 
   @override
   String toString() {
-    return 'Ingredient(quantity: $quantity, detail: $detail, unit: $unit, preparation: $preparation)';
+    return 'Ingredient(quantity: $quantity, detail: $detail, unit: $unit, preparation: $preparation, component: $component)';
   }
 
   @override
@@ -225,13 +241,15 @@ class _$IngredientImpl implements _Ingredient {
             (identical(other.detail, detail) || other.detail == detail) &&
             (identical(other.unit, unit) || other.unit == unit) &&
             (identical(other.preparation, preparation) ||
-                other.preparation == preparation));
+                other.preparation == preparation) &&
+            (identical(other.component, component) ||
+                other.component == component));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
-      Object.hash(runtimeType, quantity, detail, unit, preparation);
+      Object.hash(runtimeType, quantity, detail, unit, preparation, component);
 
   /// Create a copy of Ingredient
   /// with the given fields replaced by the non-null parameter values.
@@ -253,6 +271,7 @@ abstract class _Ingredient implements Ingredient {
     @JsonKey(name: 'ingredient') required final IngredientDetail detail,
     final IngredientUnit? unit,
     final String? preparation,
+    final String? component,
   }) = _$IngredientImpl;
 
   factory _Ingredient.fromJson(Map<String, dynamic> json) =
@@ -267,6 +286,8 @@ abstract class _Ingredient implements Ingredient {
   IngredientUnit? get unit;
   @override
   String? get preparation;
+  @override
+  String? get component;
 
   /// Create a copy of Ingredient
   /// with the given fields replaced by the non-null parameter values.

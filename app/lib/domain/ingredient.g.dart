@@ -16,6 +16,7 @@ _$IngredientImpl _$$IngredientImplFromJson(Map<String, dynamic> json) =>
           ? null
           : IngredientUnit.fromJson(json['unit'] as Map<String, dynamic>),
       preparation: json['preparation'] as String?,
+      component: json['component'] as String?,
     );
 
 Map<String, dynamic> _$$IngredientImplToJson(_$IngredientImpl instance) =>
@@ -24,6 +25,7 @@ Map<String, dynamic> _$$IngredientImplToJson(_$IngredientImpl instance) =>
       'ingredient': instance.detail,
       'unit': instance.unit,
       'preparation': instance.preparation,
+      'component': instance.component,
     };
 
 _$IngredientDetailImpl _$$IngredientDetailImplFromJson(

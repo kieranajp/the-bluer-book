@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  flutter-analyze:
-    name: "Flutter: Analyze"
+  flutter:
+    name: "Flutter: Test"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,22 +24,6 @@ jobs:
       - run: flutter pub get
 
       - run: flutter analyze
-
-  flutter-test:
-    name: "Flutter: Test"
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-
-      - run: flutter pub get
 
       - run: flutter test
 

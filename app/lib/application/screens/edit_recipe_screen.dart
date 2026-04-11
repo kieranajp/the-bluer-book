@@ -38,20 +38,21 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
       return;
     }
 
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     try {
       final success = await notifier.save();
-      if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (success) {
+        messenger.showSnackBar(
           const SnackBar(content: Text('Recipe updated')),
         );
-        Navigator.pop(context);
+        navigator.pop();
       }
     } catch (_) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save recipe')),
-        );
-      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Failed to save recipe')),
+      );
     }
   }
 

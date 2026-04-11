@@ -3,10 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/domain/ingredient.dart';
 import 'package:app/application/widgets/ingredients_list.dart';
+import 'package:app/application/styles/colours.dart';
 
 /// Helper to wrap a widget in a MaterialApp for testing.
 Widget wrapInApp(Widget child) {
-  return MaterialApp(home: Scaffold(body: child));
+  return MaterialApp(
+    theme: ThemeData(
+      useMaterial3: true,
+      extensions: const [Colours.light],
+    ),
+    home: Scaffold(body: child),
+  );
 }
 
 void main() {

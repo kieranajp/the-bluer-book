@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as dev;
 
 import 'package:dio/dio.dart';
 import 'network/api_client.dart';
@@ -56,8 +57,9 @@ class ChatService {
             try {
               final json = jsonDecode(jsonStr) as Map<String, dynamic>;
               yield ChatEvent.fromJson(json);
-            } catch (_) {
-              // Skip malformed events
+            } catch (e, stack) {
+              dev.log('Skipping malformed SSE event: $jsonStr',
+                  name: 'ChatService', error: e, stackTrace: stack);
             }
           }
         }

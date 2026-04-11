@@ -63,6 +63,7 @@ dev_dependencies:
 
   # Launcher icons
   flutter_launcher_icons: ^0.14.1
+  mocktail: ^1.0.5
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

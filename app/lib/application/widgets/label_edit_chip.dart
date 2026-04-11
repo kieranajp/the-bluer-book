@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../providers/edit_recipe_provider.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
+import '../utils/label_colour.dart';
 
 class LabelEditChip extends StatelessWidget {
   final EditableLabel label;
@@ -15,9 +16,9 @@ class LabelEditChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = _parseColor(label.colour) ??
-        context.colours.primary.withValues(alpha: 0.1);
-    final textColor = _parseColor(label.colour) != null
+    final parsedColor = tryParseLabelColour(label.colour);
+    final bgColor = parsedColor ?? context.colours.primary.withValues(alpha: 0.1);
+    final textColor = parsedColor != null
         ? _contrastColor(bgColor)
         : context.colours.primary;
 
@@ -36,15 +37,6 @@ class LabelEditChip extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
-  }
-
-  Color? _parseColor(String hex) {
-    if (hex.isEmpty) return null;
-    final cleaned = hex.replaceFirst('#', '');
-    if (cleaned.length != 6) return null;
-    final value = int.tryParse(cleaned, radix: 16);
-    if (value == null) return null;
-    return Color(0xFF000000 | value);
   }
 
   Color _contrastColor(Color bg) {

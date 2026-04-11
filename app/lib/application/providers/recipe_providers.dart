@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +20,42 @@ final favouriteRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
   return ref.watch(recipeRepositoryProvider).getFavouriteRecipes();
 });
 
+/// Shared optimistic toggle logic for meal plan.
+///
+/// [getCurrentRecipe] returns the Recipe to toggle (or null to abort).
+/// [applyOptimistic] applies the toggled recipe to the notifier's state.
+/// [revert] restores state on error.
+Future<void> _toggleMealPlanShared({
+  required RecipeRepository repository,
+  required Ref ref,
+  required Recipe? Function() getCurrentRecipe,
+  required void Function(Recipe updated) applyOptimistic,
+  required void Function() revert,
+  required List<ProviderOrFamily> providersToInvalidate,
+}) async {
+  final recipe = getCurrentRecipe();
+  if (recipe == null) return;
+
+  final wasInMealPlan = recipe.isFavourite;
+  applyOptimistic(recipe.copyWith(isFavourite: !wasInMealPlan));
+
+  try {
+    if (wasInMealPlan) {
+      await repository.removeFromMealPlan(recipe.uuid);
+    } else {
+      await repository.addToMealPlan(recipe.uuid);
+    }
+    for (final provider in providersToInvalidate) {
+      ref.invalidate(provider);
+    }
+  } catch (e, stack) {
+    dev.log('Failed to toggle meal plan for ${recipe.uuid}',
+        name: 'MealPlanToggle', error: e, stackTrace: stack);
+    revert();
+    rethrow;
+  }
+}
+
 // State notifier for managing paginated recipe list with meal plan toggles
 class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
   final RecipeRepository _repository;
@@ -28,6 +65,7 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
   int _total = 0;
   bool _isLoadingMore = false;
   String _currentSearch = '';
+  Timer? _debounce;
 
   RecipeListNotifier(this._repository, this._ref) : super(const AsyncValue.loading()) {
     loadRecipes();
@@ -36,6 +74,20 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
   int get total => _total;
   bool get hasMore => (state.valueOrNull?.length ?? 0) < _total;
   bool get isLoadingMore => _isLoadingMore;
+
+  /// Debounced search — cancels any pending search and schedules a new one.
+  void searchDebounced(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      loadRecipes(search: query);
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
 
   Future<void> loadRecipes({String search = ''}) async {
     _currentSearch = search;
@@ -75,43 +127,24 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
 
   Future<void> toggleMealPlan(String uuid) async {
     final currentState = state;
-    if (!currentState.hasValue) {
-      return;
-    }
+    if (!currentState.hasValue) return;
 
     final recipes = currentState.value!;
+    final index = recipes.indexWhere((r) => r.uuid == uuid);
+    if (index == -1) return;
 
-    // Find the recipe
-    final recipeIndex = recipes.indexWhere((r) => r.uuid == uuid);
-    if (recipeIndex == -1) {
-      return;
-    }
-
-    final recipe = recipes[recipeIndex];
-    final wasInMealPlan = recipe.isFavourite;
-
-    // Optimistic update
-    final updatedRecipe = recipe.copyWith(isFavourite: !wasInMealPlan);
-    final updatedRecipes = [...recipes];
-    updatedRecipes[recipeIndex] = updatedRecipe;
-    state = AsyncValue.data(updatedRecipes);
-
-    try {
-      // Make API call
-      if (wasInMealPlan) {
-        await _repository.removeFromMealPlan(uuid);
-      } else {
-        await _repository.addToMealPlan(uuid);
-      }
-
-      // Invalidate favourite recipes to refresh meal plan section
-      _ref.invalidate(favouriteRecipesProvider);
-    } catch (e, stack) {
-      dev.log('Failed to toggle meal plan for $uuid', name: 'RecipeListNotifier', error: e, stackTrace: stack);
-      // Revert optimistic update on error
-      state = AsyncValue.data(recipes);
-      rethrow;
-    }
+    await _toggleMealPlanShared(
+      repository: _repository,
+      ref: _ref,
+      getCurrentRecipe: () => recipes[index],
+      applyOptimistic: (updated) {
+        final updatedList = [...recipes];
+        updatedList[index] = updated;
+        state = AsyncValue.data(updatedList);
+      },
+      revert: () => state = AsyncValue.data(recipes),
+      providersToInvalidate: [favouriteRecipesProvider],
+    );
   }
 }
 
@@ -138,33 +171,17 @@ class RecipeDetailNotifier extends StateNotifier<AsyncValue<Recipe?>> {
 
   Future<void> toggleMealPlan() async {
     final currentState = state;
-    if (!currentState.hasValue) return;
+    if (!currentState.hasValue || currentState.value == null) return;
+    final recipe = currentState.value!;
 
-    final recipe = currentState.value;
-    if (recipe == null) return;
-
-    final wasInMealPlan = recipe.isFavourite;
-
-    // Optimistic update
-    final updatedRecipe = recipe.copyWith(isFavourite: !wasInMealPlan);
-    state = AsyncValue.data(updatedRecipe);
-
-    try {
-      // Make API call
-      if (wasInMealPlan) {
-        await _repository.removeFromMealPlan(recipe.uuid);
-      } else {
-        await _repository.addToMealPlan(recipe.uuid);
-      }
-
-      // Invalidate providers to refresh lists
-      _ref.invalidate(favouriteRecipesProvider);
-      _ref.invalidate(recipeListProvider);
-    } catch (e) {
-      // Revert optimistic update on error
-      state = AsyncValue.data(recipe);
-      rethrow;
-    }
+    await _toggleMealPlanShared(
+      repository: _repository,
+      ref: _ref,
+      getCurrentRecipe: () => recipe,
+      applyOptimistic: (updated) => state = AsyncValue.data(updated),
+      revert: () => state = AsyncValue.data(recipe),
+      providersToInvalidate: [favouriteRecipesProvider, recipeListProvider],
+    );
   }
 }
 

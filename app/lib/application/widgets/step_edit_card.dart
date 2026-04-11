@@ -52,26 +52,7 @@ class StepEditCard extends StatelessWidget {
           Expanded(
             child: TextFormField(
               initialValue: step.description,
-              decoration: InputDecoration(
-                hintText: 'Describe this step...',
-                hintStyle: TextStyles.caption(context),
-                filled: true,
-                fillColor: context.colours.background,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: Spacing.s, vertical: Spacing.xs),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.colours.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.colours.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: context.colours.primary),
-                ),
-              ),
+              decoration: Decorations.textField(context, hintText: 'Describe this step...'),
               style: TextStyles.body(context),
               maxLines: null,
               minLines: 2,

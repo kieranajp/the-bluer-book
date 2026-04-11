@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/chat_providers.dart';
 import '../styles/colours.dart';
+import '../styles/decorations.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 import '../widgets/empty_state.dart';
@@ -122,28 +123,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     Expanded(
                       child: TextField(
                         controller: _controller,
-                        decoration: InputDecoration(
+                        decoration: Decorations.textField(
+                          context,
                           hintText: 'Message...',
-                          hintStyle: TextStyles.searchHint(context),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide(color: context.colours.border),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide(color: context.colours.border),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide(color: context.colours.primary),
-                          ),
+                          borderRadius: 24,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: Spacing.m,
                             vertical: Spacing.s,
                           ),
-                          filled: true,
-                          fillColor: context.colours.background,
-                        ),
+                        ).copyWith(hintStyle: TextStyles.searchHint(context)),
                         style: TextStyles.body(context),
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => _send(),

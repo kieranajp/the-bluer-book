@@ -4,6 +4,7 @@ import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/meal_plan_card.dart';
 import '../widgets/empty_state.dart';
+import '../utils/error_snackbar.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
@@ -15,24 +16,13 @@ class MealPlanScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final favouriteRecipesAsync = ref.watch(favouriteRecipesProvider);
 
-    ref.listen<AsyncValue<List<Recipe>>>(favouriteRecipesProvider, (previous, next) {
-      if (next.hasError && !(previous?.hasError ?? false)) {
-        final error = next.error;
-        final message = error is Exception
-            ? error.toString().replaceFirst('Exception: ', '')
-            : 'Failed to load meal plan';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: () => ref.invalidate(favouriteRecipesProvider),
-            ),
-          ),
-        );
-      }
-    });
+    listenForErrorSnackbar<List<Recipe>>(
+      ref,
+      context,
+      provider: favouriteRecipesProvider,
+      fallbackMessage: 'Failed to load meal plan',
+      onRetry: () => ref.invalidate(favouriteRecipesProvider),
+    );
 
     return Scaffold(
       backgroundColor: context.colours.background,

@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/recipe_providers.dart';
@@ -28,7 +30,9 @@ Future<void> _toggleMealPlan({
         ),
       );
     }
-  } catch (_) {
+  } catch (e, stack) {
+    dev.log('Failed to toggle meal plan for $uuid',
+        name: 'MealPlanToggle', error: e, stackTrace: stack);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

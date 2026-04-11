@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/ingredient.dart';
+import '../utils/ingredient_formatting.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 
@@ -33,44 +34,24 @@ class IngredientsList extends StatelessWidget {
   }
 
   Widget _buildGroupedList(BuildContext context) {
-    // Group ingredients by component, preserving order from the API
-    final Map<String, List<Ingredient>> groups = {};
-    for (final ingredient in ingredients) {
-      final key = (ingredient.component != null && ingredient.component!.isNotEmpty)
-          ? ingredient.component!
-          : '';
-      groups.putIfAbsent(key, () => []);
-      groups[key]!.add(ingredient);
-    }
-
-    // Uncategorised first, then named components in the order they appear
-    final orderedKeys = <String>[];
-    if (groups.containsKey('')) {
-      orderedKeys.add('');
-    }
-    for (final key in groups.keys) {
-      if (key.isNotEmpty && !orderedKeys.contains(key)) {
-        orderedKeys.add(key);
-      }
-    }
+    final groups = groupByComponent(ingredients);
 
     return Padding(
       padding: const EdgeInsets.all(Spacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: orderedKeys.expand((component) {
-          final items = groups[component]!;
+        children: groups.entries.expand((entry) {
           return [
-            if (component.isNotEmpty) ...[
+            if (entry.key.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.only(top: Spacing.s, bottom: Spacing.xs),
                 child: Text(
-                  'For the $component',
+                  'For the ${entry.key}',
                   style: TextStyles.sectionHeading(context),
                 ),
               ),
             ],
-            ...items.map((ingredient) => _buildIngredientRow(context, ingredient)),
+            ...entry.value.map((ingredient) => _buildIngredientRow(context, ingredient)),
           ];
         }).toList(),
       ),
@@ -93,48 +74,12 @@ class IngredientsList extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              _formatIngredient(ingredient),
+              ingredient.formatted(),
               style: TextStyles.bodyText(context),
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _formatIngredient(Ingredient ingredient) {
-    final buffer = StringBuffer();
-
-    // Quantity
-    if (ingredient.quantity > 0) {
-      // Format quantity to remove unnecessary decimals
-      if (ingredient.quantity == ingredient.quantity.toInt()) {
-        buffer.write(ingredient.quantity.toInt());
-      } else {
-        buffer.write(ingredient.quantity);
-      }
-    }
-
-    // Unit
-    if (ingredient.unit != null) {
-      final unitText = ingredient.unit!.abbreviation?.isNotEmpty == true
-          ? ingredient.unit!.abbreviation!
-          : ingredient.unit!.name.isNotEmpty
-              ? ingredient.unit!.name
-              : null;
-      if (unitText != null) {
-        buffer.write(' $unitText');
-      }
-    }
-
-    // Ingredient name
-    buffer.write(' ${ingredient.detail.name}');
-
-    // Preparation note
-    if (ingredient.preparation != null && ingredient.preparation!.isNotEmpty) {
-      buffer.write(', ${ingredient.preparation}');
-    }
-
-    return buffer.toString().trim();
   }
 }

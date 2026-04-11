@@ -116,26 +116,7 @@ class IngredientEditCard extends StatelessWidget {
   }) {
     return TextFormField(
       initialValue: value,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyles.caption(context),
-        filled: true,
-        fillColor: context.colours.background,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: Spacing.s, vertical: Spacing.xs),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: context.colours.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: context.colours.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: context.colours.primary),
-        ),
-      ),
+      decoration: Decorations.textField(context, labelText: label),
       style: TextStyles.body(context),
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,

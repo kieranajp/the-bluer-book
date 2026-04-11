@@ -7,6 +7,7 @@ import '../widgets/ingredient_edit_card.dart';
 import '../widgets/step_edit_card.dart';
 import '../widgets/label_edit_chip.dart';
 import '../styles/colours.dart';
+import '../styles/decorations.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 
@@ -440,26 +441,7 @@ class _FormTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       initialValue: value,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyles.caption(context),
-        filled: true,
-        fillColor: context.colours.background,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: Spacing.s, vertical: Spacing.xs),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: context.colours.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: context.colours.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: context.colours.primary),
-        ),
-      ),
+      decoration: Decorations.textField(context, labelText: label),
       style: TextStyles.body(context),
       maxLines: maxLines ?? 1,
       keyboardType: keyboardType,

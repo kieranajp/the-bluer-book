@@ -82,8 +82,11 @@ class StepEditCard extends StatelessWidget {
           // Actions column
           Column(
             children: [
-              Icon(Icons.drag_handle,
-                  color: context.colours.textSecondary, size: 20),
+              ReorderableDragStartListener(
+                index: index,
+                child: Icon(Icons.drag_handle,
+                    color: context.colours.textSecondary, size: 20),
+              ),
               const SizedBox(height: Spacing.xs),
               IconButton(
                 onPressed: onDelete,

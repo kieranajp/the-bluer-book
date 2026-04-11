@@ -137,11 +137,14 @@ class EditRecipeState {
           .map((i) => Ingredient(
                 quantity: i.quantity,
                 detail: IngredientDetail(name: i.name.trim()),
-                unit: IngredientUnit(
-                  name: i.unitName.trim(),
-                  abbreviation:
-                      i.unitAbbreviation.trim().isEmpty ? null : i.unitAbbreviation.trim(),
-                ),
+                unit: i.unitName.trim().isEmpty
+                    ? null
+                    : IngredientUnit(
+                        name: i.unitName.trim(),
+                        abbreviation: i.unitAbbreviation.trim().isEmpty
+                            ? null
+                            : i.unitAbbreviation.trim(),
+                      ),
                 preparation:
                     i.preparation.trim().isEmpty ? null : i.preparation.trim(),
                 component:
@@ -267,6 +270,14 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
     state = state.copyWith(steps: updated);
   }
 
+  void reorderIngredients(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex--;
+    final updated = [...state.ingredients];
+    final item = updated.removeAt(oldIndex);
+    updated.insert(newIndex, item);
+    state = state.copyWith(ingredients: updated);
+  }
+
   void reorderSteps(int oldIndex, int newIndex) {
     if (newIndex > oldIndex) newIndex--;
     final updated = [...state.steps];
@@ -300,9 +311,6 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
       if (ing.name.trim().isEmpty) return 'All ingredients must have a name';
       if (ing.quantity <= 0) {
         return 'Ingredient quantity must be greater than 0';
-      }
-      if (ing.unitName.trim().isEmpty) {
-        return 'All ingredients must have a unit';
       }
     }
     if (state.steps.isEmpty) return 'At least one step is required';

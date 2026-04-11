@@ -311,15 +311,26 @@ class _IngredientsSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: Spacing.xs),
-        ...List.generate(editState.ingredients.length, (i) {
-          return IngredientEditCard(
-            key: ValueKey(editState.ingredients[i].id),
-            index: i,
-            ingredient: editState.ingredients[i],
-            onChanged: (updated) => notifier.updateIngredient(i, updated),
-            onDelete: () => notifier.removeIngredient(i),
-          );
-        }),
+        ReorderableListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: editState.ingredients.length,
+          onReorder: notifier.reorderIngredients,
+          buildDefaultDragHandles: false,
+          proxyDecorator: (child, index, animation) => Material(
+            color: Colors.transparent,
+            child: child,
+          ),
+          itemBuilder: (context, i) {
+            return IngredientEditCard(
+              key: ValueKey(editState.ingredients[i].id),
+              index: i,
+              ingredient: editState.ingredients[i],
+              onChanged: (updated) => notifier.updateIngredient(i, updated),
+              onDelete: () => notifier.removeIngredient(i),
+            );
+          },
+        ),
       ],
     );
   }
@@ -359,15 +370,12 @@ class _StepsSection extends StatelessWidget {
             child: child,
           ),
           itemBuilder: (context, i) {
-            return ReorderableDragStartListener(
+            return StepEditCard(
               key: ValueKey(editState.steps[i].id),
               index: i,
-              child: StepEditCard(
-                index: i,
-                step: editState.steps[i],
-                onChanged: (updated) => notifier.updateStep(i, updated),
-                onDelete: () => notifier.removeStep(i),
-              ),
+              step: editState.steps[i],
+              onChanged: (updated) => notifier.updateStep(i, updated),
+              onDelete: () => notifier.removeStep(i),
             );
           },
         ),

@@ -19,32 +19,43 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   int _currentIndex = 0;
+  int _previousIndex = 0;
 
-  static const _tabs = [
-    RecipeListScreen(),
-    MealPlanScreen(),
-    ChatScreen(),
-    SettingsScreen(),
-  ];
+  void _selectTab(int i) {
+    setState(() {
+      _previousIndex = _currentIndex;
+      _currentIndex = i;
+    });
+  }
+
+  bool get _isChatActive => _currentIndex == 2;
 
   @override
   Widget build(BuildContext context) {
+    final tabs = [
+      const RecipeListScreen(),
+      const MealPlanScreen(),
+      ChatScreen(onBack: () => _selectTab(_previousIndex)),
+      const SettingsScreen(),
+    ];
+
     return Scaffold(
       body: Stack(
         children: [
           IndexedStack(
             index: _currentIndex,
-            children: _tabs,
+            children: tabs,
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _FloatingNavBar(
-              currentIndex: _currentIndex,
-              onTabSelected: (i) => setState(() => _currentIndex = i),
+          if (!_isChatActive)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _FloatingNavBar(
+                currentIndex: _currentIndex,
+                onTabSelected: _selectTab,
+              ),
             ),
-          ),
         ],
       ),
     );

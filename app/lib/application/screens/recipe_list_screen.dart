@@ -20,6 +20,15 @@ class RecipeListScreen extends ConsumerStatefulWidget {
 
 class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
   Timer? _debounce;
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(
+      text: ref.read(searchQueryProvider),
+    );
+  }
 
   void _onSearchChanged(String query) {
     ref.read(searchQueryProvider.notifier).state = query;
@@ -32,6 +41,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -88,6 +98,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
               // Search bar
               SliverToBoxAdapter(
                 child: RecipeSearchBar(
+                  controller: _searchController,
                   onChanged: _onSearchChanged,
                 ),
               ),

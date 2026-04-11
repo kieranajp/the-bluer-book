@@ -73,6 +73,19 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
     }
   }
 
+  /// Replaces a single recipe in the current list in-place, without
+  /// triggering a full reload. Used after an edit so the detail screen and
+  /// list stay in sync while preserving search/pagination state.
+  void updateRecipeInList(Recipe recipe) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final idx = current.indexWhere((r) => r.uuid == recipe.uuid);
+    if (idx == -1) return;
+    final updated = List<Recipe>.from(current);
+    updated[idx] = recipe;
+    state = AsyncValue.data(updated);
+  }
+
   Future<void> toggleMealPlan(String uuid) async {
     final currentState = state;
     if (!currentState.hasValue) {

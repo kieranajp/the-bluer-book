@@ -332,7 +332,9 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
     try {
       final recipe = state.toRecipe(_uuid);
       await _repository.updateRecipe(_uuid, recipe);
-      _ref.invalidate(recipeListProvider);
+      // Update the recipe in the list in-place so the detail screen refreshes
+      // immediately and search/pagination state is preserved.
+      _ref.read(recipeListProvider.notifier).updateRecipeInList(recipe);
       _ref.invalidate(favouriteRecipesProvider);
       dev.log('Recipe $_uuid updated', name: 'EditRecipeNotifier');
       return true;

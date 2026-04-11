@@ -7,11 +7,13 @@ import '../styles/decorations.dart';
 class RecipeSearchBar extends StatelessWidget {
   final String hintText;
   final ValueChanged<String>? onChanged;
+  final TextEditingController? controller;
 
   const RecipeSearchBar({
     super.key,
     this.hintText = 'Search recipes...',
     this.onChanged,
+    this.controller,
   });
 
   @override
@@ -36,6 +38,7 @@ class RecipeSearchBar extends StatelessWidget {
             ),
             Expanded(
               child: TextField(
+                controller: controller,
                 onChanged: onChanged,
                 decoration: InputDecoration(
                   hintText: hintText,

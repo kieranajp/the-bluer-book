@@ -235,7 +235,7 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
     state = state.copyWith(
       ingredients: [
         ...state.ingredients,
-        EditableIngredient(name: '', quantity: 1, unitName: ''),
+        EditableIngredient(name: '', quantity: 0, unitName: ''),
       ],
     );
   }
@@ -309,8 +309,8 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
     }
     for (final ing in state.ingredients) {
       if (ing.name.trim().isEmpty) return 'All ingredients must have a name';
-      if (ing.quantity <= 0) {
-        return 'Ingredient quantity must be greater than 0';
+      if (ing.quantity < 0) {
+        return 'Ingredient quantity cannot be negative';
       }
     }
     if (state.steps.isEmpty) return 'At least one step is required';

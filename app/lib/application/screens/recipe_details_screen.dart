@@ -83,32 +83,32 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: RecipeHeroImage(imageUrl: widget.recipe.imageUrl),
+              background: RecipeHeroImage(imageUrl: currentRecipe.imageUrl),
             ),
           ),
 
           // Recipe header
           SliverToBoxAdapter(
             child: RecipeHeader(
-              name: widget.recipe.name,
-              description: widget.recipe.description,
-              labels: widget.recipe.labels,
+              name: currentRecipe.name,
+              description: currentRecipe.description,
+              labels: currentRecipe.labels,
             ),
           ),
 
           // Stats card
           SliverToBoxAdapter(
             child: RecipeStatsCard(
-              preparationTime: widget.recipe.preparationTime,
-              cookingTime: widget.recipe.cookingTime,
-              servings: widget.recipe.servings,
+              preparationTime: currentRecipe.preparationTime,
+              cookingTime: currentRecipe.cookingTime,
+              servings: currentRecipe.servings,
             ),
           ),
 
           // Add to Meal Plan button
           SliverToBoxAdapter(
             child: MealPlanFullButton(
-              uuid: widget.recipe.uuid,
+              uuid: currentRecipe.uuid,
               isFavourite: currentRecipe.isFavourite,
             ),
           ),
@@ -125,10 +125,10 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
           // Tab content (Ingredients or Instructions)
           SliverToBoxAdapter(
             child: _selectedTab == 0
-                ? IngredientsList(ingredients: widget.recipe.ingredients)
+                ? IngredientsList(ingredients: currentRecipe.ingredients)
                 : InstructionsList(
-                    steps: widget.recipe.steps,
-                    ingredients: widget.recipe.ingredients,
+                    steps: currentRecipe.steps,
+                    ingredients: currentRecipe.ingredients,
                   ),
           ),
 

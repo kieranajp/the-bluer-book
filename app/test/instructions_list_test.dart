@@ -4,9 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:app/domain/ingredient.dart';
 import 'package:app/domain/step.dart' as domain;
 import 'package:app/application/widgets/instructions_list.dart';
+import 'package:app/application/styles/colours.dart';
 
 Widget wrapInApp(Widget child) {
-  return MaterialApp(home: Scaffold(body: SingleChildScrollView(child: child)));
+  return MaterialApp(
+    theme: ThemeData.light().copyWith(
+      extensions: const [Colours.light],
+    ),
+    home: Scaffold(body: SingleChildScrollView(child: child)),
+  );
 }
 
 void main() {

@@ -141,6 +141,67 @@ void main() {
       expect(recipe.labels[1].colour, isNull);
     });
 
+    test('empty unit name produces null unit', () {
+      final state = EditRecipeState(
+        name: 'Salt test',
+        description: '',
+        preparationTime: 0,
+        cookingTime: 0,
+        servings: 1,
+        ingredients: [
+          EditableIngredient(name: 'salt', quantity: 0, unitName: ''),
+        ],
+        steps: [EditableStep(description: 'Add salt')],
+        labels: [],
+      );
+      final recipe = state.toRecipe('id');
+
+      expect(recipe.ingredients[0].unit, isNull);
+    });
+
+    test('whitespace-only unit name produces null unit', () {
+      final state = EditRecipeState(
+        name: 'Salt test',
+        description: '',
+        preparationTime: 0,
+        cookingTime: 0,
+        servings: 1,
+        ingredients: [
+          EditableIngredient(name: 'salt', quantity: 0, unitName: '   '),
+        ],
+        steps: [EditableStep(description: 'Add salt')],
+        labels: [],
+      );
+      final recipe = state.toRecipe('id');
+
+      expect(recipe.ingredients[0].unit, isNull);
+    });
+
+    test('non-empty unit name produces IngredientUnit', () {
+      final state = EditRecipeState(
+        name: 'Flour test',
+        description: '',
+        preparationTime: 0,
+        cookingTime: 0,
+        servings: 1,
+        ingredients: [
+          EditableIngredient(
+            name: 'flour',
+            quantity: 200,
+            unitName: 'grams',
+            unitAbbreviation: 'g',
+          ),
+        ],
+        steps: [EditableStep(description: 'Use flour')],
+        labels: [],
+      );
+      final recipe = state.toRecipe('id');
+
+      expect(recipe.ingredients[0].unit, isNotNull);
+      expect(recipe.ingredients[0].unit?.name, 'grams');
+      expect(recipe.ingredients[0].unit?.abbreviation, 'g');
+    });
+
     test('trims whitespace on all text fields', () {
       final state = EditRecipeState(
         name: '  Padded Name  ',

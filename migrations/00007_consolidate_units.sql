@@ -1,4 +1,5 @@
--- +goose Up
+-- Consolidate duplicate units of measure.
+-- This is a one-way data migration: duplicates are merged and cannot be unmerged.
 
 -- Step 1: Normalize all unit names to lowercase trimmed
 UPDATE units SET name = LOWER(TRIM(name)), updated_at = now();
@@ -38,6 +39,3 @@ WHERE uuid NOT IN (
 
 -- Step 5: Add unique constraint on name
 ALTER TABLE units ADD CONSTRAINT units_name_unique UNIQUE (name);
-
--- +goose Down
-ALTER TABLE units DROP CONSTRAINT IF EXISTS units_name_unique;

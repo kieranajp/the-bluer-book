@@ -52,10 +52,11 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
   }
 
   Future<void> loadMore() async {
-    if (_isLoadingMore || !hasMore || !state.hasValue) return;
+    final currentState = state;
+    if (_isLoadingMore || !hasMore || !currentState.hasValue) return;
     _isLoadingMore = true;
     try {
-      final currentRecipes = state.value!;
+      final currentRecipes = currentState.value!;
       final result = await _repository.getRecipes(
         limit: _pageSize,
         offset: currentRecipes.length,
@@ -160,7 +161,8 @@ class RecipeDetailNotifier extends StateNotifier<AsyncValue<Recipe?>> {
       // Invalidate providers to refresh lists
       _ref.invalidate(favouriteRecipesProvider);
       _ref.invalidate(recipeListProvider);
-    } catch (e) {
+    } catch (e, stack) {
+      dev.log('Failed to toggle meal plan', name: 'RecipeDetailNotifier', error: e, stackTrace: stack);
       // Revert optimistic update on error
       state = AsyncValue.data(recipe);
       rethrow;

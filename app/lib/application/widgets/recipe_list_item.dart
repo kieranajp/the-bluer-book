@@ -66,23 +66,27 @@ class _RecipeThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: Spacing.thumbnailSize,
-      height: Spacing.thumbnailSize,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: Spacing.thumbnailSize,
+        height: Spacing.thumbnailSize,
         color: context.colours.border,
-        image: imageUrl != null
-            ? DecorationImage(
-                image: NetworkImage(imageUrl!),
+        child: imageUrl != null
+            ? Image.network(
+                imageUrl!,
                 fit: BoxFit.cover,
+                width: Spacing.thumbnailSize,
+                height: Spacing.thumbnailSize,
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.restaurant,
+                  size: 32,
+                  color: context.colours.textSecondary.withValues(alpha: 0.4),
+                ),
               )
-            : null,
+            : Icon(Icons.restaurant, size: 32,
+                color: context.colours.textSecondary.withValues(alpha: 0.4)),
       ),
-      child: imageUrl == null
-          ? Icon(Icons.restaurant, size: 32,
-              color: context.colours.textSecondary.withValues(alpha: 0.4))
-          : null,
     );
   }
 }

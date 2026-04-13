@@ -60,12 +60,16 @@ class MealPlanStarIcon extends ConsumerWidget {
         uuid: uuid,
         isCurrentlyInMealPlan: isFavourite,
       ),
-      child: Icon(
-        isFavourite ? Icons.star : Icons.star_border,
-        color: isFavourite
-            ? context.colours.primary
-            : context.colours.textSecondary.withValues(alpha: 0.3),
-        size: 24,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Icon(
+          isFavourite ? Icons.star : Icons.star_border,
+          color: isFavourite
+              ? context.colours.primary
+              : context.colours.textSecondary.withValues(alpha: 0.3),
+          size: 24,
+        ),
       ),
     );
   }

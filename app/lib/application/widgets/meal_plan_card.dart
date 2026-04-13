@@ -66,23 +66,27 @@ class _MealPlanImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          width: double.infinity,
-          height: Spacing.mealPlanImageHeight,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: double.infinity,
+            height: Spacing.mealPlanImageHeight,
             color: context.colours.border,
-            image: recipe.imageUrl != null
-                ? DecorationImage(
-                    image: NetworkImage(recipe.imageUrl!),
+            child: recipe.imageUrl != null
+                ? Image.network(
+                    recipe.imageUrl!,
                     fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: Spacing.mealPlanImageHeight,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.restaurant,
+                      size: 48,
+                      color: context.colours.textSecondary.withValues(alpha: 0.4),
+                    ),
                   )
-                : null,
+                : Icon(Icons.restaurant, size: 48,
+                    color: context.colours.textSecondary.withValues(alpha: 0.4)),
           ),
-          child: recipe.imageUrl == null
-              ? Icon(Icons.restaurant, size: 48,
-                  color: context.colours.textSecondary.withValues(alpha: 0.4))
-              : null,
         ),
         Positioned(
           top: Spacing.xs,

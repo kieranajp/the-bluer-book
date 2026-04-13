@@ -12,6 +12,10 @@ final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
   return RecipeRepository(ref.watch(apiClientProvider));
 });
 
+final ingredientsProvider = FutureProvider<List<IngredientDetail>>((ref) async {
+  return ref.watch(recipeRepositoryProvider).getIngredients();
+});
+
 final unitsProvider = FutureProvider<List<IngredientUnit>>((ref) async {
   return ref.watch(recipeRepositoryProvider).getUnits();
 });

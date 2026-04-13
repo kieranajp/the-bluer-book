@@ -26,6 +26,7 @@ type RecipeService interface {
 
 	// Lookup methods
 	ListUnits(ctx context.Context) ([]recipe.Unit, error)
+	ListIngredients(ctx context.Context) ([]recipe.Ingredient, error)
 }
 
 type recipeService struct {
@@ -141,4 +142,8 @@ func (s *recipeService) ListMealPlanRecipes(ctx context.Context) ([]*recipe.Reci
 
 func (s *recipeService) ListUnits(ctx context.Context) ([]recipe.Unit, error) {
 	return s.repo.ListUnits(ctx)
+}
+
+func (s *recipeService) ListIngredients(ctx context.Context) ([]recipe.Ingredient, error) {
+	return s.repo.ListIngredients(ctx)
 }

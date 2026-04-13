@@ -298,8 +298,10 @@ class _IngredientsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unitsAsync = ref.watch(unitsProvider);
-    final availableUnits = unitsAsync.valueOrNull ?? <IngredientUnit>[];
+    final availableUnits =
+        ref.watch(unitsProvider).valueOrNull ?? <IngredientUnit>[];
+    final availableIngredients =
+        ref.watch(ingredientsProvider).valueOrNull ?? <IngredientDetail>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,6 +334,7 @@ class _IngredientsSection extends ConsumerWidget {
               index: i,
               ingredient: editState.ingredients[i],
               availableUnits: availableUnits,
+              availableIngredients: availableIngredients,
               onChanged: (updated) => notifier.updateIngredient(i, updated),
               onDelete: () => notifier.removeIngredient(i),
             );

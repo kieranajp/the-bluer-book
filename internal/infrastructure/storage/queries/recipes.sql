@@ -40,6 +40,9 @@ RETURNING *;
 -- name: GetIngredientByName :one
 SELECT * FROM ingredients WHERE name = $1;
 
+-- name: ListIngredients :many
+SELECT * FROM ingredients ORDER BY name ASC;
+
 -- name: CreateUnit :one
 INSERT INTO units (
     uuid,

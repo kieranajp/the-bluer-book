@@ -28,6 +28,7 @@ type RecipeRepository interface {
 
 	// Lookup methods
 	ListUnits(ctx context.Context) ([]recipe.Unit, error)
+	ListIngredients(ctx context.Context) ([]recipe.Ingredient, error)
 }
 
 type recipeRepository struct {
@@ -762,4 +763,19 @@ func (r *recipeRepository) ListUnits(ctx context.Context) ([]recipe.Unit, error)
 		}
 	}
 	return units, nil
+}
+
+func (r *recipeRepository) ListIngredients(ctx context.Context) ([]recipe.Ingredient, error) {
+	rows, err := r.db.ListIngredients(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ingredients := make([]recipe.Ingredient, len(rows))
+	for i, row := range rows {
+		ingredients[i] = recipe.Ingredient{
+			Name: row.Name,
+		}
+	}
+	return ingredients, nil
 }

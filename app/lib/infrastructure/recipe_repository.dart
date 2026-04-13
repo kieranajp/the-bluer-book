@@ -105,6 +105,23 @@ class RecipeRepository {
     }
   }
 
+  Future<List<IngredientDetail>> getIngredients() async {
+    try {
+      dev.log('Fetching ingredients', name: 'RecipeRepository');
+      final response = await _apiClient.dio.get('/ingredients');
+      final Map<String, dynamic> data = response.data;
+      final List<dynamic> ingredientsJson = data['ingredients'];
+      return ingredientsJson
+          .map((json) =>
+              IngredientDetail.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e, stack) {
+      dev.log('Failed to load ingredients: ${e.message}',
+          name: 'RecipeRepository', error: e, stackTrace: stack);
+      throw Exception(_formatDioError('Failed to load ingredients', e));
+    }
+  }
+
   Future<List<IngredientUnit>> getUnits() async {
     try {
       dev.log('Fetching units', name: 'RecipeRepository');

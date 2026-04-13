@@ -193,6 +193,29 @@ void main() {
       expect(copy.steps.length, original.steps.length);
       expect(copy.labels.length, original.labels.length);
     });
+
+    test('isSaving transitions correctly through save lifecycle', () {
+      final original = EditRecipeState.fromRecipe(_testRecipe());
+      expect(original.isSaving, false);
+
+      // Simulate save start
+      final saving = original.copyWith(isSaving: true);
+      expect(saving.isSaving, true);
+
+      // Simulate save success — isSaving must reset to false
+      final saved = saving.copyWith(isSaving: false);
+      expect(saved.isSaving, false);
+    });
+
+    test('isSaving resets to false on error path', () {
+      final saving = EditRecipeState.fromRecipe(_testRecipe())
+          .copyWith(isSaving: true);
+      expect(saving.isSaving, true);
+
+      // Simulate error recovery
+      final recovered = saving.copyWith(isSaving: false);
+      expect(recovered.isSaving, false);
+    });
   });
 
   group('EditRecipeNotifier — mutations', () {

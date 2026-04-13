@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/ingredient.dart';
+import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 
@@ -83,12 +84,12 @@ class IngredientsList extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 8.0, right: 12.0),
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, right: 12.0),
             child: Icon(
               Icons.circle,
               size: 6,
-              color: Color(0xFF67737E),
+              color: context.colours.textSecondary,
             ),
           ),
           Expanded(

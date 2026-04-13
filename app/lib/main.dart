@@ -41,7 +41,7 @@ class BluerBook extends ConsumerWidget {
           brightness: Brightness.dark,
         ),
         scaffoldBackgroundColor: const Color(0xFF16191C),
-        textTheme: GoogleFonts.workSansTextTheme(),
+        textTheme: GoogleFonts.workSansTextTheme(ThemeData.dark().textTheme),
         useMaterial3: true,
         extensions: const [Colours.dark],
       ),

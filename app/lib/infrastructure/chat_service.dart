@@ -40,9 +40,10 @@ class ChatService {
 
     final stream = response.data.stream as Stream<List<int>>;
     String buffer = '';
+    final decoder = Utf8Decoder(allowMalformed: true);
 
     await for (final chunk in stream) {
-      buffer += utf8.decode(chunk);
+      buffer += decoder.convert(chunk);
 
       // Parse SSE data lines
       while (buffer.contains('\n\n')) {

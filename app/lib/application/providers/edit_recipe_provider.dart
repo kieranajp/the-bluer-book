@@ -332,6 +332,7 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
     try {
       final recipe = state.toRecipe(_uuid);
       await _repository.updateRecipe(_uuid, recipe);
+      state = state.copyWith(isSaving: false);
       _ref.invalidate(recipeListProvider);
       _ref.invalidate(favouriteRecipesProvider);
       dev.log('Recipe $_uuid updated', name: 'EditRecipeNotifier');

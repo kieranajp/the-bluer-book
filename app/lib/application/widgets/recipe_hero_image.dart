@@ -16,6 +16,14 @@ class RecipeHeroImage extends StatelessWidget {
             ? Image.network(
                 imageUrl!,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: context.colours.border,
+                  child: Icon(
+                    Icons.restaurant,
+                    size: 64,
+                    color: context.colours.textSecondary.withValues(alpha: 0.5),
+                  ),
+                ),
               )
             : Container(
                 color: context.colours.border,

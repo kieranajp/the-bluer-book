@@ -1,6 +1,7 @@
 import 'dart:developer' as dev;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/ingredient.dart';
 import '../../infrastructure/network/api_client.dart';
 import '../../infrastructure/recipe_repository.dart';
 import '../../domain/recipe.dart';
@@ -9,6 +10,10 @@ final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 
 final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
   return RecipeRepository(ref.watch(apiClientProvider));
+});
+
+final unitsProvider = FutureProvider<List<IngredientUnit>>((ref) async {
+  return ref.watch(recipeRepositoryProvider).getUnits();
 });
 
 final allRecipesProvider = FutureProvider<List<Recipe>>((ref) async {

@@ -344,6 +344,21 @@ func (h *RecipeHandler) RemoveFromMealPlan(w http.ResponseWriter, r *http.Reques
 	h.logger.Info().Str("recipe_id", recipeID.String()).Msg("Recipe removed from meal plan")
 }
 
+// GET /api/units - List all units of measure
+func (h *RecipeHandler) ListUnits(w http.ResponseWriter, r *http.Request) {
+	units, err := h.recipeService.ListUnits(r.Context())
+	if err != nil {
+		h.logger.Error().Err(err).Msg("Failed to list units")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "listing_failed", "Failed to list units")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"units": units,
+	})
+}
+
 // GET /api/recipes/meal-plan - List meal plan recipes
 func (h *RecipeHandler) ListMealPlanRecipes(w http.ResponseWriter, r *http.Request) {
 	recipes, err := h.recipeService.ListMealPlanRecipes(r.Context())

@@ -22,6 +22,8 @@ func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, l
 	recipeHandler := NewRecipeHandler(recipeService, logger)
 	validationMiddleware := middleware.NewValidationMiddleware(logger)
 
+	mux.HandleFunc("GET /api/units", recipeHandler.ListUnits)
+
 	mux.HandleFunc("GET /api/recipes", recipeHandler.ListRecipes)
 	mux.HandleFunc("GET /api/recipes/archived", recipeHandler.ListArchivedRecipes)
 	mux.HandleFunc("GET /api/recipes/meal-plan", recipeHandler.ListMealPlanRecipes)

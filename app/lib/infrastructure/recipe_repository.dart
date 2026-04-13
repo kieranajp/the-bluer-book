@@ -1,6 +1,7 @@
 import 'dart:developer' as dev;
 
 import 'package:dio/dio.dart';
+import '../domain/ingredient.dart';
 import '../domain/recipe.dart';
 import 'network/api_client.dart';
 
@@ -101,6 +102,23 @@ class RecipeRepository {
       dev.log('Failed to add $uuid to meal plan: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
       throw Exception(_formatDioError('Failed to add to meal plan', e));
+    }
+  }
+
+  Future<List<IngredientUnit>> getUnits() async {
+    try {
+      dev.log('Fetching units', name: 'RecipeRepository');
+      final response = await _apiClient.dio.get('/units');
+      final Map<String, dynamic> data = response.data;
+      final List<dynamic> unitsJson = data['units'];
+      return unitsJson
+          .map((json) =>
+              IngredientUnit.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e, stack) {
+      dev.log('Failed to load units: ${e.message}',
+          name: 'RecipeRepository', error: e, stackTrace: stack);
+      throw Exception(_formatDioError('Failed to load units', e));
     }
   }
 

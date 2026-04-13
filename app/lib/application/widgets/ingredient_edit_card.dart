@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../domain/ingredient.dart';
 import '../providers/edit_recipe_provider.dart';
 import '../styles/colours.dart';
 import '../styles/decorations.dart';
@@ -9,6 +10,7 @@ import '../styles/text_styles.dart';
 class IngredientEditCard extends StatefulWidget {
   final int index;
   final EditableIngredient ingredient;
+  final List<IngredientUnit> availableUnits;
   final ValueChanged<EditableIngredient> onChanged;
   final VoidCallback onDelete;
 
@@ -16,6 +18,7 @@ class IngredientEditCard extends StatefulWidget {
     super.key,
     required this.index,
     required this.ingredient,
+    required this.availableUnits,
     required this.onChanged,
     required this.onDelete,
   });
@@ -128,13 +131,7 @@ class _IngredientEditCardState extends State<IngredientEditCard> {
                       const SizedBox(width: Spacing.xs),
                       Expanded(
                         flex: 3,
-                        child: _buildTextField(
-                          context,
-                          label: 'Unit (optional)',
-                          value: widget.ingredient.unitName,
-                          onChanged: (v) => widget.onChanged(
-                              widget.ingredient.clone()..unitName = v),
-                        ),
+                        child: _buildUnitAutocomplete(context),
                       ),
                     ],
                   ),
@@ -159,6 +156,84 @@ class _IngredientEditCardState extends State<IngredientEditCard> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildUnitAutocomplete(BuildContext context) {
+    return Autocomplete<IngredientUnit>(
+      initialValue: TextEditingValue(text: widget.ingredient.unitName),
+      displayStringForOption: (unit) => unit.name,
+      optionsBuilder: (textEditingValue) {
+        final query = textEditingValue.text.toLowerCase().trim();
+        if (query.isEmpty) {
+          return widget.availableUnits;
+        }
+        return widget.availableUnits
+            .where((unit) => unit.name.toLowerCase().contains(query));
+      },
+      onSelected: (unit) {
+        widget.onChanged(widget.ingredient.clone()
+          ..unitName = unit.name
+          ..unitAbbreviation = unit.abbreviation ?? '');
+      },
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        return TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            labelText: 'Unit (optional)',
+            labelStyle: TextStyles.caption(context),
+            filled: true,
+            fillColor: context.colours.background,
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: Spacing.s, vertical: Spacing.xs),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: context.colours.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: context.colours.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: context.colours.primary),
+            ),
+          ),
+          style: TextStyles.body(context),
+          onChanged: (v) => widget.onChanged(
+              widget.ingredient.clone()..unitName = v),
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200),
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                itemBuilder: (context, index) {
+                  final unit = options.elementAt(index);
+                  return ListTile(
+                    dense: true,
+                    title: Text(unit.name),
+                    subtitle: unit.abbreviation != null &&
+                            unit.abbreviation!.isNotEmpty
+                        ? Text(unit.abbreviation!)
+                        : null,
+                    onTap: () => onSelected(unit),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

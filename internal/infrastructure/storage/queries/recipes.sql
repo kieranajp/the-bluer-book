@@ -34,7 +34,7 @@ INSERT INTO ingredients (
     updated_at
 ) VALUES (
     $1, $2, $3, $4
-) ON CONFLICT (uuid) DO UPDATE SET name = EXCLUDED.name, updated_at = EXCLUDED.updated_at
+) ON CONFLICT (name) DO UPDATE SET updated_at = EXCLUDED.updated_at
 RETURNING *;
 
 -- name: GetIngredientByName :one
@@ -49,11 +49,14 @@ INSERT INTO units (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5
-) ON CONFLICT (uuid) DO UPDATE SET name = EXCLUDED.name, abbreviation = EXCLUDED.abbreviation, updated_at = EXCLUDED.updated_at
+) ON CONFLICT (name) DO UPDATE SET abbreviation = EXCLUDED.abbreviation, updated_at = EXCLUDED.updated_at
 RETURNING *;
 
 -- name: GetUnitByName :one
 SELECT * FROM units WHERE name = $1;
+
+-- name: ListUnits :many
+SELECT * FROM units ORDER BY name ASC;
 
 -- name: CreateRecipeIngredient :one
 INSERT INTO recipe_ingredient (

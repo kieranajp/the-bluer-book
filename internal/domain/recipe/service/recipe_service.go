@@ -23,6 +23,9 @@ type RecipeService interface {
 	AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error
 	RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error
 	ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error)
+
+	// Lookup methods
+	ListUnits(ctx context.Context) ([]recipe.Unit, error)
 }
 
 type recipeService struct {
@@ -134,4 +137,8 @@ func (s *recipeService) RemoveFromMealPlan(ctx context.Context, recipeID uuid.UU
 
 func (s *recipeService) ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error) {
 	return s.repo.ListMealPlanRecipes(ctx)
+}
+
+func (s *recipeService) ListUnits(ctx context.Context) ([]recipe.Unit, error) {
+	return s.repo.ListUnits(ctx)
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/ingredient.dart';
 import '../../domain/recipe.dart';
 import '../providers/edit_recipe_provider.dart';
+import '../providers/recipe_providers.dart';
 import '../widgets/ingredient_edit_card.dart';
 import '../widgets/step_edit_card.dart';
 import '../widgets/label_edit_chip.dart';
@@ -287,7 +289,7 @@ class _DetailsSection extends StatelessWidget {
   }
 }
 
-class _IngredientsSection extends StatelessWidget {
+class _IngredientsSection extends ConsumerWidget {
   final EditRecipeState editState;
   final EditRecipeNotifier notifier;
 
@@ -295,7 +297,10 @@ class _IngredientsSection extends StatelessWidget {
       {required this.editState, required this.notifier});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unitsAsync = ref.watch(unitsProvider);
+    final availableUnits = unitsAsync.valueOrNull ?? <IngredientUnit>[];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -326,6 +331,7 @@ class _IngredientsSection extends StatelessWidget {
               key: ValueKey(editState.ingredients[i].id),
               index: i,
               ingredient: editState.ingredients[i],
+              availableUnits: availableUnits,
               onChanged: (updated) => notifier.updateIngredient(i, updated),
               onDelete: () => notifier.removeIngredient(i),
             );

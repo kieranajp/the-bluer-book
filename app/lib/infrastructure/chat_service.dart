@@ -30,7 +30,7 @@ class ChatService {
       '/chat',
       data: {
         'message': message,
-        if (sessionId != null) 'session_id': sessionId,
+        'session_id': ?sessionId,
       },
       options: Options(
         responseType: ResponseType.stream,

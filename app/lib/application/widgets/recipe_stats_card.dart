@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../styles/colours.dart';
-import '../styles/text_styles.dart';
-import '../styles/spacing.dart';
+import '../styles/shapes.dart';
+import '../utils/time_format.dart';
 
+/// Three-stat tonal card: Prep / Cook / Serves. Each icon sits in a different
+/// shape — squircle, blob, diamond — to demonstrate the Shape DNA rules.
 class RecipeStatsCard extends StatelessWidget {
   final int preparationTime;
   final int cookingTime;
@@ -17,41 +19,48 @@ class RecipeStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colours;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.m),
+      padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
       child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 22),
         decoration: BoxDecoration(
-          color: context.colours.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: context.colours.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: c.surfaceContainer,
+          borderRadius: BorderRadius.circular(28),
         ),
-        padding: const EdgeInsets.all(Spacing.m),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _StatItem(
-              icon: Icons.schedule,
-              label: 'Prep',
-              value: '${preparationTime}m',
+            Expanded(
+              child: _StatCell(
+                icon: Icons.schedule,
+                value: formatMinutes(preparationTime),
+                label: 'PREP',
+                background: c.primaryContainer,
+                foreground: c.onPrimaryContainer,
+                shape: BorderRadius.circular(14), // squircle
+              ),
             ),
-            _StatDivider(),
-            _StatItem(
-              icon: Icons.timer,
-              label: 'Cook',
-              value: '${cookingTime}m',
+            _Divider(),
+            Expanded(
+              child: _StatCell(
+                icon: Icons.local_fire_department_rounded,
+                value: formatMinutes(cookingTime),
+                label: 'COOK',
+                background: c.tertiaryContainer,
+                foreground: c.onTertiaryContainer,
+                shape: Shapes.blob(44), // blob
+              ),
             ),
-            _StatDivider(),
-            _StatItem(
-              icon: Icons.people,
-              label: 'Servings',
-              value: '$servings',
+            _Divider(),
+            Expanded(
+              child: _StatCell(
+                icon: Icons.people_alt_outlined,
+                value: '$servings',
+                label: 'SERVES',
+                background: c.secondaryContainer,
+                foreground: c.onSecondaryContainer,
+                shape: Shapes.diamondish, // diamond-ish
+              ),
             ),
           ],
         ),
@@ -60,38 +69,66 @@ class RecipeStatsCard extends StatelessWidget {
   }
 }
 
-class _StatItem extends StatelessWidget {
+class _StatCell extends StatelessWidget {
   final IconData icon;
-  final String label;
   final String value;
+  final String label;
+  final Color background;
+  final Color foreground;
+  final BorderRadius shape;
 
-  const _StatItem({
+  const _StatCell({
     required this.icon,
-    required this.label,
     required this.value,
+    required this.label,
+    required this.background,
+    required this.foreground,
+    required this.shape,
   });
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colours;
     return Column(
       children: [
-        Icon(icon, size: 24, color: context.colours.primary),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyles.caption(context)),
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: background, borderRadius: shape),
+          child: Icon(icon, size: 20, color: foreground),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 15.5,
+            fontWeight: FontWeight.w700,
+            color: c.textPrimary,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(value, style: TextStyles.statValue(context)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.4,
+            color: c.textSecondary,
+          ),
+        ),
       ],
     );
   }
 }
 
-class _StatDivider extends StatelessWidget {
+class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 1,
-      height: 40,
-      color: context.colours.border,
+      height: 36,
+      color: context.colours.outlineVariant.withValues(alpha: 0.55),
     );
   }
 }

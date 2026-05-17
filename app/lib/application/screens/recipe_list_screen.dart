@@ -4,13 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
-import '../widgets/recipe_list_item.dart';
-import '../widgets/search_bar.dart';
-import '../widgets/empty_state.dart';
 import '../styles/colours.dart';
-import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/filter_chip_row.dart';
+import '../widgets/home_header.dart';
+import '../widgets/home_hero.dart';
+import '../widgets/meal_plan_carousel.dart';
+import '../widgets/pill_search.dart';
+import '../widgets/recipe_row.dart';
+import '../widgets/section_label.dart';
 
+/// Home — "My Kitchen", Garden Plot / M3 Expressive.
 class RecipeListScreen extends ConsumerStatefulWidget {
   const RecipeListScreen({super.key});
 
@@ -20,6 +25,7 @@ class RecipeListScreen extends ConsumerStatefulWidget {
 
 class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
   Timer? _debounce;
+  String _activeFilter = 'all';
 
   void _onSearchChanged(String query) {
     ref.read(searchQueryProvider.notifier).state = query;
@@ -37,14 +43,14 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allRecipesAsync = ref.watch(filteredRecipesProvider);
+    final recipesAsync = ref.watch(filteredRecipesProvider);
     final notifier = ref.read(recipeListProvider.notifier);
 
-    ref.listen<AsyncValue<List<Recipe>>>(filteredRecipesProvider, (previous, next) {
-      if (next.hasError && !(previous?.hasError ?? false)) {
-        final error = next.error;
-        final message = error is Exception
-            ? error.toString().replaceFirst('Exception: ', '')
+    ref.listen<AsyncValue<List<Recipe>>>(filteredRecipesProvider, (prev, next) {
+      if (next.hasError && !(prev?.hasError ?? false)) {
+        final err = next.error;
+        final message = err is Exception
+            ? err.toString().replaceFirst('Exception: ', '')
             : 'Failed to load recipes';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -61,55 +67,47 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
       }
     });
 
+    final total = notifier.total;
+    final filters = <FilterOption>[
+      FilterOption(id: 'all', label: 'All', count: total > 0 ? total : null),
+      const FilterOption(id: 'fav', label: 'Favourites'),
+      const FilterOption(id: 'quick', label: 'Under 30 min'),
+      const FilterOption(id: 'main', label: 'Mains'),
+      const FilterOption(id: 'veg', label: 'Vegetarian'),
+      const FilterOption(id: 'dessert', label: 'Dessert'),
+    ];
+
     return Scaffold(
       backgroundColor: context.colours.background,
       body: SafeArea(
         child: NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (notification is ScrollEndNotification &&
-                notification.metrics.extentAfter < 200) {
+          onNotification: (n) {
+            if (n is ScrollEndNotification && n.metrics.extentAfter < 200) {
               notifier.loadMore();
             }
             return false;
           },
           child: CustomScrollView(
             slivers: [
-              // App bar
-              SliverAppBar(
-                floating: true,
-                backgroundColor: context.colours.background,
-                elevation: 0,
-                title: Text(
-                  'My Kitchen',
-                  style: TextStyles.appBarTitle(context),
-                ),
-              ),
-
-              // Search bar
+              const SliverToBoxAdapter(child: HomeHeader()),
+              const SliverToBoxAdapter(child: HomeHero()),
+              SliverToBoxAdapter(child: PillSearch(onChanged: _onSearchChanged)),
               SliverToBoxAdapter(
-                child: RecipeSearchBar(
-                  onChanged: _onSearchChanged,
+                child: FilterChipRow(
+                  filters: filters,
+                  active: _activeFilter,
+                  onChanged: (id) => setState(() => _activeFilter = id),
                 ),
               ),
-
-              // All recipes section header
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: MealPlanCarousel()),
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    Spacing.m,
-                    Spacing.l,
-                    Spacing.m,
-                    Spacing.s,
-                  ),
-                  child: Text(
-                    'All Recipes',
-                    style: TextStyles.sectionHeading(context),
-                  ),
+                child: SectionLabel(
+                  title: total > 0 ? 'All recipes · $total' : 'All recipes',
+                  action: 'Sort',
                 ),
               ),
-
-              // All recipes list
-              allRecipesAsync.when(
+              recipesAsync.when(
                 data: (recipes) => recipes.isEmpty
                     ? SliverToBoxAdapter(
                         child: EmptyState(
@@ -121,27 +119,23 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                       )
                     : SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            return Padding(
-                              padding: Spacing.listItemPadding,
-                              child: RecipeListItem(recipe: recipes[index]),
-                            );
-                          },
+                          (context, i) => RecipeRow(
+                            recipe: recipes[i],
+                            isLast: i == recipes.length - 1,
+                          ),
                           childCount: recipes.length,
                         ),
                       ),
                 loading: () => const SliverToBoxAdapter(
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(Spacing.xl),
-                      child: CircularProgressIndicator(),
-                    ),
+                  child: Padding(
+                    padding: EdgeInsets.all(Spacing.xl),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
                 ),
-                error: (error, stack) => SliverToBoxAdapter(
+                error: (_, _) => SliverToBoxAdapter(
                   child: EmptyState(
                     icon: Icons.cloud_off,
-                    title: 'Couldn\'t load recipes',
+                    title: "Couldn't load recipes",
                     action: OutlinedButton.icon(
                       onPressed: () => notifier.loadRecipes(
                         search: ref.read(searchQueryProvider),
@@ -152,25 +146,18 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                   ),
                 ),
               ),
-
-              // Loading more indicator
-              if (allRecipesAsync.hasValue && notifier.hasMore)
+              if (recipesAsync.hasValue && notifier.hasMore)
                 const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.all(Spacing.m),
                     child: Center(child: CircularProgressIndicator()),
                   ),
                 ),
-
-              // Bottom spacing for FAB
-              const SliverToBoxAdapter(
-                child: SizedBox(height: Spacing.bottomSpacer),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 110)),
             ],
           ),
         ),
       ),
-
     );
   }
 }

@@ -15,7 +15,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
       "targets": [
         {
-          "expr": "sum by (status_code) (rate(bluerbook_http_requests_total{job=\"local-dev\"}[$__rate_interval]))",
+          "expr": "sum by (status_code) (rate(bluerbook_http_requests_total{}[$__rate_interval]))",
           "legendFormat": "{{status_code}}"
         }
       ],
@@ -27,15 +27,15 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(bluerbook_http_request_duration_seconds_bucket{job=\"local-dev\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(bluerbook_http_request_duration_seconds_bucket{}[$__rate_interval])) by (le))",
           "legendFormat": "p50"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(bluerbook_http_request_duration_seconds_bucket{job=\"local-dev\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(bluerbook_http_request_duration_seconds_bucket{}[$__rate_interval])) by (le))",
           "legendFormat": "p95"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(bluerbook_http_request_duration_seconds_bucket{job=\"local-dev\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(bluerbook_http_request_duration_seconds_bucket{}[$__rate_interval])) by (le))",
           "legendFormat": "p99"
         }
       ],
@@ -47,7 +47,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
       "targets": [
         {
-          "expr": "sum by (route) (rate(bluerbook_http_requests_total{job=\"local-dev\", route=~\"/api/.*\"}[$__rate_interval]))",
+          "expr": "sum by (route) (rate(bluerbook_http_requests_total{route=~\"/api/.*\"}[$__rate_interval]))",
           "legendFormat": "{{route}}"
         }
       ],
@@ -65,7 +65,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 10 },
       "targets": [
         {
-          "expr": "sum by (operation) (rate(bluerbook_recipe_operations_total{job=\"local-dev\"}[$__rate_interval]))",
+          "expr": "sum by (operation) (rate(bluerbook_recipe_operations_total{}[$__rate_interval]))",
           "legendFormat": "{{operation}}"
         }
       ],
@@ -77,7 +77,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 10 },
       "targets": [
         {
-          "expr": "sum by (action) (rate(bluerbook_meal_plan_changes_total{job=\"local-dev\"}[$__rate_interval]))",
+          "expr": "sum by (action) (rate(bluerbook_meal_plan_changes_total{}[$__rate_interval]))",
           "legendFormat": "{{action}}"
         }
       ],
@@ -89,7 +89,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 10 },
       "targets": [
         {
-          "expr": "sum(increase(bluerbook_recipe_search_results_bucket{job=\"local-dev\"}[$__rate_interval])) by (le)",
+          "expr": "sum(increase(bluerbook_recipe_search_results_bucket{}[$__rate_interval])) by (le)",
           "legendFormat": "{{le}}",
           "format": "heatmap"
         }
@@ -101,7 +101,7 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 18 },
       "targets": [
         {
-          "expr": "sum by (operation) (rate(bluerbook_recipe_errors_total{job=\"local-dev\"}[$__rate_interval]))",
+          "expr": "sum by (operation) (rate(bluerbook_recipe_errors_total{}[$__rate_interval]))",
           "legendFormat": "{{operation}}"
         }
       ],
@@ -130,11 +130,11 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 27 },
       "targets": [
         {
-          "expr": "rate(bluerbook_chat_sessions_created_total{job=\"local-dev\"}[$__rate_interval])",
+          "expr": "rate(bluerbook_chat_sessions_created_total{}[$__rate_interval])",
           "legendFormat": "sessions"
         },
         {
-          "expr": "rate(bluerbook_chat_messages_total{job=\"local-dev\"}[$__rate_interval])",
+          "expr": "rate(bluerbook_chat_messages_total{}[$__rate_interval])",
           "legendFormat": "messages"
         }
       ],
@@ -146,11 +146,11 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 27 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(bluerbook_chat_response_duration_seconds_bucket{job=\"local-dev\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(bluerbook_chat_response_duration_seconds_bucket{}[$__rate_interval])) by (le))",
           "legendFormat": "p50"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(bluerbook_chat_response_duration_seconds_bucket{job=\"local-dev\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(bluerbook_chat_response_duration_seconds_bucket{}[$__rate_interval])) by (le))",
           "legendFormat": "p95"
         }
       ],
@@ -162,11 +162,11 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 27 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(bluerbook_chat_response_stream_parts_bucket{job=\"local-dev\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(bluerbook_chat_response_stream_parts_bucket{}[$__rate_interval])) by (le))",
           "legendFormat": "p50"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(bluerbook_chat_response_stream_parts_bucket{job=\"local-dev\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(bluerbook_chat_response_stream_parts_bucket{}[$__rate_interval])) by (le))",
           "legendFormat": "p95"
         }
       ],
@@ -178,7 +178,7 @@
       "gridPos": { "h": 4, "w": 8, "x": 0, "y": 35 },
       "targets": [
         {
-          "expr": "increase(bluerbook_chat_errors_total{job=\"local-dev\"}[1h])",
+          "expr": "increase(bluerbook_chat_errors_total{}[1h])",
           "legendFormat": "errors (1h)"
         }
       ],

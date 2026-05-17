@@ -2,12 +2,11 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/tab_provider.dart';
 import '../styles/colours.dart';
-import '../styles/text_styles.dart';
-import '../styles/spacing.dart';
-import 'recipe_list_screen.dart';
-import 'meal_plan_screen.dart';
 import 'chat_screen.dart';
+import 'meal_plan_screen.dart';
+import 'recipe_list_screen.dart';
 import 'settings_screen.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -18,20 +17,18 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  int _currentIndex = 0;
   int _previousIndex = 0;
 
   void _selectTab(int i) {
-    setState(() {
-      _previousIndex = _currentIndex;
-      _currentIndex = i;
-    });
+    _previousIndex = ref.read(selectedTabProvider);
+    ref.read(selectedTabProvider.notifier).state = i;
   }
-
-  bool get _isChatActive => _currentIndex == 2;
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = ref.watch(selectedTabProvider);
+    final isChatActive = currentIndex == 2;
+
     final tabs = [
       const RecipeListScreen(),
       const MealPlanScreen(),
@@ -42,17 +39,14 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       body: Stack(
         children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: tabs,
-          ),
-          if (!_isChatActive)
+          IndexedStack(index: currentIndex, children: tabs),
+          if (!isChatActive)
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               child: _FloatingNavBar(
-                currentIndex: _currentIndex,
+                currentIndex: currentIndex,
                 onTabSelected: _selectTab,
               ),
             ),
@@ -73,52 +67,67 @@ class _FloatingNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colours;
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        Spacing.m, 0, Spacing.m, bottomPadding + Spacing.s,
-      ),
+      padding: EdgeInsets.fromLTRB(12, 0, 12, bottomPadding + 12),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            height: 64,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: context.colours.surface.withValues(alpha: 0.65),
+              color: c.surfaceContainerHigh.withValues(alpha: 0.93),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: context.colours.border.withValues(alpha: 0.5),
-              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.5
+                        : 0.12,
+                  ),
+                  blurRadius: 32,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _NavItem(
-                  icon: Icons.restaurant_menu,
-                  label: 'Recipes',
-                  isSelected: currentIndex == 0,
-                  onTap: () => onTabSelected(0),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.restaurant_menu_rounded,
+                    label: 'Recipes',
+                    active: currentIndex == 0,
+                    onTap: () => onTabSelected(0),
+                  ),
                 ),
-                _NavItem(
-                  icon: Icons.calendar_today,
-                  label: 'Meal Plan',
-                  isSelected: currentIndex == 1,
-                  onTap: () => onTabSelected(1),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.calendar_today_rounded,
+                    label: 'Plan',
+                    active: currentIndex == 1,
+                    onTap: () => onTabSelected(1),
+                  ),
                 ),
-                _AddButton(colour: context.colours.primary),
-                _NavItem(
-                  icon: Icons.chat_bubble_outline,
-                  label: 'Chat',
-                  isSelected: currentIndex == 2,
-                  onTap: () => onTabSelected(2),
+                _AddButton(),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.chat_bubble_outline_rounded,
+                    label: 'Chat',
+                    active: currentIndex == 2,
+                    onTap: () => onTabSelected(2),
+                  ),
                 ),
-                _NavItem(
-                  icon: Icons.settings,
-                  label: 'Settings',
-                  isSelected: currentIndex == 3,
-                  onTap: () => onTabSelected(3),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.settings_outlined,
+                    label: 'Settings',
+                    active: currentIndex == 3,
+                    onTap: () => onTabSelected(3),
+                  ),
                 ),
               ],
             ),
@@ -129,66 +138,78 @@ class _FloatingNavBar extends StatelessWidget {
   }
 }
 
-class _AddButton extends StatelessWidget {
-  final Color colour;
-
-  const _AddButton({required this.colour});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: colour,
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        onPressed: () {},
-        icon: const Icon(Icons.add, size: 24, color: Colors.white),
-        padding: EdgeInsets.zero,
-      ),
-    );
-  }
-}
-
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final bool isSelected;
+  final bool active;
   final VoidCallback onTap;
 
   const _NavItem({
     required this.icon,
     required this.label,
-    required this.isSelected,
+    required this.active,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected
-        ? context.colours.primary
-        : context.colours.textSecondary;
-
+    final c = context.colours;
+    final color = active ? c.onSecondaryContainer : c.textSecondary;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(20),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 22),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: active ? c.secondaryContainer : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Icon(icon, size: 22, color: color),
+            ),
             const SizedBox(height: 2),
             Text(
               label,
-              style: isSelected
-                  ? TextStyles.tabActive(context)
-                  : TextStyles.tabInactive(context),
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                color: color,
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AddButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colours;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Container(
+        width: 56,
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: c.primary,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: c.primary.withValues(alpha: 0.33),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Icon(Icons.add_rounded, size: 24, color: c.onPrimary),
       ),
     );
   }

@@ -1,0 +1,11 @@
+targets:
+  $default:
+    builders:
+      # Disabled: riverpod_generator's bundled analyzer cannot parse the
+      # current SDK's dot-shorthand syntax (DotShorthandInvocation), causing
+      # build_runner to fail before freezed/json_serializable finish. The
+      # codebase doesn't use @riverpod annotations anyway, so generation here
+      # is a no-op — but the analysis pass still crashes. Re-enable when
+      # riverpod_generator ships an updated analyzer.
+      riverpod_generator:
+        enabled: false

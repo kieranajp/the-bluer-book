@@ -67,16 +67,16 @@ class EditableStep {
 }
 
 class EditableLabel {
+  String type;
   String name;
-  String colour;
 
-  EditableLabel({required this.name, this.colour = ''});
+  EditableLabel({required this.type, required this.name});
 
   EditableLabel.fromLabel(Label label)
-      : name = label.name,
-        colour = label.colour ?? '';
+      : type = label.type,
+        name = label.name;
 
-  EditableLabel clone() => EditableLabel(name: name, colour: colour);
+  EditableLabel clone() => EditableLabel(type: type, name: name);
 }
 
 class EditRecipeState {
@@ -171,8 +171,8 @@ class EditRecipeState {
       ),
       labels: labels
           .map((l) => Label(
+                type: l.type.trim(),
                 name: l.name.trim(),
-                colour: l.colour.trim().isEmpty ? null : l.colour.trim(),
               ))
           .toList(),
     );
@@ -305,10 +305,15 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
 
   // Label CRUD
 
-  void addLabel(String name) {
-    if (name.trim().isEmpty) return;
+  void addLabel({required String type, required String name}) {
+    final t = type.trim();
+    final n = name.trim();
+    if (t.isEmpty || n.isEmpty) return;
+    final exists = state.labels
+        .any((l) => l.type == t && l.name == n);
+    if (exists) return;
     state = state.copyWith(
-      labels: [...state.labels, EditableLabel(name: name.trim())],
+      labels: [...state.labels, EditableLabel(type: t, name: n)],
     );
   }
 

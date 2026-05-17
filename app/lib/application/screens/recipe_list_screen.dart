@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/label.dart';
 import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
+import '../styles/label_colours.dart';
 import '../styles/spacing.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/filter_chip_row.dart';
@@ -25,7 +27,6 @@ class RecipeListScreen extends ConsumerStatefulWidget {
 
 class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
   Timer? _debounce;
-  String _activeFilter = 'all';
 
   void _onSearchChanged(String query) {
     ref.read(searchQueryProvider.notifier).state = query;
@@ -41,10 +42,34 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     super.dispose();
   }
 
+  static const _typeOrder = ['course', 'cuisine', 'diet', 'method'];
+
+  List<FilterOption> _buildFilterOptions(List<LabelSummary> labels, int total) {
+    final used = labels.where((l) => l.uses > 0).toList()
+      ..sort((a, b) {
+        final ti = _typeOrder.indexOf(a.type);
+        final tj = _typeOrder.indexOf(b.type);
+        if (ti != tj) return ti.compareTo(tj);
+        return b.uses.compareTo(a.uses);
+      });
+
+    return [
+      FilterOption(id: '__all__', label: 'All', count: total > 0 ? total : null),
+      ...used.map((l) => FilterOption(
+            id: l.key,
+            label: labelDisplayName(l.name),
+            count: l.uses,
+            type: l.type,
+          )),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final recipesAsync = ref.watch(filteredRecipesProvider);
+    final labelsAsync = ref.watch(labelsProvider);
     final notifier = ref.read(recipeListProvider.notifier);
+    final activeLabels = ref.watch(recipeListProvider.notifier).activeLabels;
 
     ref.listen<AsyncValue<List<Recipe>>>(filteredRecipesProvider, (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {
@@ -68,14 +93,11 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     });
 
     final total = notifier.total;
-    final filters = <FilterOption>[
-      FilterOption(id: 'all', label: 'All', count: total > 0 ? total : null),
-      const FilterOption(id: 'fav', label: 'Favourites'),
-      const FilterOption(id: 'quick', label: 'Under 30 min'),
-      const FilterOption(id: 'main', label: 'Mains'),
-      const FilterOption(id: 'veg', label: 'Vegetarian'),
-      const FilterOption(id: 'dessert', label: 'Dessert'),
-    ];
+    final filters = _buildFilterOptions(
+      labelsAsync.valueOrNull ?? const [],
+      total,
+    );
+    final chipActive = activeLabels.isEmpty ? {'__all__'} : activeLabels;
 
     return Scaffold(
       backgroundColor: context.colours.background,
@@ -95,8 +117,14 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
               SliverToBoxAdapter(
                 child: FilterChipRow(
                   filters: filters,
-                  active: _activeFilter,
-                  onChanged: (id) => setState(() => _activeFilter = id),
+                  active: chipActive,
+                  onToggle: (id) {
+                    if (id == '__all__') {
+                      notifier.clearLabels();
+                    } else {
+                      notifier.toggleLabel(id);
+                    }
+                  },
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 16)),

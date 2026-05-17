@@ -7,6 +7,7 @@ sql:
       - "migrations/00004_meal_planning.sql"
       - "migrations/00005_add_preparation.sql"
       - "migrations/00006_add_ingredient_component.sql"
+      - "migrations/00007_label_taxonomy.sql"
     queries: "internal/infrastructure/storage/queries"
     gen:
       go:

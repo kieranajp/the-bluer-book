@@ -175,14 +175,14 @@ func (h *RecipeMCPHandler) parseLabels(data []any) ([]recipe.Label, error) {
 			return nil, fmt.Errorf("label %d must have a name", i)
 		}
 
-		color, _ := labelMap["color"].(string)
-		if color == "" {
-			color = "#3498db" // Default blue color
+		typeVal, ok := labelMap["type"].(string)
+		if !ok || typeVal == "" {
+			return nil, fmt.Errorf("label %d must have a type (course|cuisine|diet|method)", i)
 		}
 
 		labels = append(labels, recipe.Label{
-			Name:  name,
-			Color: color,
+			Type: typeVal,
+			Name: name,
 		})
 	}
 

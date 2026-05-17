@@ -1,6 +1,7 @@
 import 'dart:developer' as dev;
 
 import 'package:dio/dio.dart';
+import '../domain/label.dart';
 import '../domain/recipe.dart';
 import 'network/api_client.dart';
 
@@ -35,14 +36,16 @@ class RecipeRepository {
     int offset = 0,
     String search = '',
     String sort = '',
+    List<String> labels = const [],
   }) async {
     try {
-      dev.log('Fetching recipes (limit=$limit, offset=$offset, search="$search", sort="$sort")', name: 'RecipeRepository');
+      dev.log('Fetching recipes (limit=$limit, offset=$offset, search="$search", sort="$sort", labels="${labels.join(',')}")', name: 'RecipeRepository');
       final response = await _apiClient.dio.get('/recipes', queryParameters: {
         'limit': limit,
         'offset': offset,
         if (search.isNotEmpty) 'search': search,
         if (sort.isNotEmpty) 'sort': sort,
+        if (labels.isNotEmpty) 'labels': labels.join(','),
       });
       final Map<String, dynamic> data = response.data;
       final List<dynamic> recipesJson = data['recipes'];
@@ -107,6 +110,22 @@ class RecipeRepository {
       dev.log('Failed to add $uuid to meal plan: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
       throw Exception(_formatDioError('Failed to add to meal plan', e));
+    }
+  }
+
+  Future<List<LabelSummary>> getLabels() async {
+    try {
+      dev.log('Fetching labels', name: 'RecipeRepository');
+      final response = await _apiClient.dio.get('/labels');
+      final list = (response.data['labels'] as List)
+          .map((json) => LabelSummary.fromJson(json as Map<String, dynamic>))
+          .toList();
+      dev.log('Fetched ${list.length} labels', name: 'RecipeRepository');
+      return list;
+    } on DioException catch (e, stack) {
+      dev.log('Failed to load labels: ${e.message}',
+          name: 'RecipeRepository', error: e, stackTrace: stack);
+      throw Exception(_formatDioError('Failed to load labels', e));
     }
   }
 

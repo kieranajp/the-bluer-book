@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/label.dart';
+import '../styles/label_colours.dart';
 import '../styles/text_styles.dart';
-import '../utils/label_colour.dart';
 
 /// A compact label chip used in recipe list items.
 class LabelTagCompact extends StatelessWidget {
@@ -11,16 +11,16 @@ class LabelTagCompact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = parseLabelColour(label.colour);
+    final tone = labelToneFor(context, label.type);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: tone.background,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        label.name.toUpperCase(),
-        style: TextStyles.tag(context).copyWith(color: color),
+        labelDisplayName(label.name).toUpperCase(),
+        style: TextStyles.tag(context).copyWith(color: tone.foreground),
       ),
     );
   }
@@ -34,20 +34,20 @@ class LabelTagFull extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = parseLabelColour(label.colour);
+    final tone = labelToneFor(context, label.type);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: tone.background,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: color.withValues(alpha: 0.3),
+          color: tone.foreground.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
       child: Text(
-        label.name.toUpperCase(),
-        style: TextStyles.tag(context).copyWith(color: color),
+        labelDisplayName(label.name).toUpperCase(),
+        style: TextStyles.tag(context).copyWith(color: tone.foreground),
       ),
     );
   }

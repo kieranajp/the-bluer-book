@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/label.dart';
 import '../styles/colours.dart';
+import '../styles/label_colours.dart';
 import '../styles/shapes.dart';
 import '../styles/text_styles.dart';
 
@@ -66,20 +67,20 @@ class _LabelChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colours;
+    final tone = labelToneFor(context, label.type);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
       decoration: BoxDecoration(
-        color: c.secondaryContainer,
+        color: tone.background,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        label.name.toUpperCase(),
+        labelDisplayName(label.name).toUpperCase(),
         style: TextStyle(
           fontSize: 10.5,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
-          color: c.onSecondaryContainer,
+          color: tone.foreground,
         ),
       ),
     );

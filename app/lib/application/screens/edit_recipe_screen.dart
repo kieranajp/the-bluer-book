@@ -87,34 +87,64 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
   }
 
   void _addLabel() {
+    _labelController.clear();
+    String selectedType = 'course';
     showDialog(
       context: context,
       builder: (dialogContext) {
-        _labelController.clear();
-        return AlertDialog(
-          title: const Text('Add Label'),
-          content: TextField(
-            controller: _labelController,
-            decoration: const InputDecoration(hintText: 'Label name'),
-            autofocus: true,
-            onSubmitted: (value) {
-              ref.read(_provider.notifier).addLabel(value);
-              Navigator.pop(dialogContext);
-            },
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Add Label'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: selectedType,
+                  decoration: const InputDecoration(labelText: 'Type'),
+                  items: const [
+                    DropdownMenuItem(value: 'course', child: Text('course')),
+                    DropdownMenuItem(value: 'cuisine', child: Text('cuisine')),
+                    DropdownMenuItem(value: 'diet', child: Text('diet')),
+                    DropdownMenuItem(value: 'method', child: Text('method')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) setDialogState(() => selectedType = v);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _labelController,
+                  decoration: const InputDecoration(
+                    hintText: 'Name (e.g. main, indian, gluten_free)',
+                  ),
+                  autofocus: true,
+                  onSubmitted: (value) {
+                    ref.read(_provider.notifier).addLabel(
+                          type: selectedType,
+                          name: value,
+                        );
+                    Navigator.pop(dialogContext);
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  ref.read(_provider.notifier).addLabel(
+                        type: selectedType,
+                        name: _labelController.text,
+                      );
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('Add'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                ref.read(_provider.notifier).addLabel(_labelController.text);
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Add'),
-            ),
-          ],
         );
       },
     );

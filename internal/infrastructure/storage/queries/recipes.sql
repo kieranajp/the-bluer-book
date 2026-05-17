@@ -72,17 +72,24 @@ INSERT INTO recipe_ingredient (
 -- name: CreateLabel :one
 INSERT INTO labels (
     uuid,
+    type,
     name,
-    color,
     created_at,
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5
-) ON CONFLICT (uuid) DO UPDATE SET name = EXCLUDED.name, color = EXCLUDED.color, updated_at = EXCLUDED.updated_at
+) ON CONFLICT (type, name) DO UPDATE SET updated_at = EXCLUDED.updated_at
 RETURNING *;
 
--- name: GetLabelByName :one
-SELECT * FROM labels WHERE name = $1;
+-- name: GetLabelByTypeAndName :one
+SELECT * FROM labels WHERE type = $1 AND name = $2;
+
+-- name: ListLabels :many
+SELECT l.type, l.name, COUNT(rl.recipe_id) AS uses
+FROM labels l
+LEFT JOIN recipe_label rl ON rl.label_id = l.uuid
+GROUP BY l.type, l.name
+ORDER BY l.type, l.name;
 
 -- name: CreateRecipeLabel :one
 INSERT INTO recipe_label (

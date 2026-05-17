@@ -24,6 +24,9 @@ type RecipeRepository interface {
 	AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error
 	RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error
 	ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error)
+
+	// Label browsing
+	ListLabels(ctx context.Context) ([]recipe.LabelSummary, error)
 }
 
 type recipeRepository struct {
@@ -187,19 +190,22 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) (*
 	// Insert labels and recipe_label
 	for _, label := range rec.Labels {
 		var labelRow db.Label
-		labelRow, err = q.GetLabelByName(ctx, label.Name)
+		labelRow, err = q.GetLabelByTypeAndName(ctx, db.GetLabelByTypeAndNameParams{
+			Type: label.Type,
+			Name: label.Name,
+		})
 		if err == sql.ErrNoRows {
 			labelRow, err = q.CreateLabel(ctx, db.CreateLabelParams{
 				Uuid:      uuid.New(),
+				Type:      label.Type,
 				Name:      label.Name,
-				Color:     sql.NullString{String: label.Color, Valid: label.Color != ""},
 				CreatedAt: now,
 				UpdatedAt: now,
 			})
 			if err != nil {
 				return nil, err
 			}
-			r.logger.Info().Msgf("Inserted new label: %s (UUID: %s)", label.Name, labelRow.Uuid)
+			r.logger.Info().Msgf("Inserted new label: %s:%s (UUID: %s)", label.Type, label.Name, labelRow.Uuid)
 		} else if err != nil {
 			return nil, err
 		}
@@ -212,7 +218,7 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) (*
 		if err != nil {
 			return nil, err
 		}
-		r.logger.Info().Msgf("Linked label %s to recipe %s", label.Name, rec.Name)
+		r.logger.Info().Msgf("Linked label %s:%s to recipe %s", label.Type, label.Name, rec.Name)
 	}
 
 	// Insert recipe photos (not main photo)
@@ -315,7 +321,7 @@ func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, s
 	// Get count first
 	count, err := q.CountRecipesWithLabels(ctx, db.CountRecipesWithLabelsParams{
 		Search:     searchParam,
-		LabelNames: labels,
+		LabelKeys: labels,
 	})
 	if err != nil {
 		return nil, 0, err
@@ -324,7 +330,7 @@ func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, s
 	// Get recipes with meal plan status and label filtering
 	recipeRows, err := q.ListRecipesWithMealPlanStatusAndLabels(ctx, db.ListRecipesWithMealPlanStatusAndLabelsParams{
 		Search:       searchParam,
-		LabelNames:   labels,
+		LabelKeys:    labels,
 		RecipeLimit:  int32(limit),
 		RecipeOffset: int32(offset),
 	})
@@ -419,8 +425,8 @@ func (r *recipeRepository) buildRecipeFromRows(ctx context.Context, q *db.Querie
 	labels := make([]recipe.Label, len(labelRows))
 	for i, labelRow := range labelRows {
 		labels[i] = recipe.Label{
-			Name:  labelRow.Name,
-			Color: labelRow.Color.String,
+			Type: labelRow.Type,
+			Name: labelRow.Name,
 		}
 	}
 	rec.Labels = labels
@@ -587,12 +593,15 @@ func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec r
 	// Re-insert labels and recipe_label
 	for _, label := range rec.Labels {
 		var labelRow db.Label
-		labelRow, err = q.GetLabelByName(ctx, label.Name)
+		labelRow, err = q.GetLabelByTypeAndName(ctx, db.GetLabelByTypeAndNameParams{
+			Type: label.Type,
+			Name: label.Name,
+		})
 		if err == sql.ErrNoRows {
 			labelRow, err = q.CreateLabel(ctx, db.CreateLabelParams{
 				Uuid:      uuid.New(),
+				Type:      label.Type,
 				Name:      label.Name,
-				Color:     sql.NullString{String: label.Color, Valid: label.Color != ""},
 				CreatedAt: now,
 				UpdatedAt: now,
 			})
@@ -729,4 +738,20 @@ func (r *recipeRepository) ListMealPlanRecipes(ctx context.Context) ([]*recipe.R
 	}
 
 	return recipes, nil
+}
+
+func (r *recipeRepository) ListLabels(ctx context.Context) ([]recipe.LabelSummary, error) {
+	rows, err := r.db.ListLabels(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]recipe.LabelSummary, len(rows))
+	for i, row := range rows {
+		out[i] = recipe.LabelSummary{
+			Type: row.Type,
+			Name: row.Name,
+			Uses: int(row.Uses),
+		}
+	}
+	return out, nil
 }

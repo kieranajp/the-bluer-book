@@ -58,10 +58,17 @@ type RecipeIngredient struct {
 }
 
 type Label struct {
+	Type      string    `json:"type"`
 	Name      string    `json:"name"`
-	Color     string    `json:"color"`
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	UpdatedAt time.Time `json:"updatedAt,omitempty"`
+}
+
+// LabelSummary is a label plus its usage count, returned by the labels listing endpoint.
+type LabelSummary struct {
+	Type string `json:"type"`
+	Name string `json:"name"`
+	Uses int    `json:"uses"`
 }
 
 // Photo is a value object representing a photo attached to a recipe or step.

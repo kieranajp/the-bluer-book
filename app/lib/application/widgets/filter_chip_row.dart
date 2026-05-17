@@ -1,25 +1,37 @@
 import 'package:flutter/material.dart';
 import '../styles/colours.dart';
+import '../styles/label_colours.dart';
 
 class FilterOption {
+  /// Stable identifier — for label chips, this is `type:name`.
   final String id;
   final String label;
   final int? count;
 
-  const FilterOption({required this.id, required this.label, this.count});
+  /// Optional taxonomy type used to colour the chip (course/cuisine/diet/method).
+  /// null = neutral.
+  final String? type;
+
+  const FilterOption({
+    required this.id,
+    required this.label,
+    this.count,
+    this.type,
+  });
 }
 
-/// Horizontal scrolling row of selectable filter chips.
+/// Horizontal scrolling row of selectable filter chips. Multi-select.
+/// A null `id` in `active` is never matched; pass an empty set for "none selected".
 class FilterChipRow extends StatelessWidget {
   final List<FilterOption> filters;
-  final String active;
-  final ValueChanged<String> onChanged;
+  final Set<String> active;
+  final ValueChanged<String> onToggle;
 
   const FilterChipRow({
     super.key,
     required this.filters,
     required this.active,
-    required this.onChanged,
+    required this.onToggle,
   });
 
   @override
@@ -36,8 +48,9 @@ class FilterChipRow extends StatelessWidget {
           return _Chip(
             label: f.label,
             count: f.count,
-            selected: f.id == active,
-            onTap: () => onChanged(f.id),
+            type: f.type,
+            selected: active.contains(f.id),
+            onTap: () => onToggle(f.id),
           );
         },
       ),
@@ -48,12 +61,14 @@ class FilterChipRow extends StatelessWidget {
 class _Chip extends StatelessWidget {
   final String label;
   final int? count;
+  final String? type;
   final bool selected;
   final VoidCallback onTap;
 
   const _Chip({
     required this.label,
     this.count,
+    this.type,
     required this.selected,
     required this.onTap,
   });
@@ -61,9 +76,20 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colours;
-    final bg = selected ? c.secondaryContainer : Colors.transparent;
-    final fg = selected ? c.onSecondaryContainer : c.textPrimary;
-    final border = selected ? Colors.transparent : c.outlineVariant;
+    final tone = type == null ? null : labelToneFor(context, type!);
+
+    final Color bg;
+    final Color fg;
+    final Color borderColor;
+    if (selected) {
+      bg = tone?.background ?? c.secondaryContainer;
+      fg = tone?.foreground ?? c.onSecondaryContainer;
+      borderColor = Colors.transparent;
+    } else {
+      bg = Colors.transparent;
+      fg = c.textPrimary;
+      borderColor = c.outlineVariant;
+    }
 
     return InkWell(
       onTap: onTap,
@@ -74,7 +100,7 @@ class _Chip extends StatelessWidget {
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: border),
+          border: Border.all(color: borderColor),
         ),
         child: Text.rich(
           TextSpan(

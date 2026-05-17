@@ -1,9 +1,10 @@
 import 'dart:developer' as dev;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/label.dart';
+import '../../domain/recipe.dart';
 import '../../infrastructure/network/api_client.dart';
 import '../../infrastructure/recipe_repository.dart';
-import '../../domain/recipe.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 
@@ -17,6 +18,10 @@ final allRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
 
 final favouriteRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
   return ref.watch(recipeRepositoryProvider).getFavouriteRecipes();
+});
+
+final labelsProvider = FutureProvider<List<LabelSummary>>((ref) async {
+  return ref.watch(recipeRepositoryProvider).getLabels();
 });
 
 enum RecipeSort { newest, name, time }
@@ -51,6 +56,7 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
   bool _isLoadingMore = false;
   String _currentSearch = '';
   RecipeSort _currentSort = RecipeSort.newest;
+  Set<String> _currentLabels = const {};
 
   RecipeListNotifier(this._repository, this._ref) : super(const AsyncValue.loading()) {
     loadRecipes();
@@ -60,10 +66,16 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
   bool get hasMore => (state.valueOrNull?.length ?? 0) < _total;
   bool get isLoadingMore => _isLoadingMore;
   RecipeSort get sort => _currentSort;
+  Set<String> get activeLabels => _currentLabels;
 
-  Future<void> loadRecipes({String search = '', RecipeSort? sort}) async {
+  Future<void> loadRecipes({
+    String search = '',
+    RecipeSort? sort,
+    Set<String>? labels,
+  }) async {
     _currentSearch = search;
     if (sort != null) _currentSort = sort;
+    if (labels != null) _currentLabels = labels;
     state = const AsyncValue.loading();
     try {
       final result = await _repository.getRecipes(
@@ -71,9 +83,10 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
         offset: 0,
         search: search,
         sort: _currentSort.apiValue,
+        labels: _currentLabels.toList(),
       );
       _total = result.total;
-      dev.log('Loaded ${result.recipes.length}/$_total recipes (search="$search", sort=${_currentSort.name})', name: 'RecipeListNotifier');
+      dev.log('Loaded ${result.recipes.length}/$_total recipes (search="$search", sort=${_currentSort.name}, labels=$_currentLabels)', name: 'RecipeListNotifier');
       state = AsyncValue.data(result.recipes);
     } catch (e, stack) {
       dev.log('Failed to load recipes', name: 'RecipeListNotifier', error: e, stackTrace: stack);
@@ -81,7 +94,24 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
     }
   }
 
-  Future<void> setSort(RecipeSort sort) => loadRecipes(search: _currentSearch, sort: sort);
+  Future<void> setSort(RecipeSort sort) =>
+      loadRecipes(search: _currentSearch, sort: sort, labels: _currentLabels);
+
+  Future<void> toggleLabel(String key) {
+    final next = {..._currentLabels};
+    if (!next.remove(key)) next.add(key);
+    return loadRecipes(
+      search: _currentSearch,
+      sort: _currentSort,
+      labels: next,
+    );
+  }
+
+  Future<void> clearLabels() => loadRecipes(
+        search: _currentSearch,
+        sort: _currentSort,
+        labels: const {},
+      );
 
   Future<void> loadMore() async {
     final currentState = state;
@@ -94,6 +124,7 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
         offset: currentRecipes.length,
         search: _currentSearch,
         sort: _currentSort.apiValue,
+        labels: _currentLabels.toList(),
       );
       _total = result.total;
       dev.log('Loaded ${result.recipes.length} more recipes (${currentRecipes.length + result.recipes.length}/$_total)',

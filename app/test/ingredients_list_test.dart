@@ -5,7 +5,9 @@ import 'package:app/domain/ingredient.dart';
 import 'package:app/application/widgets/ingredients_list.dart';
 import 'package:app/application/styles/colours.dart';
 
-/// Helper to wrap a widget in a MaterialApp for testing.
+/// The redesigned IngredientsList renders each row as two separate Text
+/// widgets: the qty (in a monospace pill on the right) and the name (with
+/// optional preparation note appended). These tests assert on both parts.
 Widget wrapInApp(Widget child) {
   return MaterialApp(
     theme: ThemeData(
@@ -36,8 +38,10 @@ void main() {
         IngredientsList(ingredients: ingredients),
       ));
 
-      expect(find.text('2 large eggs'), findsOneWidget);
-      expect(find.text('100 g flour'), findsOneWidget);
+      expect(find.text('2 large'), findsOneWidget);
+      expect(find.text('eggs'), findsOneWidget);
+      expect(find.text('100 g'), findsOneWidget);
+      expect(find.text('flour'), findsOneWidget);
     });
 
     testWidgets('does not show component headers when no components set', (tester) async {
@@ -81,8 +85,10 @@ void main() {
 
       expect(find.text('For the batter'), findsOneWidget);
       expect(find.text('For the sauce'), findsOneWidget);
-      expect(find.text('200 g flour'), findsOneWidget);
-      expect(find.text('3 tbsp soy sauce'), findsOneWidget);
+      expect(find.text('200 g'), findsOneWidget);
+      expect(find.text('flour'), findsOneWidget);
+      expect(find.text('3 tbsp'), findsOneWidget);
+      expect(find.text('soy sauce'), findsOneWidget);
     });
 
     testWidgets('uncategorised ingredients appear without header', (tester) async {
@@ -105,10 +111,12 @@ void main() {
       ));
 
       // Uncategorised ingredient renders without a header
-      expect(find.text('1 tbsp sesame seeds'), findsOneWidget);
+      expect(find.text('1 tbsp'), findsOneWidget);
+      expect(find.text('sesame seeds'), findsOneWidget);
       // Component header only for the batter group
       expect(find.text('For the batter'), findsOneWidget);
-      expect(find.text('200 g flour'), findsOneWidget);
+      expect(find.text('200 g'), findsOneWidget);
+      expect(find.text('flour'), findsOneWidget);
     });
 
     testWidgets('multiple ingredients group under same component header', (tester) async {
@@ -139,10 +147,13 @@ void main() {
 
       // Only one header for the batter component
       expect(find.text('For the batter'), findsOneWidget);
-      // All three ingredients render
-      expect(find.text('200 g flour'), findsOneWidget);
-      expect(find.text('2 large eggs'), findsOneWidget);
-      expect(find.text('100 ml water'), findsOneWidget);
+      // All three ingredients render (qty + name pairs)
+      expect(find.text('200 g'), findsOneWidget);
+      expect(find.text('flour'), findsOneWidget);
+      expect(find.text('2 large'), findsOneWidget);
+      expect(find.text('eggs'), findsOneWidget);
+      expect(find.text('100 ml'), findsOneWidget);
+      expect(find.text('water'), findsOneWidget);
     });
   });
 
@@ -161,7 +172,8 @@ void main() {
         IngredientsList(ingredients: ingredients),
       ));
 
-      expect(find.text('1 medium onion, finely diced'), findsOneWidget);
+      expect(find.text('1 medium'), findsOneWidget);
+      expect(find.text('onion, finely diced'), findsOneWidget);
     });
 
     testWidgets('handles ingredient with component and preparation', (tester) async {
@@ -180,7 +192,8 @@ void main() {
       ));
 
       expect(find.text('For the sauce'), findsOneWidget);
-      expect(find.text('3 pieces garlic cloves, minced'), findsOneWidget);
+      expect(find.text('3 pieces'), findsOneWidget);
+      expect(find.text('garlic cloves, minced'), findsOneWidget);
     });
   });
 }

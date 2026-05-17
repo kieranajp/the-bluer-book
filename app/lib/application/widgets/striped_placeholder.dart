@@ -55,8 +55,8 @@ class StripedPlaceholder extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    c.tertiaryContainer.withValues(alpha: 0.33),
-                    c.secondaryContainer.withValues(alpha: 0.33),
+                    c.primaryContainer.withValues(alpha: 0.45),
+                    c.tertiaryContainer.withValues(alpha: 0.25),
                   ],
                 ),
                 backgroundBlendMode: isDark ? BlendMode.screen : BlendMode.multiply,

@@ -30,13 +30,19 @@ class RecipeRepository {
 
   RecipeRepository(this._apiClient);
 
-  Future<PaginatedRecipes> getRecipes({int limit = 20, int offset = 0, String search = ''}) async {
+  Future<PaginatedRecipes> getRecipes({
+    int limit = 20,
+    int offset = 0,
+    String search = '',
+    String sort = '',
+  }) async {
     try {
-      dev.log('Fetching recipes (limit=$limit, offset=$offset, search="$search")', name: 'RecipeRepository');
+      dev.log('Fetching recipes (limit=$limit, offset=$offset, search="$search", sort="$sort")', name: 'RecipeRepository');
       final response = await _apiClient.dio.get('/recipes', queryParameters: {
         'limit': limit,
         'offset': offset,
         if (search.isNotEmpty) 'search': search,
+        if (sort.isNotEmpty) 'sort': sort,
       });
       final Map<String, dynamic> data = response.data;
       final List<dynamic> recipesJson = data['recipes'];
@@ -101,6 +107,19 @@ class RecipeRepository {
       dev.log('Failed to add $uuid to meal plan: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
       throw Exception(_formatDioError('Failed to add to meal plan', e));
+    }
+  }
+
+  Future<Recipe> createRecipe(Recipe recipe) async {
+    try {
+      dev.log('Creating recipe "${recipe.name}"', name: 'RecipeRepository');
+      final data = recipe.toJson()..remove('uuid');
+      final response = await _apiClient.dio.post('/recipes', data: data);
+      return Recipe.fromJson(response.data);
+    } on DioException catch (e, stack) {
+      dev.log('Failed to create recipe: ${e.message}',
+          name: 'RecipeRepository', error: e, stackTrace: stack);
+      throw Exception(_formatDioError('Failed to create recipe', e));
     }
   }
 

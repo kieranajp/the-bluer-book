@@ -104,7 +104,8 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
               SliverToBoxAdapter(
                 child: SectionLabel(
                   title: total > 0 ? 'All recipes · $total' : 'All recipes',
-                  action: 'Sort',
+                  action: notifier.sort.label,
+                  onAction: () => notifier.setSort(notifier.sort.next),
                 ),
               ),
               recipesAsync.when(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../styles/colours.dart';
 import '../styles/shapes.dart';
 
-/// Avatar (blob, broccoli) + today's date + bell (mirrored blob).
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
 
@@ -33,20 +32,6 @@ class HomeHeader extends StatelessWidget {
                 color: c.textSecondary,
                 letterSpacing: 0.1,
               ),
-            ),
-          ),
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: c.surfaceContainerHigh,
-              borderRadius: Shapes.blobMirror(44),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.notifications_none_rounded,
-              size: 22,
-              color: c.textSecondary,
             ),
           ),
         ],

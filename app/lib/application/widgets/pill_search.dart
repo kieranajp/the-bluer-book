@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../styles/colours.dart';
-import '../styles/shapes.dart';
 
-/// Pill-shaped search bar with an embedded primary-container filter blob.
+/// Pill-shaped search bar.
 class PillSearch extends StatefulWidget {
   final ValueChanged<String> onChanged;
   final String hint;
@@ -56,20 +55,6 @@ class _PillSearchState extends State<PillSearch> {
                   ),
                 ),
                 style: TextStyle(color: c.textPrimary, fontSize: 14),
-              ),
-            ),
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: c.primaryContainer,
-                borderRadius: Shapes.blob(32),
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.tune_rounded,
-                size: 16,
-                color: c.onPrimaryContainer,
               ),
             ),
           ],

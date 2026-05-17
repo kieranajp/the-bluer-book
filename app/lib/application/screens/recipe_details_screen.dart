@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../domain/recipe.dart';
+import '../../domain/recipe_share.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
 import '../widgets/add_to_plan_button.dart';
@@ -44,7 +46,7 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
             child: RecipeHeroImage(
               imageUrl: recipe.imageUrl,
               onBack: () => Navigator.pop(context),
-              onShare: () {},
+              onShare: () => _shareRecipe(context, recipe),
               onEdit: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -95,6 +97,18 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
+      ),
+    );
+  }
+
+  void _shareRecipe(BuildContext context, Recipe recipe) {
+    final box = context.findRenderObject() as RenderBox?;
+    SharePlus.instance.share(
+      ShareParams(
+        text: recipe.toShareableText(),
+        subject: recipe.name,
+        sharePositionOrigin:
+            box == null ? null : box.localToGlobal(Offset.zero) & box.size,
       ),
     );
   }

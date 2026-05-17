@@ -84,6 +84,15 @@ func (h *RecipeHandler) ListRecipes(w http.ResponseWriter, r *http.Request) {
 	offsetStr := r.URL.Query().Get("offset")
 	search := r.URL.Query().Get("search")
 	labelsParam := r.URL.Query().Get("labels") // New parameter
+	sort := r.URL.Query().Get("sort")
+
+	// Allow-list sort modes; anything else falls back to default (newest first)
+	switch sort {
+	case "name", "time":
+		// valid
+	default:
+		sort = ""
+	}
 
 	// Set defaults
 	limit := 20
@@ -116,7 +125,7 @@ func (h *RecipeHandler) ListRecipes(w http.ResponseWriter, r *http.Request) {
 		labels = cleanLabels
 	}
 
-	recipes, total, err := h.recipeService.ListRecipes(r.Context(), limit, offset, search, labels)
+	recipes, total, err := h.recipeService.ListRecipes(r.Context(), limit, offset, search, labels, sort)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("Failed to list recipes")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "listing_failed", "Failed to list recipes")

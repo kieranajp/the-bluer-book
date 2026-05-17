@@ -14,7 +14,7 @@ import (
 type RecipeRepository interface {
 	SaveRecipe(ctx context.Context, recipe recipe.Recipe) (*recipe.Recipe, error)
 	GetRecipeByID(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
-	ListRecipes(ctx context.Context, limit, offset int, search string, labels []string) ([]*recipe.Recipe, int, error)
+	ListRecipes(ctx context.Context, limit, offset int, search string, labels []string, sort string) ([]*recipe.Recipe, int, error)
 	UpdateRecipe(ctx context.Context, id uuid.UUID, recipe recipe.Recipe) (*recipe.Recipe, error)
 	ArchiveRecipe(ctx context.Context, id uuid.UUID) error
 	RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
@@ -268,7 +268,7 @@ func (r *recipeRepository) GetRecipeByID(ctx context.Context, id uuid.UUID) (*re
 		recipeRow.CreatedAt, recipeRow.UpdatedAt, recipeRow.MainPhotoUuid, recipeRow.MainPhotoUrl)
 }
 
-func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, search string, labels []string) ([]*recipe.Recipe, int, error) {
+func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, search string, labels []string, sort string) ([]*recipe.Recipe, int, error) {
 	q := r.db
 
 	// Prepare search parameter
@@ -290,6 +290,7 @@ func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, s
 			Limit:   int32(limit),
 			Offset:  int32(offset),
 			Column3: search,
+			Column4: sort,
 		})
 		if err != nil {
 			return nil, 0, err

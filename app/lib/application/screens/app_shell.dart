@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/tab_provider.dart';
 import '../styles/colours.dart';
 import 'chat_screen.dart';
+import 'edit_recipe_screen.dart';
 import 'meal_plan_screen.dart';
 import 'recipe_list_screen.dart';
 import 'settings_screen.dart';
@@ -194,22 +195,34 @@ class _AddButton extends StatelessWidget {
     final c = context.colours;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Container(
-        width: 56,
-        height: 48,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: c.primary,
+      child: Material(
+        color: c.primary,
+        borderRadius: BorderRadius.circular(18),
+        elevation: 0,
+        shadowColor: c.primary.withValues(alpha: 0.33),
+        child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: c.primary.withValues(alpha: 0.33),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const EditRecipeScreen()),
+          ),
+          child: Container(
+            width: 56,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: c.primary.withValues(alpha: 0.33),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-          ],
+            child: Icon(Icons.add_rounded, size: 24, color: c.onPrimary),
+          ),
         ),
-        child: Icon(Icons.add_rounded, size: 24, color: c.onPrimary),
       ),
     );
   }

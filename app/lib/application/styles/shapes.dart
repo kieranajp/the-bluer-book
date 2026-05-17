@@ -22,19 +22,6 @@ class Shapes {
     );
   }
 
-  /// Mirror of [blob] — different DNA at the same scale.
-  /// CSS equivalent: `44% 56% 44% 56% / 56% 44% 56% 44%`
-  static BorderRadius blobMirror(double size) {
-    final r1 = size * 0.44;
-    final r2 = size * 0.56;
-    return BorderRadius.only(
-      topLeft: Radius.elliptical(r1, r2),
-      topRight: Radius.elliptical(r2, r1),
-      bottomRight: Radius.elliptical(r1, r2),
-      bottomLeft: Radius.elliptical(r2, r1),
-    );
-  }
-
   /// Page-torn-from-the-cookbook corners — big top-left + bottom-right,
   /// tight top-right + bottom-left. Used on meal-plan carousel cards and
   /// the extended "Add to meal plan" FAB.

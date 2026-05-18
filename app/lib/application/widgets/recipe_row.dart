@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/recipe.dart';
 import '../screens/recipe_details_screen.dart';
 import '../styles/colours.dart';
+import '../styles/label_colours.dart';
 import '../styles/shapes.dart';
 import '../utils/time_format.dart';
 import 'meal_plan_toggle_button.dart';
@@ -90,47 +91,54 @@ class RecipeRow extends ConsumerWidget {
                       ),
                     ),
                   const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+                  Row(
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.schedule, size: 12, color: c.textSecondary),
-                          const SizedBox(width: 4),
-                          Text(
-                            formatMinutes(totalTime),
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: c.textSecondary,
-                            ),
-                          ),
-                        ],
+                      Icon(Icons.schedule, size: 12, color: c.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        formatMinutes(totalTime),
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                          color: c.textSecondary,
+                        ),
                       ),
-                      ...recipe.labels.take(2).map((label) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
+                      if (recipe.labels.isNotEmpty) const SizedBox(width: 8),
+                      Expanded(
+                        child: SizedBox(
+                          height: 20,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: recipe.labels.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 6),
+                            itemBuilder: (context, i) {
+                              final label = recipe.labels[i];
+                              final tone = labelToneFor(context, label.type);
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: tone.background,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  labelDisplayName(label.name).toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.6,
+                                    color: tone.foreground,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                          decoration: BoxDecoration(
-                            color: c.secondaryContainer,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            label.name.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.6,
-                              color: c.onSecondaryContainer,
-                            ),
-                          ),
-                        );
-                      }),
+                        ),
+                      ),
                     ],
                   ),
                 ],

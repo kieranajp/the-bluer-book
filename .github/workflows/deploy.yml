@@ -29,6 +29,11 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@v5
+        with:
+          # Pin to Helm 3. Helm 4's kstatus-based --wait reports healthy
+          # resources (even a plain ClusterIP Service) as status=Unknown and
+          # times out. Helm 3's legacy --wait handles them correctly.
+          version: v3.21.0
 
       - name: Deploy with Helm
         run: |

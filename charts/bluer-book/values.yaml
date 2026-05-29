@@ -46,11 +46,17 @@ gemini:
   # Gemini model used by the chat handler and the tag-recipes job.
   model: "gemini-3.5-flash"
 
+r2:
+  accountId: ""
+  bucket: "bluer-book-images"
+  publicUrl: ""
+
 secretName: bluer-book-secrets
 
 # Secret values live in 1Password (Homelab vault). The onepassword-connect
 # operator materialises a k8s Secret named `secretName` from this item.
-# The item must contain: DB_USER, DB_PASS, DB_NAME, DB_HOST, DB_PORT, GOOGLE_API_KEY.
+# The item must contain: DB_USER, DB_PASS, DB_NAME, DB_HOST, DB_PORT, GOOGLE_API_KEY,
+# R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY.
 # Keep DB_PASS in sync with the existing postgres PVC (currently "xxx").
 onepassword:
   vault: Homelab

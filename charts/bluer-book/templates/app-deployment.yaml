@@ -44,6 +44,9 @@ spec:
       - name: tag-recipes
         image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
         command: ["./bluer-book", "tag-recipes", "--continue-on-error"]
+        env:
+        - name: GEMINI_MODEL
+          value: {{ .Values.gemini.model | quote }}
         envFrom:
         - secretRef:
             name: {{ .Values.secretName }}
@@ -65,6 +68,9 @@ spec:
           protocol: TCP
         - containerPort: {{ .Values.mcp.service.port }}
           protocol: TCP
+        env:
+        - name: GEMINI_MODEL
+          value: {{ .Values.gemini.model | quote }}
         envFrom:
         - secretRef:
             name: {{ .Values.secretName }}

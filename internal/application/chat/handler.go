@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"google.golang.org/adk/tool/mcptoolset"
 	"google.golang.org/genai"
 
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 )
 
@@ -41,23 +41,22 @@ type chatEvent struct {
 	SessionID string `json:"session_id,omitempty"`
 }
 
-func NewHandler(mcpAddr string, log logger.Logger, probe Probe) (*Handler, error) {
+func NewHandler(cfg config.Config, log logger.Logger, probe Probe) (*Handler, error) {
 	ctx := context.Background()
 
-	apiKey := os.Getenv("GOOGLE_API_KEY")
-	if apiKey == "" {
+	if cfg.GoogleAPIKey == "" {
 		return nil, fmt.Errorf("GOOGLE_API_KEY environment variable is required")
 	}
 
-	model, err := gemini.NewModel(ctx, "gemini-2.5-flash", &genai.ClientConfig{
-		APIKey: apiKey,
+	model, err := gemini.NewModel(ctx, cfg.GeminiModel, &genai.ClientConfig{
+		APIKey: cfg.GoogleAPIKey,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating gemini model: %w", err)
 	}
 
 	// Connect to the existing mark3labs MCP server as a client
-	mcpURL := fmt.Sprintf("http://localhost%s/mcp", mcpAddr)
+	mcpURL := fmt.Sprintf("http://localhost%s/mcp", cfg.MCPAddr)
 	transport := &gomcp.StreamableClientTransport{
 		Endpoint: mcpURL,
 	}

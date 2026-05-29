@@ -127,7 +127,6 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                   },
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
               const SliverToBoxAdapter(child: MealPlanCarousel()),
               SliverToBoxAdapter(
                 child: SectionLabel(

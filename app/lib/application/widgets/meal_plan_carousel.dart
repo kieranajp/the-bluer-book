@@ -35,6 +35,36 @@ class _MealPlanCarouselState extends ConsumerState<MealPlanCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    // While a search is active the meal plan recedes — it collapses and fades
+    // out of the way so the results below rise to the top and it's obvious the
+    // search did something. The carousel stays in the tree (and keeps its page
+    // position) so it springs back when the query clears.
+    final isSearching = ref.watch(searchQueryProvider).isNotEmpty;
+
+    return ClipRect(
+      child: AnimatedAlign(
+        alignment: Alignment.topCenter,
+        heightFactor: isSearching ? 0.0 : 1.0,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOutCubic,
+        child: AnimatedOpacity(
+          opacity: isSearching ? 0.0 : 1.0,
+          duration: const Duration(milliseconds: 180),
+          child: IgnorePointer(
+            ignoring: isSearching,
+            // Top gap lives here so it recedes together with the carousel
+            // rather than leaving a stranded strip of whitespace.
+            child: Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: _content(context),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _content(BuildContext context) {
     final mealPlanAsync = ref.watch(favouriteRecipesProvider);
 
     return mealPlanAsync.when(

@@ -1,0 +1,291 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:app/domain/ingredient.dart';
+import 'package:app/application/providers/edit_recipe_provider.dart';
+import 'package:app/application/widgets/ingredient_edit_card.dart';
+import 'package:app/application/styles/colours.dart';
+
+Widget wrapInApp(Widget child) {
+  return MaterialApp(
+    theme: ThemeData(
+      useMaterial3: true,
+      extensions: const [Colours.light],
+    ),
+    home: Scaffold(
+      body: SingleChildScrollView(child: child),
+    ),
+  );
+}
+
+EditableIngredient _editableIngredient({
+  String name = 'flour',
+  double quantity = 200,
+  String unitName = 'grams',
+  String unitAbbreviation = 'g',
+  String preparation = '',
+  String component = '',
+}) =>
+    EditableIngredient(
+      name: name,
+      quantity: quantity,
+      unitName: unitName,
+      unitAbbreviation: unitAbbreviation,
+      preparation: preparation,
+      component: component,
+    );
+
+const _testUnits = [
+  IngredientUnit(name: 'cups', abbreviation: 'c'),
+  IngredientUnit(name: 'grams', abbreviation: 'g'),
+  IngredientUnit(name: 'tablespoons', abbreviation: 'tbsp'),
+  IngredientUnit(name: 'teaspoons', abbreviation: 'tsp'),
+];
+
+const _testIngredients = [
+  IngredientDetail(name: 'carrot'),
+  IngredientDetail(name: 'flour'),
+  IngredientDetail(name: 'garlic'),
+  IngredientDetail(name: 'salt'),
+];
+
+void main() {
+  group('IngredientEditCard - summary display', () {
+    testWidgets('shows ingredient summary when collapsed', (tester) async {
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(),
+          availableUnits: _testUnits,
+          availableIngredients: _testIngredients,
+          onChanged: (_) {},
+          onDelete: () {},
+        ),
+      ));
+
+      expect(find.text('200 grams flour'), findsOneWidget);
+    });
+
+    testWidgets('shows summary with preparation', (tester) async {
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(preparation: 'sifted'),
+          availableUnits: _testUnits,
+          availableIngredients: _testIngredients,
+          onChanged: (_) {},
+          onDelete: () {},
+        ),
+      ));
+
+      expect(find.text('200 grams flour, sifted'), findsOneWidget);
+    });
+
+    testWidgets('shows "New ingredient" for empty name', (tester) async {
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(name: '', quantity: 0, unitName: ''),
+          availableUnits: _testUnits,
+          availableIngredients: _testIngredients,
+          onChanged: (_) {},
+          onDelete: () {},
+        ),
+      ));
+
+      expect(find.text('New ingredient'), findsOneWidget);
+    });
+
+    testWidgets('shows summary without unit when unit is empty',
+        (tester) async {
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(unitName: ''),
+          availableUnits: _testUnits,
+          availableIngredients: _testIngredients,
+          onChanged: (_) {},
+          onDelete: () {},
+        ),
+      ));
+
+      expect(find.text('200 flour'), findsOneWidget);
+    });
+  });
+
+  group('IngredientEditCard - expand/collapse', () {
+    testWidgets('expands to show edit fields when tapped', (tester) async {
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(),
+          availableUnits: _testUnits,
+          availableIngredients: _testIngredients,
+          onChanged: (_) {},
+          onDelete: () {},
+        ),
+      ));
+
+      expect(find.text('Qty'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.expand_more));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Qty'), findsOneWidget);
+      expect(find.text('Unit (optional)'), findsOneWidget);
+      expect(find.text('Preparation (optional)'), findsOneWidget);
+      expect(find.text('Component (optional)'), findsOneWidget);
+    });
+  });
+
+  group('IngredientEditCard - unit autocomplete', () {
+    testWidgets('shows unit suggestions when typing', (tester) async {
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(unitName: ''),
+          availableUnits: _testUnits,
+          availableIngredients: _testIngredients,
+          onChanged: (_) {},
+          onDelete: () {},
+        ),
+      ));
+
+      await tester.tap(find.byIcon(Icons.expand_more));
+      await tester.pumpAndSettle();
+
+      final unitField = find.widgetWithText(TextFormField, 'Unit (optional)');
+      await tester.enterText(unitField, 'cup');
+      await tester.pumpAndSettle();
+
+      expect(find.text('cups'), findsWidgets);
+    });
+
+    testWidgets('selecting a unit suggestion calls onChanged',
+        (tester) async {
+      EditableIngredient? lastChanged;
+
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(unitName: ''),
+          availableUnits: _testUnits,
+          availableIngredients: _testIngredients,
+          onChanged: (updated) => lastChanged = updated,
+          onDelete: () {},
+        ),
+      ));
+
+      await tester.tap(find.byIcon(Icons.expand_more));
+      await tester.pumpAndSettle();
+
+      final unitField = find.widgetWithText(TextFormField, 'Unit (optional)');
+      await tester.enterText(unitField, 'gram');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('grams').last);
+      await tester.pumpAndSettle();
+
+      expect(lastChanged, isNotNull);
+      expect(lastChanged!.unitName, 'grams');
+      expect(lastChanged!.unitAbbreviation, 'g');
+    });
+  });
+
+  group('IngredientEditCard - ingredient name autocomplete', () {
+    testWidgets('shows ingredient suggestions when typing', (tester) async {
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(name: ''),
+          availableUnits: _testUnits,
+          availableIngredients: _testIngredients,
+          onChanged: (_) {},
+          onDelete: () {},
+        ),
+      ));
+
+      await tester.tap(find.byIcon(Icons.expand_more));
+      await tester.pumpAndSettle();
+
+      final nameField = find.widgetWithText(TextFormField, 'Name');
+      await tester.enterText(nameField, 'gar');
+      await tester.pumpAndSettle();
+
+      expect(find.text('garlic'), findsWidgets);
+    });
+
+    testWidgets('selecting an ingredient suggestion calls onChanged',
+        (tester) async {
+      EditableIngredient? lastChanged;
+
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(name: ''),
+          availableUnits: _testUnits,
+          availableIngredients: _testIngredients,
+          onChanged: (updated) => lastChanged = updated,
+          onDelete: () {},
+        ),
+      ));
+
+      await tester.tap(find.byIcon(Icons.expand_more));
+      await tester.pumpAndSettle();
+
+      final nameField = find.widgetWithText(TextFormField, 'Name');
+      await tester.enterText(nameField, 'sal');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('salt').last);
+      await tester.pumpAndSettle();
+
+      expect(lastChanged, isNotNull);
+      expect(lastChanged!.name, 'salt');
+    });
+  });
+
+  group('IngredientEditCard - delete', () {
+    testWidgets('delete button calls onDelete', (tester) async {
+      bool deleted = false;
+
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(),
+          availableUnits: _testUnits,
+          availableIngredients: _testIngredients,
+          onChanged: (_) {},
+          onDelete: () => deleted = true,
+        ),
+      ));
+
+      await tester.tap(find.byIcon(Icons.delete_outline));
+      expect(deleted, isTrue);
+    });
+  });
+
+  group('IngredientEditCard - works with empty available lists', () {
+    testWidgets('renders normally when no suggestions available',
+        (tester) async {
+      await tester.pumpWidget(wrapInApp(
+        IngredientEditCard(
+          index: 0,
+          ingredient: _editableIngredient(),
+          availableUnits: const [],
+          availableIngredients: const [],
+          onChanged: (_) {},
+          onDelete: () {},
+        ),
+      ));
+
+      expect(find.text('200 grams flour'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.expand_more));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Qty'), findsOneWidget);
+      expect(find.text('Unit (optional)'), findsOneWidget);
+    });
+  });
+}

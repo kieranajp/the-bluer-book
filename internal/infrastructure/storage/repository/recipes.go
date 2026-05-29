@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,6 +28,10 @@ type RecipeRepository interface {
 
 	// Label browsing
 	ListLabels(ctx context.Context) ([]recipe.LabelSummary, error)
+
+	// Lookup methods
+	ListUnits(ctx context.Context) ([]recipe.Unit, error)
+	ListIngredients(ctx context.Context) ([]recipe.Ingredient, error)
 }
 
 type recipeRepository struct {
@@ -153,28 +158,33 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) (*
 		}
 		ingredientSet[ingRow.Uuid] = true
 		// Unit
-		var unitRow db.Unit
-		unitRow, err = q.GetUnitByName(ctx, ri.Unit.Name)
-		if err == sql.ErrNoRows {
-			unitRow, err = q.CreateUnit(ctx, db.CreateUnitParams{
-				Uuid:         uuid.New(),
-				Name:         ri.Unit.Name,
-				Abbreviation: sql.NullString{String: ri.Unit.Abbreviation, Valid: ri.Unit.Abbreviation != ""},
-				CreatedAt:    now,
-				UpdatedAt:    now,
-			})
-			if err != nil {
+		unitName := normalizeUnitName(ri.Unit.Name)
+		var unitID uuid.NullUUID
+		if unitName != "" {
+			var unitRow db.Unit
+			unitRow, err = q.GetUnitByName(ctx, unitName)
+			if err == sql.ErrNoRows {
+				unitRow, err = q.CreateUnit(ctx, db.CreateUnitParams{
+					Uuid:         uuid.New(),
+					Name:         unitName,
+					Abbreviation: sql.NullString{String: ri.Unit.Abbreviation, Valid: ri.Unit.Abbreviation != ""},
+					CreatedAt:    now,
+					UpdatedAt:    now,
+				})
+				if err != nil {
+					return nil, err
+				}
+				r.logger.Info().Msgf("Inserted new unit: %s (UUID: %s)", unitName, unitRow.Uuid)
+			} else if err != nil {
 				return nil, err
 			}
-			r.logger.Info().Msgf("Inserted new unit: %s (UUID: %s)", ri.Unit.Name, unitRow.Uuid)
-		} else if err != nil {
-			return nil, err
+			unitID = uuidToNullUUID(&unitRow.Uuid)
 		}
 		// RecipeIngredient
 		_, err = q.CreateRecipeIngredient(ctx, db.CreateRecipeIngredientParams{
 			RecipeID:     recipeID,
 			IngredientID: ingRow.Uuid,
-			UnitID:       uuidToNullUUID(&unitRow.Uuid),
+			UnitID:       unitID,
 			Quantity:     sql.NullFloat64{Float64: ri.Quantity, Valid: true},
 			Preparation:  sql.NullString{String: ri.Preparation, Valid: ri.Preparation != ""},
 			Component:    sql.NullString{String: ri.Component, Valid: ri.Component != ""},
@@ -255,6 +265,10 @@ func uuidToNullUUID(id *uuid.UUID) uuid.NullUUID {
 		return uuid.NullUUID{Valid: false}
 	}
 	return uuid.NullUUID{UUID: *id, Valid: true}
+}
+
+func normalizeUnitName(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
 }
 
 func (r *recipeRepository) GetRecipeByID(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error) {
@@ -558,27 +572,32 @@ func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec r
 		}
 		ingredientSet[ingRow.Uuid] = true
 
-		var unitRow db.Unit
-		unitRow, err = q.GetUnitByName(ctx, ri.Unit.Name)
-		if err == sql.ErrNoRows {
-			unitRow, err = q.CreateUnit(ctx, db.CreateUnitParams{
-				Uuid:         uuid.New(),
-				Name:         ri.Unit.Name,
-				Abbreviation: sql.NullString{String: ri.Unit.Abbreviation, Valid: ri.Unit.Abbreviation != ""},
-				CreatedAt:    now,
-				UpdatedAt:    now,
-			})
-			if err != nil {
+		unitName := normalizeUnitName(ri.Unit.Name)
+		var unitID uuid.NullUUID
+		if unitName != "" {
+			var unitRow db.Unit
+			unitRow, err = q.GetUnitByName(ctx, unitName)
+			if err == sql.ErrNoRows {
+				unitRow, err = q.CreateUnit(ctx, db.CreateUnitParams{
+					Uuid:         uuid.New(),
+					Name:         unitName,
+					Abbreviation: sql.NullString{String: ri.Unit.Abbreviation, Valid: ri.Unit.Abbreviation != ""},
+					CreatedAt:    now,
+					UpdatedAt:    now,
+				})
+				if err != nil {
+					return nil, err
+				}
+			} else if err != nil {
 				return nil, err
 			}
-		} else if err != nil {
-			return nil, err
+			unitID = uuidToNullUUID(&unitRow.Uuid)
 		}
 
 		_, err = q.CreateRecipeIngredient(ctx, db.CreateRecipeIngredientParams{
 			RecipeID:     recipeID,
 			IngredientID: ingRow.Uuid,
-			UnitID:       uuidToNullUUID(&unitRow.Uuid),
+			UnitID:       unitID,
 			Quantity:     sql.NullFloat64{Float64: ri.Quantity, Valid: true},
 			Preparation:  sql.NullString{String: ri.Preparation, Valid: ri.Preparation != ""},
 			Component:    sql.NullString{String: ri.Component, Valid: ri.Component != ""},
@@ -754,4 +773,35 @@ func (r *recipeRepository) ListLabels(ctx context.Context) ([]recipe.LabelSummar
 		}
 	}
 	return out, nil
+}
+
+func (r *recipeRepository) ListUnits(ctx context.Context) ([]recipe.Unit, error) {
+	rows, err := r.db.ListUnits(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	units := make([]recipe.Unit, len(rows))
+	for i, row := range rows {
+		units[i] = recipe.Unit{
+			Name:         row.Name,
+			Abbreviation: row.Abbreviation.String,
+		}
+	}
+	return units, nil
+}
+
+func (r *recipeRepository) ListIngredients(ctx context.Context) ([]recipe.Ingredient, error) {
+	rows, err := r.db.ListIngredients(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ingredients := make([]recipe.Ingredient, len(rows))
+	for i, row := range rows {
+		ingredients[i] = recipe.Ingredient{
+			Name: row.Name,
+		}
+	}
+	return ingredients, nil
 }

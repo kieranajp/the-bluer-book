@@ -26,6 +26,10 @@ type RecipeService interface {
 
 	// Label browsing
 	ListLabels(ctx context.Context) ([]recipe.LabelSummary, error)
+
+	// Lookup methods
+	ListUnits(ctx context.Context) ([]recipe.Unit, error)
+	ListIngredients(ctx context.Context) ([]recipe.Ingredient, error)
 }
 
 type recipeService struct {
@@ -141,4 +145,12 @@ func (s *recipeService) ListMealPlanRecipes(ctx context.Context) ([]*recipe.Reci
 
 func (s *recipeService) ListLabels(ctx context.Context) ([]recipe.LabelSummary, error) {
 	return s.repo.ListLabels(ctx)
+}
+
+func (s *recipeService) ListUnits(ctx context.Context) ([]recipe.Unit, error) {
+	return s.repo.ListUnits(ctx)
+}
+
+func (s *recipeService) ListIngredients(ctx context.Context) ([]recipe.Ingredient, error) {
+	return s.repo.ListIngredients(ctx)
 }

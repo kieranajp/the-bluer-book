@@ -60,7 +60,7 @@ var Command = &cli.Command{
 		&cli.StringFlag{
 			Name:  "model",
 			Usage: "Gemini model to use",
-			Value: "gemini-2.5-flash",
+			Value: "gemini-3.5-flash",
 		},
 		&cli.BoolFlag{
 			Name:  "all",

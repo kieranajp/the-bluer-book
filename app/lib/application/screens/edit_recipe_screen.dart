@@ -352,7 +352,7 @@ class _IngredientsSection extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: editState.ingredients.length,
-          onReorder: notifier.reorderIngredients,
+          onReorderItem: notifier.reorderIngredients,
           buildDefaultDragHandles: false,
           proxyDecorator: (child, index, animation) => Material(
             color: Colors.transparent,
@@ -400,7 +400,7 @@ class _StepsSection extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: editState.steps.length,
-          onReorder: notifier.reorderSteps,
+          onReorderItem: notifier.reorderSteps,
           buildDefaultDragHandles: false,
           proxyDecorator: (child, index, animation) => Material(
             color: Colors.transparent,

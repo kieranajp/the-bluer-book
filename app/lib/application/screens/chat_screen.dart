@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/chat_providers.dart';
 import '../styles/colours.dart';
@@ -215,14 +216,35 @@ class _MessageBubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    message.content.isEmpty && !message.isComplete
-                        ? '...'
-                        : message.content,
-                    style: TextStyles.body(context).copyWith(
-                      color: isUser ? Colors.white : context.colours.textPrimary,
+                  if (isUser)
+                    Text(
+                      message.content.isEmpty && !message.isComplete
+                          ? '...'
+                          : message.content,
+                      style: TextStyles.body(context).copyWith(
+                        color: context.colours.onPrimary,
+                      ),
+                    )
+                  else
+                    MarkdownBody(
+                      data: message.content.isEmpty && !message.isComplete
+                          ? '...'
+                          : message.content,
+                      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                        p: TextStyles.body(context).copyWith(
+                          color: context.colours.textPrimary,
+                        ),
+                        strong: TextStyles.body(context).copyWith(
+                          color: context.colours.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        listBullet: TextStyles.body(context).copyWith(
+                          color: context.colours.textPrimary,
+                        ),
+                      ),
+                      shrinkWrap: true,
+                      softLineBreak: true,
                     ),
-                  ),
                   if (!message.isComplete && message.content.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),

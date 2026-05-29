@@ -165,13 +165,13 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if event.Content != nil {
+		if event.Content != nil && !event.IsFinalResponse() {
 			for _, part := range event.Content.Parts {
 				if part.Text != "" {
 					streamParts++
 					writeSSE(w, flusher, chatEvent{
 						Content:   part.Text,
-						Done:      event.IsFinalResponse(),
+						Done:      false,
 						SessionID: sessionID,
 					})
 				}

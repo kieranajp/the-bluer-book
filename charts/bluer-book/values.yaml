@@ -42,11 +42,16 @@ mcp:
   service:
     port: 8082
 
+gemini:
+  # Gemini model used by the chat handler and the tag-recipes job.
+  model: "gemini-3.5-flash"
+
 secretName: bluer-book-secrets
-secrets:
-  DB_USER: "bluer_book"
-  DB_PASS: "xxx"
-  DB_NAME: "bluer_book"
-  DB_HOST: "bluer-book-postgresql"
-  DB_PORT: "5432"
-  GOOGLE_API_KEY: "changeme"
+
+# Secret values live in 1Password (Homelab vault). The onepassword-connect
+# operator materialises a k8s Secret named `secretName` from this item.
+# The item must contain: DB_USER, DB_PASS, DB_NAME, DB_HOST, DB_PORT, GOOGLE_API_KEY.
+# Keep DB_PASS in sync with the existing postgres PVC (currently "xxx").
+onepassword:
+  vault: Homelab
+  item: bluer-book-secrets

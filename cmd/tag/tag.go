@@ -58,9 +58,10 @@ var Command = &cli.Command{
 			EnvVars: []string{"GOOGLE_API_KEY"},
 		},
 		&cli.StringFlag{
-			Name:  "model",
-			Usage: "Gemini model to use",
-			Value: "gemini-3.5-flash",
+			Name:    "model",
+			Usage:   "Gemini model to use",
+			EnvVars: []string{"GEMINI_MODEL"},
+			Value:   "gemini-3.5-flash",
 		},
 		&cli.BoolFlag{
 			Name:  "all",

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,6 +19,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
@@ -67,22 +67,32 @@ var (
 				Usage:   "Database Port",
 				EnvVars: []string{"DB_PORT"},
 			},
+			&cli.StringFlag{
+				Name:    "google-api-key",
+				Usage:   "Google AI Studio API key",
+				EnvVars: []string{"GOOGLE_API_KEY"},
+			},
+			&cli.StringFlag{
+				Name:    "gemini-model",
+				Usage:   "Gemini model used by the chat handler",
+				EnvVars: []string{"GEMINI_MODEL"},
+				Value:   "gemini-3.5-flash",
+			},
 		},
 		Action: run,
 	}
 )
 
 func run(c *cli.Context) error {
-	// Get configuration values
-	dbDSN := buildDSN(c.String("db-user"), c.String("db-pass"), c.String("db-name"), c.String("db-host"), c.String("db-port"))
-	listenAddr := c.String("listen-addr")
-	mcpAddr := c.String("mcp-addr")
+	cfg := config.New(c)
+	listenAddr := cfg.ListenAddr
+	mcpAddr := cfg.MCPAddr
 
 	// Initialize logger
 	log := logger.New(logger.LogLevelInfo)
 
 	// Set up database
-	sqlDB, err := sql.Open("postgres", dbDSN)
+	sqlDB, err := sql.Open("postgres", cfg.DBDSN())
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -128,7 +138,7 @@ func run(c *cli.Context) error {
 	}()
 
 	// Create chat handler — MCP server is guaranteed to be listening
-	chatHandler, err := chat.NewHandler(mcpAddr, log, chatProbe)
+	chatHandler, err := chat.NewHandler(cfg, log, chatProbe)
 	if err != nil {
 		return fmt.Errorf("failed to create chat handler: %w", err)
 	}
@@ -169,9 +179,4 @@ func run(c *cli.Context) error {
 
 	log.Info().Msg("Server exited")
 	return nil
-}
-
-func buildDSN(user, pass, name, host, port string) string {
-	format := "postgres://%s:%s@%s:%s/%s?sslmode=disable"
-	return fmt.Sprintf(format, url.QueryEscape(user), url.QueryEscape(pass), host, port, name)
 }

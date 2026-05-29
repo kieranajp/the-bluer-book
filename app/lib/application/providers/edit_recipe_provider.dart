@@ -287,8 +287,9 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
     state = state.copyWith(steps: updated);
   }
 
+  // newIndex arrives already adjusted for the removed item (onReorderItem
+  // contract), so no manual `newIndex--` is needed here.
   void reorderIngredients(int oldIndex, int newIndex) {
-    if (newIndex > oldIndex) newIndex--;
     final updated = [...state.ingredients];
     final item = updated.removeAt(oldIndex);
     updated.insert(newIndex, item);
@@ -296,7 +297,6 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
   }
 
   void reorderSteps(int oldIndex, int newIndex) {
-    if (newIndex > oldIndex) newIndex--;
     final updated = [...state.steps];
     final item = updated.removeAt(oldIndex);
     updated.insert(newIndex, item);

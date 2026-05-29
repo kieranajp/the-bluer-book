@@ -8,9 +8,7 @@ import '../styles/spacing.dart';
 import '../widgets/empty_state.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
-  final VoidCallback? onBack;
-
-  const ChatScreen({super.key, this.onBack});
+  const ChatScreen({super.key});
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -64,13 +62,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               padding: const EdgeInsets.fromLTRB(Spacing.xs, Spacing.s, Spacing.xs, 0),
               child: Row(
                 children: [
-                  if (widget.onBack != null)
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left, size: 28),
-                      onPressed: widget.onBack,
-                    )
-                  else
-                    const SizedBox(width: Spacing.s),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 24),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                   Expanded(
                     child: Text(
                       'Chat',

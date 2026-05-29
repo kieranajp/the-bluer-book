@@ -1,3 +1,4 @@
+-- +goose Up
 -- Consolidate duplicate units of measure.
 -- This is a one-way data migration: duplicates are merged and cannot be unmerged.
 

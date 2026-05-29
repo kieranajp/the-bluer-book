@@ -43,7 +43,7 @@ spec:
             - ALL
       - name: tag-recipes
         image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
-        command: ["./bluer-book", "tag-recipes"]
+        command: ["./bluer-book", "tag-recipes", "--continue-on-error"]
         envFrom:
         - secretRef:
             name: {{ .Values.secretName }}

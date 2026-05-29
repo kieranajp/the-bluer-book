@@ -80,6 +80,10 @@ var Command = &cli.Command{
 			Name:  "dry-run",
 			Usage: "Print proposed tags without writing to the database",
 		},
+		&cli.BoolFlag{
+			Name:  "continue-on-error",
+			Usage: "Exit 0 even if some recipes failed to tag (intended for deploy-time init containers)",
+		},
 	},
 	Action: run,
 }
@@ -207,7 +211,7 @@ func run(c *cli.Context) error {
 		Int("failed", failed).
 		Msg("Done")
 
-	if failed > 0 {
+	if failed > 0 && !c.Bool("continue-on-error") {
 		os.Exit(1)
 	}
 	return nil

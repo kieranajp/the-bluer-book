@@ -102,7 +102,7 @@ class MealPlanCarouselCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            firstLabel.name,
+                            firstLabel.name.toUpperCase(),
                             style: TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,

@@ -106,7 +106,7 @@ class _Chip extends StatelessWidget {
           TextSpan(
             children: [
               TextSpan(
-                text: label,
+                text: label.toUpperCase(),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,

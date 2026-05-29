@@ -34,6 +34,10 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "{{ .Values.app.service.port }}"
+    prometheus.io/path: /metrics
 spec:
   type: {{ .Values.app.service.type }}
   ports:

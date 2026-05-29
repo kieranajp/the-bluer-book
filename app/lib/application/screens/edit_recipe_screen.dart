@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/ingredient.dart';
 import '../../domain/recipe.dart';
 import '../providers/edit_recipe_provider.dart';
-import '../providers/recipe_providers.dart';
 import '../widgets/ingredient_edit_card.dart';
 import '../widgets/step_edit_card.dart';
 import '../widgets/label_edit_chip.dart';
@@ -13,9 +11,11 @@ import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 
 class EditRecipeScreen extends ConsumerStatefulWidget {
-  final Recipe recipe;
+  final Recipe? recipe;
 
-  const EditRecipeScreen({super.key, required this.recipe});
+  const EditRecipeScreen({super.key, this.recipe});
+
+  bool get isCreating => recipe == null;
 
   @override
   ConsumerState<EditRecipeScreen> createState() => _EditRecipeScreenState();
@@ -25,6 +25,12 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _labelController = TextEditingController();
 
+  AutoDisposeStateNotifierProvider<EditRecipeNotifier, EditRecipeState>
+      get _provider {
+    final recipe = widget.recipe;
+    return recipe == null ? newRecipeProvider : editRecipeProvider(recipe);
+  }
+
   @override
   void dispose() {
     _labelController.dispose();
@@ -32,7 +38,7 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
   }
 
   Future<void> _save() async {
-    final notifier = ref.read(editRecipeProvider(widget.recipe).notifier);
+    final notifier = ref.read(_provider.notifier);
     final error = notifier.validate();
     if (error != null) {
       ScaffoldMessenger.of(context)
@@ -42,13 +48,13 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
 
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final successMessage =
+        widget.isCreating ? 'Recipe created' : 'Recipe updated';
 
     try {
       final success = await notifier.save();
       if (success) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Recipe updated')),
-        );
+        messenger.showSnackBar(SnackBar(content: Text(successMessage)));
         navigator.pop();
       }
     } catch (_) {
@@ -81,38 +87,64 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
   }
 
   void _addLabel() {
+    _labelController.clear();
+    String selectedType = 'course';
     showDialog(
       context: context,
       builder: (dialogContext) {
-        _labelController.clear();
-        return AlertDialog(
-          title: const Text('Add Label'),
-          content: TextField(
-            controller: _labelController,
-            decoration: const InputDecoration(hintText: 'Label name'),
-            autofocus: true,
-            onSubmitted: (value) {
-              ref
-                  .read(editRecipeProvider(widget.recipe).notifier)
-                  .addLabel(value);
-              Navigator.pop(dialogContext);
-            },
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Add Label'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: selectedType,
+                  decoration: const InputDecoration(labelText: 'Type'),
+                  items: const [
+                    DropdownMenuItem(value: 'course', child: Text('course')),
+                    DropdownMenuItem(value: 'cuisine', child: Text('cuisine')),
+                    DropdownMenuItem(value: 'diet', child: Text('diet')),
+                    DropdownMenuItem(value: 'method', child: Text('method')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) setDialogState(() => selectedType = v);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _labelController,
+                  decoration: const InputDecoration(
+                    hintText: 'Name (e.g. main, indian, gluten_free)',
+                  ),
+                  autofocus: true,
+                  onSubmitted: (value) {
+                    ref.read(_provider.notifier).addLabel(
+                          type: selectedType,
+                          name: value,
+                        );
+                    Navigator.pop(dialogContext);
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  ref.read(_provider.notifier).addLabel(
+                        type: selectedType,
+                        name: _labelController.text,
+                      );
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('Add'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                ref
-                    .read(editRecipeProvider(widget.recipe).notifier)
-                    .addLabel(_labelController.text);
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Add'),
-            ),
-          ],
         );
       },
     );
@@ -120,8 +152,8 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final editState = ref.watch(editRecipeProvider(widget.recipe));
-    final notifier = ref.read(editRecipeProvider(widget.recipe).notifier);
+    final editState = ref.watch(_provider);
+    final notifier = ref.read(_provider.notifier);
 
     return PopScope(
       canPop: false,
@@ -141,7 +173,10 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
               if (shouldPop && context.mounted) Navigator.pop(context);
             },
           ),
-          title: Text('Edit Recipe', style: TextStyles.appBarTitle(context)),
+          title: Text(
+            widget.isCreating ? 'New Recipe' : 'Edit Recipe',
+            style: TextStyles.appBarTitle(context),
+          ),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: Spacing.s),
@@ -289,7 +324,7 @@ class _DetailsSection extends StatelessWidget {
   }
 }
 
-class _IngredientsSection extends ConsumerWidget {
+class _IngredientsSection extends StatelessWidget {
   final EditRecipeState editState;
   final EditRecipeNotifier notifier;
 
@@ -297,12 +332,7 @@ class _IngredientsSection extends ConsumerWidget {
       {required this.editState, required this.notifier});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final availableUnits =
-        ref.watch(unitsProvider).valueOrNull ?? <IngredientUnit>[];
-    final availableIngredients =
-        ref.watch(ingredientsProvider).valueOrNull ?? <IngredientDetail>[];
-
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -333,8 +363,6 @@ class _IngredientsSection extends ConsumerWidget {
               key: ValueKey(editState.ingredients[i].id),
               index: i,
               ingredient: editState.ingredients[i],
-              availableUnits: availableUnits,
-              availableIngredients: availableIngredients,
               onChanged: (updated) => notifier.updateIngredient(i, updated),
               onDelete: () => notifier.removeIngredient(i),
             );

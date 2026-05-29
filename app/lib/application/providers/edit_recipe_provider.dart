@@ -67,16 +67,16 @@ class EditableStep {
 }
 
 class EditableLabel {
+  String type;
   String name;
-  String colour;
 
-  EditableLabel({required this.name, this.colour = ''});
+  EditableLabel({required this.type, required this.name});
 
   EditableLabel.fromLabel(Label label)
-      : name = label.name,
-        colour = label.colour ?? '';
+      : type = label.type,
+        name = label.name;
 
-  EditableLabel clone() => EditableLabel(name: name, colour: colour);
+  EditableLabel clone() => EditableLabel(type: type, name: name);
 }
 
 class EditRecipeState {
@@ -123,6 +123,17 @@ class EditRecipeState {
     );
   }
 
+  factory EditRecipeState.blank() => EditRecipeState(
+        name: '',
+        description: '',
+        preparationTime: 0,
+        cookingTime: 0,
+        servings: 1,
+        ingredients: const [],
+        steps: const [],
+        labels: const [],
+      );
+
   Recipe toRecipe(String uuid) {
     return Recipe(
       uuid: uuid,
@@ -160,8 +171,8 @@ class EditRecipeState {
       ),
       labels: labels
           .map((l) => Label(
+                type: l.type.trim(),
                 name: l.name.trim(),
-                colour: l.colour.trim().isEmpty ? null : l.colour.trim(),
               ))
           .toList(),
     );
@@ -201,11 +212,17 @@ class EditRecipeState {
 class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
   final RecipeRepository _repository;
   final Ref _ref;
-  final String _uuid;
+  final String? _uuid;
 
   EditRecipeNotifier(this._repository, this._ref, Recipe recipe)
       : _uuid = recipe.uuid,
         super(EditRecipeState.fromRecipe(recipe));
+
+  EditRecipeNotifier.create(this._repository, this._ref)
+      : _uuid = null,
+        super(EditRecipeState.blank());
+
+  bool get isCreating => _uuid == null;
 
   // Scalar field updates
 
@@ -288,10 +305,15 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
 
   // Label CRUD
 
-  void addLabel(String name) {
-    if (name.trim().isEmpty) return;
+  void addLabel({required String type, required String name}) {
+    final t = type.trim();
+    final n = name.trim();
+    if (t.isEmpty || n.isEmpty) return;
+    final exists = state.labels
+        .any((l) => l.type == t && l.name == n);
+    if (exists) return;
     state = state.copyWith(
-      labels: [...state.labels, EditableLabel(name: name.trim())],
+      labels: [...state.labels, EditableLabel(type: t, name: n)],
     );
   }
 
@@ -330,15 +352,20 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
 
     state = state.copyWith(isSaving: true);
     try {
-      final recipe = state.toRecipe(_uuid);
-      await _repository.updateRecipe(_uuid, recipe);
+      final uuid = _uuid;
+      if (uuid == null) {
+        final created = await _repository.createRecipe(state.toRecipe(''));
+        dev.log('Recipe ${created.uuid} created', name: 'EditRecipeNotifier');
+      } else {
+        await _repository.updateRecipe(uuid, state.toRecipe(uuid));
+        dev.log('Recipe $uuid updated', name: 'EditRecipeNotifier');
+      }
       state = state.copyWith(isSaving: false);
       _ref.invalidate(recipeListProvider);
       _ref.invalidate(favouriteRecipesProvider);
-      dev.log('Recipe $_uuid updated', name: 'EditRecipeNotifier');
       return true;
     } catch (e, stack) {
-      dev.log('Failed to save recipe $_uuid',
+      dev.log('Failed to save recipe ${_uuid ?? "(new)"}',
           name: 'EditRecipeNotifier', error: e, stackTrace: stack);
       state = state.copyWith(isSaving: false);
       rethrow;
@@ -354,5 +381,14 @@ final editRecipeProvider = StateNotifierProvider.autoDispose
     ref.watch(recipeRepositoryProvider),
     ref,
     recipe,
+  );
+});
+
+final newRecipeProvider =
+    StateNotifierProvider.autoDispose<EditRecipeNotifier, EditRecipeState>(
+        (ref) {
+  return EditRecipeNotifier.create(
+    ref.watch(recipeRepositoryProvider),
+    ref,
   );
 });

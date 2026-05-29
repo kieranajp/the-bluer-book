@@ -97,4 +97,44 @@ class TextStyles {
         fontWeight: FontWeight.w600,
         color: context.colours.textPrimary,
       );
+
+  // ── Serif moments (cookbook personality — Instrument Serif) ─────────
+  // Hero greeting on home: "What's cooking // tonight?" — display weight.
+  static TextStyle heroDisplay(BuildContext context) =>
+      GoogleFonts.instrumentSerif(
+        fontSize: 48,
+        height: 1.0,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.6,
+        color: context.colours.textPrimary,
+      );
+
+  // Recipe title on the details screen — Instrument Serif italic.
+  static TextStyle recipeTitle(BuildContext context) =>
+      GoogleFonts.instrumentSerif(
+        fontSize: 36,
+        height: 1.05,
+        fontStyle: FontStyle.italic,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.3,
+        color: context.colours.textPrimary,
+      );
+
+  // Card-sized serif title (meal plan carousel cards).
+  static TextStyle serifCardTitle(BuildContext context) =>
+      GoogleFonts.instrumentSerif(
+        fontSize: 24,
+        height: 1.1,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.2,
+        color: context.colours.textPrimary,
+      );
+
+  // Uppercase section label (e.g. "ON THE MEAL PLAN").
+  static TextStyle sectionLabel(BuildContext context) => GoogleFonts.workSans(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+        color: context.colours.textSecondary,
+      );
 }

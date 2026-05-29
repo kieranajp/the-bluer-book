@@ -38,7 +38,7 @@ Recipe _testRecipe({String? imageUrl}) => Recipe(
         domain.Step(order: 1, description: 'Mix dry ingredients'),
       ],
       labels: const [
-        Label(name: 'Breakfast', colour: '#FF9800'),
+        Label(type: 'course', name: 'breakfast'),
       ],
     );
 

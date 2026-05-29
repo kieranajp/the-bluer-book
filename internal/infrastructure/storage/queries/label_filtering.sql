@@ -9,14 +9,14 @@ LEFT JOIN meal_plan_recipes mp ON r.uuid = mp.recipe_id
 WHERE r.archived_at IS NULL
     AND (sqlc.narg('search')::text IS NULL OR r.name ILIKE '%' || sqlc.narg('search')::text || '%')
     AND (
-        sqlc.arg('label_names')::text[] IS NULL
+        sqlc.arg('label_keys')::text[] IS NULL
         OR r.uuid IN (
             SELECT rl2.recipe_id
             FROM recipe_label rl2
             JOIN labels l2 ON rl2.label_id = l2.uuid
-            WHERE l2.name = ANY(sqlc.arg('label_names')::text[])
+            WHERE l2.type || ':' || l2.name = ANY(sqlc.arg('label_keys')::text[])
             GROUP BY rl2.recipe_id
-            HAVING COUNT(DISTINCT l2.name) = array_length(sqlc.arg('label_names')::text[], 1)
+            HAVING COUNT(DISTINCT l2.type || ':' || l2.name) = array_length(sqlc.arg('label_keys')::text[], 1)
         )
     )
 ORDER BY r.created_at DESC
@@ -29,13 +29,13 @@ FROM recipes r
 WHERE r.archived_at IS NULL
     AND (sqlc.narg('search')::text IS NULL OR r.name ILIKE '%' || sqlc.narg('search')::text || '%')
     AND (
-        sqlc.arg('label_names')::text[] IS NULL
+        sqlc.arg('label_keys')::text[] IS NULL
         OR r.uuid IN (
             SELECT rl2.recipe_id
             FROM recipe_label rl2
             JOIN labels l2 ON rl2.label_id = l2.uuid
-            WHERE l2.name = ANY(sqlc.arg('label_names')::text[])
+            WHERE l2.type || ':' || l2.name = ANY(sqlc.arg('label_keys')::text[])
             GROUP BY rl2.recipe_id
-            HAVING COUNT(DISTINCT l2.name) = array_length(sqlc.arg('label_names')::text[], 1)
+            HAVING COUNT(DISTINCT l2.type || ':' || l2.name) = array_length(sqlc.arg('label_keys')::text[], 1)
         )
     );

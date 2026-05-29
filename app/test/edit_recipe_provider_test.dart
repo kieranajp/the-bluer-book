@@ -37,8 +37,8 @@ Recipe _testRecipe() => const Recipe(
         domain.Step(order: 3, description: 'Cook on griddle'),
       ],
       labels: [
-        Label(name: 'Breakfast', colour: '#FF9800'),
-        Label(name: 'Quick'),
+        Label(type: 'course', name: 'breakfast'),
+        Label(type: 'method', name: 'no_cook'),
       ],
     );
 
@@ -86,10 +86,10 @@ void main() {
       final state = EditRecipeState.fromRecipe(_testRecipe());
 
       expect(state.labels.length, 2);
-      expect(state.labels[0].name, 'Breakfast');
-      expect(state.labels[0].colour, '#FF9800');
-      expect(state.labels[1].name, 'Quick');
-      expect(state.labels[1].colour, '');
+      expect(state.labels[0].type, 'course');
+      expect(state.labels[0].name, 'breakfast');
+      expect(state.labels[1].type, 'method');
+      expect(state.labels[1].name, 'no_cook');
     });
   });
 
@@ -137,8 +137,6 @@ void main() {
       // Second ingredient has no preparation or component
       expect(recipe.ingredients[1].preparation, isNull);
       expect(recipe.ingredients[1].component, isNull);
-      // Second label has no colour
-      expect(recipe.labels[1].colour, isNull);
     });
 
     test('empty unit name produces null unit', () {
@@ -217,7 +215,7 @@ void main() {
           ),
         ],
         steps: [EditableStep(description: '  Step one  ')],
-        labels: [EditableLabel(name: '  Tag  ')],
+        labels: [EditableLabel(type: '  diet  ', name: '  vegan  ')],
       );
       final recipe = state.toRecipe('id');
 
@@ -226,7 +224,8 @@ void main() {
       expect(recipe.ingredients[0].detail.name, 'flour');
       expect(recipe.ingredients[0].unit?.name, 'cup');
       expect(recipe.steps[0].description, 'Step one');
-      expect(recipe.labels[0].name, 'Tag');
+      expect(recipe.labels[0].type, 'diet');
+      expect(recipe.labels[0].name, 'vegan');
     });
   });
 
@@ -370,21 +369,30 @@ void main() {
 
     test('addLabel appends a label', () {
       final initialCount = state().labels.length;
-      notifier().addLabel('Vegan');
+      notifier().addLabel(type: 'diet', name: 'vegan');
       expect(state().labels.length, initialCount + 1);
-      expect(state().labels.last.name, 'Vegan');
+      expect(state().labels.last.type, 'diet');
+      expect(state().labels.last.name, 'vegan');
     });
 
-    test('addLabel ignores empty/whitespace names', () {
+    test('addLabel ignores empty/whitespace inputs', () {
       final initialCount = state().labels.length;
-      notifier().addLabel('   ');
+      notifier().addLabel(type: 'diet', name: '   ');
+      notifier().addLabel(type: '   ', name: 'vegan');
+      expect(state().labels.length, initialCount);
+    });
+
+    test('addLabel deduplicates (type, name)', () {
+      final initialCount = state().labels.length;
+      notifier().addLabel(type: 'course', name: 'breakfast'); // already exists
       expect(state().labels.length, initialCount);
     });
 
     test('removeLabel removes at index', () {
       notifier().removeLabel(0);
       expect(state().labels.length, 1);
-      expect(state().labels[0].name, 'Quick');
+      expect(state().labels[0].type, 'method');
+      expect(state().labels[0].name, 'no_cook');
     });
   });
 

@@ -37,4 +37,4 @@ jobs:
             --namespace apps \
             --set app.image.tag="$IMAGE_TAG" \
             --wait \
-            --timeout 5m
+            --timeout 10m

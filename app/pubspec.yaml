@@ -49,6 +49,9 @@ dependencies:
   # Persistent storage
   shared_preferences: ^2.3.3
 
+  # Native share sheet
+  share_plus: ^13.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

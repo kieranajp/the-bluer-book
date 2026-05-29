@@ -11,7 +11,7 @@ import (
 type RecipeService interface {
 	CreateRecipe(ctx context.Context, recipe recipe.Recipe) (*recipe.Recipe, error)
 	GetRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
-	ListRecipes(ctx context.Context, limit, offset int, search string, labels []string) ([]*recipe.Recipe, int, error)
+	ListRecipes(ctx context.Context, limit, offset int, search string, labels []string, sort string) ([]*recipe.Recipe, int, error)
 	UpdateRecipe(ctx context.Context, id uuid.UUID, recipe recipe.Recipe) (*recipe.Recipe, error)
 
 	// Archival methods
@@ -23,6 +23,9 @@ type RecipeService interface {
 	AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error
 	RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error
 	ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error)
+
+	// Label browsing
+	ListLabels(ctx context.Context) ([]recipe.LabelSummary, error)
 
 	// Lookup methods
 	ListUnits(ctx context.Context) ([]recipe.Unit, error)
@@ -59,8 +62,8 @@ func (s *recipeService) GetRecipe(ctx context.Context, id uuid.UUID) (*recipe.Re
 	return s.repo.GetRecipeByID(ctx, id)
 }
 
-func (s *recipeService) ListRecipes(ctx context.Context, limit, offset int, search string, labels []string) ([]*recipe.Recipe, int, error) {
-	recipes, total, err := s.repo.ListRecipes(ctx, limit, offset, search, labels)
+func (s *recipeService) ListRecipes(ctx context.Context, limit, offset int, search string, labels []string, sort string) ([]*recipe.Recipe, int, error) {
+	recipes, total, err := s.repo.ListRecipes(ctx, limit, offset, search, labels, sort)
 	if err != nil {
 		s.probe.RecipeError("search", err)
 		return nil, 0, err
@@ -138,6 +141,10 @@ func (s *recipeService) RemoveFromMealPlan(ctx context.Context, recipeID uuid.UU
 
 func (s *recipeService) ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error) {
 	return s.repo.ListMealPlanRecipes(ctx)
+}
+
+func (s *recipeService) ListLabels(ctx context.Context) ([]recipe.LabelSummary, error) {
+	return s.repo.ListLabels(ctx)
 }
 
 func (s *recipeService) ListUnits(ctx context.Context) ([]recipe.Unit, error) {

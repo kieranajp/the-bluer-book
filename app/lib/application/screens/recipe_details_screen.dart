@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../domain/recipe.dart';
-import '../widgets/recipe_hero_image.dart';
-import '../widgets/recipe_header.dart';
-import '../widgets/recipe_stats_card.dart';
-import '../widgets/recipe_tab_bar.dart';
-import '../widgets/ingredients_list.dart';
-import '../widgets/instructions_list.dart';
-import '../widgets/meal_plan_toggle_button.dart';
+import '../../domain/recipe_share.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
-import '../styles/spacing.dart';
+import '../widgets/add_to_plan_button.dart';
+import '../widgets/ingredients_list.dart';
+import '../widgets/instructions_list.dart';
+import '../widgets/recipe_header.dart';
+import '../widgets/recipe_hero_image.dart';
+import '../widgets/recipe_stats_card.dart';
+import '../widgets/recipe_tab_bar.dart';
 import 'edit_recipe_screen.dart';
 
 class RecipeDetailsScreen extends ConsumerStatefulWidget {
@@ -25,17 +26,10 @@ class RecipeDetailsScreen extends ConsumerStatefulWidget {
 class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
   int _selectedTab = 0;
 
-  void _onTabSelected(int index) {
-    setState(() {
-      _selectedTab = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Watch the recipe list to get the latest favourite state
     final recipeListAsync = ref.watch(recipeListProvider);
-    final currentRecipe = recipeListAsync.maybeWhen(
+    final recipe = recipeListAsync.maybeWhen(
       data: (recipes) => recipes.firstWhere(
         (r) => r.uuid == widget.recipe.uuid,
         orElse: () => widget.recipe,
@@ -45,98 +39,76 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
 
     return Scaffold(
       backgroundColor: context.colours.background,
+      extendBodyBehindAppBar: true,
       body: CustomScrollView(
         slivers: [
-          // Hero image with back button
-          SliverAppBar(
-            expandedHeight: 250,
-            pinned: false,
-            backgroundColor: context.colours.background,
-            leading: Padding(
-              padding: const EdgeInsets.all(Spacing.xs),
-              child: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.black),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
+          SliverToBoxAdapter(
+            child: RecipeHeroImage(
+              imageUrl: recipe.imageUrl,
+              onBack: () => Navigator.pop(context),
+              onShare: () => _shareRecipe(context, recipe),
+              onEdit: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditRecipeScreen(recipe: recipe),
                 ),
               ),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(Spacing.xs),
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.black),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            EditRecipeScreen(recipe: currentRecipe),
-                      ),
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: RecipeHeroImage(imageUrl: currentRecipe.imageUrl),
+              onBookmark: () => ref
+                  .read(recipeListProvider.notifier)
+                  .toggleMealPlan(recipe.uuid),
+              bookmarkActive: recipe.isFavourite,
             ),
           ),
-
-          // Recipe header
           SliverToBoxAdapter(
             child: RecipeHeader(
-              name: currentRecipe.name,
-              description: currentRecipe.description,
-              labels: currentRecipe.labels,
+              name: recipe.name,
+              description: recipe.description,
+              labels: recipe.labels,
             ),
           ),
-
-          // Stats card
           SliverToBoxAdapter(
             child: RecipeStatsCard(
-              preparationTime: currentRecipe.preparationTime,
-              cookingTime: currentRecipe.cookingTime,
-              servings: currentRecipe.servings,
+              preparationTime: recipe.preparationTime,
+              cookingTime: recipe.cookingTime,
+              servings: recipe.servings,
             ),
           ),
-
-          // Add to Meal Plan button
           SliverToBoxAdapter(
-            child: MealPlanFullButton(
-              uuid: currentRecipe.uuid,
-              isFavourite: currentRecipe.isFavourite,
+            child: AddToPlanButton(
+              uuid: recipe.uuid,
+              isInMealPlan: recipe.isFavourite,
             ),
           ),
-
-          // Sticky tab bar
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: RecipeTabBar(
+          SliverToBoxAdapter(
+            child: RecipeTabBar(
               selectedTab: _selectedTab,
-              onTabSelected: _onTabSelected,
+              onTabSelected: (i) => setState(() => _selectedTab = i),
+              ingredientCount: recipe.ingredients.length,
+              stepCount: recipe.steps.length,
             ),
           ),
-
-          // Tab content (Ingredients or Instructions)
           SliverToBoxAdapter(
             child: _selectedTab == 0
-                ? IngredientsList(ingredients: currentRecipe.ingredients)
+                ? IngredientsList(ingredients: recipe.ingredients)
                 : InstructionsList(
-                    steps: currentRecipe.steps,
-                    ingredients: currentRecipe.ingredients,
+                    steps: recipe.steps,
+                    ingredients: recipe.ingredients,
                   ),
           ),
-
-          // Bottom spacing
-          const SliverToBoxAdapter(
-            child: SizedBox(height: Spacing.bottomSpacer),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
+      ),
+    );
+  }
+
+  void _shareRecipe(BuildContext context, Recipe recipe) {
+    final box = context.findRenderObject() as RenderBox?;
+    SharePlus.instance.share(
+      ShareParams(
+        text: recipe.toShareableText(),
+        subject: recipe.name,
+        sharePositionOrigin:
+            box == null ? null : box.localToGlobal(Offset.zero) & box.size,
       ),
     );
   }

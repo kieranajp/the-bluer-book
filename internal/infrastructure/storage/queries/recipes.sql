@@ -78,17 +78,24 @@ INSERT INTO recipe_ingredient (
 -- name: CreateLabel :one
 INSERT INTO labels (
     uuid,
+    type,
     name,
-    color,
     created_at,
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5
-) ON CONFLICT (uuid) DO UPDATE SET name = EXCLUDED.name, color = EXCLUDED.color, updated_at = EXCLUDED.updated_at
+) ON CONFLICT (type, name) DO UPDATE SET updated_at = EXCLUDED.updated_at
 RETURNING *;
 
--- name: GetLabelByName :one
-SELECT * FROM labels WHERE name = $1;
+-- name: GetLabelByTypeAndName :one
+SELECT * FROM labels WHERE type = $1 AND name = $2;
+
+-- name: ListLabels :many
+SELECT l.type, l.name, COUNT(rl.recipe_id) AS uses
+FROM labels l
+LEFT JOIN recipe_label rl ON rl.label_id = l.uuid
+GROUP BY l.type, l.name
+ORDER BY l.type, l.name;
 
 -- name: CreateRecipeLabel :one
 INSERT INTO recipe_label (
@@ -139,7 +146,10 @@ LEFT JOIN photos p ON r.main_photo_id = p.uuid
 LEFT JOIN meal_plan_recipes mp ON r.uuid = mp.recipe_id
 WHERE r.archived_at IS NULL
   AND ($3::text = '' OR r.name ILIKE '%' || $3 || '%' OR r.description ILIKE '%' || $3 || '%')
-ORDER BY r.created_at DESC
+ORDER BY
+  CASE WHEN $4::text = 'name' THEN LOWER(r.name) END ASC NULLS LAST,
+  CASE WHEN $4::text = 'time' THEN COALESCE(r.prep_time, 0) + COALESCE(r.cook_time, 0) END ASC NULLS LAST,
+  r.created_at DESC
 LIMIT $1 OFFSET $2;
 
 -- name: CountRecipes :one

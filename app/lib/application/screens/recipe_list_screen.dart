@@ -2,15 +2,22 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/label.dart';
 import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
-import '../widgets/recipe_list_item.dart';
-import '../widgets/search_bar.dart';
-import '../widgets/empty_state.dart';
 import '../styles/colours.dart';
-import '../styles/text_styles.dart';
+import '../styles/label_colours.dart';
 import '../styles/spacing.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/filter_chip_row.dart';
+import '../widgets/home_header.dart';
+import '../widgets/home_hero.dart';
+import '../widgets/meal_plan_carousel.dart';
+import '../widgets/pill_search.dart';
+import '../widgets/recipe_row.dart';
+import '../widgets/section_label.dart';
 
+/// Home — "My Kitchen", Garden Plot / M3 Expressive.
 class RecipeListScreen extends ConsumerStatefulWidget {
   const RecipeListScreen({super.key});
 
@@ -35,16 +42,40 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     super.dispose();
   }
 
+  static const _typeOrder = ['course', 'cuisine', 'diet', 'method'];
+
+  List<FilterOption> _buildFilterOptions(List<LabelSummary> labels, int total) {
+    final used = labels.where((l) => l.uses > 0).toList()
+      ..sort((a, b) {
+        final ti = _typeOrder.indexOf(a.type);
+        final tj = _typeOrder.indexOf(b.type);
+        if (ti != tj) return ti.compareTo(tj);
+        return b.uses.compareTo(a.uses);
+      });
+
+    return [
+      FilterOption(id: '__all__', label: 'All', count: total > 0 ? total : null),
+      ...used.map((l) => FilterOption(
+            id: l.key,
+            label: labelDisplayName(l.name),
+            count: l.uses,
+            type: l.type,
+          )),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    final allRecipesAsync = ref.watch(filteredRecipesProvider);
+    final recipesAsync = ref.watch(filteredRecipesProvider);
+    final labelsAsync = ref.watch(labelsProvider);
     final notifier = ref.read(recipeListProvider.notifier);
+    final activeLabels = ref.watch(recipeListProvider.notifier).activeLabels;
 
-    ref.listen<AsyncValue<List<Recipe>>>(filteredRecipesProvider, (previous, next) {
-      if (next.hasError && !(previous?.hasError ?? false)) {
-        final error = next.error;
-        final message = error is Exception
-            ? error.toString().replaceFirst('Exception: ', '')
+    ref.listen<AsyncValue<List<Recipe>>>(filteredRecipesProvider, (prev, next) {
+      if (next.hasError && !(prev?.hasError ?? false)) {
+        final err = next.error;
+        final message = err is Exception
+            ? err.toString().replaceFirst('Exception: ', '')
             : 'Failed to load recipes';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -61,55 +92,51 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
       }
     });
 
+    final total = notifier.total;
+    final filters = _buildFilterOptions(
+      labelsAsync.valueOrNull ?? const [],
+      total,
+    );
+    final chipActive = activeLabels.isEmpty ? {'__all__'} : activeLabels;
+
     return Scaffold(
       backgroundColor: context.colours.background,
       body: SafeArea(
         child: NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (notification is ScrollEndNotification &&
-                notification.metrics.extentAfter < 200) {
+          onNotification: (n) {
+            if (n is ScrollEndNotification && n.metrics.extentAfter < 200) {
               notifier.loadMore();
             }
             return false;
           },
           child: CustomScrollView(
             slivers: [
-              // App bar
-              SliverAppBar(
-                floating: true,
-                backgroundColor: context.colours.background,
-                elevation: 0,
-                title: Text(
-                  'My Kitchen',
-                  style: TextStyles.appBarTitle(context),
-                ),
-              ),
-
-              // Search bar
+              const SliverToBoxAdapter(child: HomeHeader()),
+              const SliverToBoxAdapter(child: HomeHero()),
+              SliverToBoxAdapter(child: PillSearch(onChanged: _onSearchChanged)),
               SliverToBoxAdapter(
-                child: RecipeSearchBar(
-                  onChanged: _onSearchChanged,
+                child: FilterChipRow(
+                  filters: filters,
+                  active: chipActive,
+                  onToggle: (id) {
+                    if (id == '__all__') {
+                      notifier.clearLabels();
+                    } else {
+                      notifier.toggleLabel(id);
+                    }
+                  },
                 ),
               ),
-
-              // All recipes section header
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: MealPlanCarousel()),
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    Spacing.m,
-                    Spacing.l,
-                    Spacing.m,
-                    Spacing.s,
-                  ),
-                  child: Text(
-                    'All Recipes',
-                    style: TextStyles.sectionHeading(context),
-                  ),
+                child: SectionLabel(
+                  title: total > 0 ? 'All recipes · $total' : 'All recipes',
+                  action: notifier.sort.label,
+                  onAction: () => notifier.setSort(notifier.sort.next),
                 ),
               ),
-
-              // All recipes list
-              allRecipesAsync.when(
+              recipesAsync.when(
                 data: (recipes) => recipes.isEmpty
                     ? SliverToBoxAdapter(
                         child: EmptyState(
@@ -121,27 +148,23 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                       )
                     : SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            return Padding(
-                              padding: Spacing.listItemPadding,
-                              child: RecipeListItem(recipe: recipes[index]),
-                            );
-                          },
+                          (context, i) => RecipeRow(
+                            recipe: recipes[i],
+                            isLast: i == recipes.length - 1,
+                          ),
                           childCount: recipes.length,
                         ),
                       ),
                 loading: () => const SliverToBoxAdapter(
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(Spacing.xl),
-                      child: CircularProgressIndicator(),
-                    ),
+                  child: Padding(
+                    padding: EdgeInsets.all(Spacing.xl),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
                 ),
-                error: (error, stack) => SliverToBoxAdapter(
+                error: (_, _) => SliverToBoxAdapter(
                   child: EmptyState(
                     icon: Icons.cloud_off,
-                    title: 'Couldn\'t load recipes',
+                    title: "Couldn't load recipes",
                     action: OutlinedButton.icon(
                       onPressed: () => notifier.loadRecipes(
                         search: ref.read(searchQueryProvider),
@@ -152,25 +175,18 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                   ),
                 ),
               ),
-
-              // Loading more indicator
-              if (allRecipesAsync.hasValue && notifier.hasMore)
+              if (recipesAsync.hasValue && notifier.hasMore)
                 const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.all(Spacing.m),
                     child: Center(child: CircularProgressIndicator()),
                   ),
                 ),
-
-              // Bottom spacing for FAB
-              const SliverToBoxAdapter(
-                child: SizedBox(height: Spacing.bottomSpacer),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 110)),
             ],
           ),
         ),
       ),
-
     );
   }
 }

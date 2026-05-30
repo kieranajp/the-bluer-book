@@ -29,6 +29,29 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Derive version from release tag
+        id: version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          # Strip a leading "v" (e.g. v1.2.3 -> 1.2.3) to get the versionName.
+          BUILD_NAME="${TAG#v}"
+          # Require a semver-shaped tag so we can compute a versionCode from it.
+          if [[ ! "$BUILD_NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            echo "::error::Release tag '$TAG' is not in the expected X.Y.Z (or vX.Y.Z) format" >&2
+            exit 1
+          fi
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+          # Pack the semver into a single monotonically-increasing integer so every
+          # newer release gets a strictly higher Android versionCode.
+          # Allows up to 1000 for each of minor/patch (e.g. 1.2.3 -> 1002003).
+          BUILD_NUMBER=$(( MAJOR * 1000000 + MINOR * 1000 + PATCH ))
+          echo "build_name=$BUILD_NAME" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Building versionName=$BUILD_NAME versionCode=$BUILD_NUMBER"
+
       - name: Build release APK
         env:
           API_URL: ${{ secrets.API_URL }}
@@ -41,7 +64,10 @@ jobs:
             "OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}" \
             "OAUTH_SCOPE=recipes:api" \
             > env/release.env
-          flutter build apk --release --dart-define-from-file=env/release.env
+          flutter build apk --release \
+            --dart-define-from-file=env/release.env \
+            --build-name="${{ steps.version.outputs.build_name }}" \
+            --build-number="${{ steps.version.outputs.build_number }}"
 
       - name: Upload APK to release
         env:

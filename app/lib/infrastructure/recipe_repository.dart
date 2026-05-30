@@ -1,6 +1,8 @@
 import 'dart:developer' as dev;
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 import '../domain/ingredient.dart';
 import '../domain/label.dart';
 import '../domain/recipe.dart';
@@ -200,6 +202,39 @@ class RecipeRepository {
       dev.log('Failed to remove $uuid from meal plan: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
       throw Exception(_formatDioError('Failed to remove from meal plan', e));
+    }
+  }
+
+  Future<String> uploadRecipePhoto(String uuid, Uint8List bytes, String filename) async {
+    try {
+      dev.log('Uploading photo for recipe $uuid ($filename, ${bytes.length} bytes)',
+          name: 'RecipeRepository');
+      final ext = filename.split('.').last.toLowerCase();
+      final mimeType = switch (ext) {
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        'gif' => 'image/gif',
+        'heic' || 'heif' => 'image/heic',
+        _ => 'image/jpeg',
+      };
+      final formData = FormData.fromMap({
+        'photo': MultipartFile.fromBytes(
+          bytes,
+          filename: filename,
+          contentType: MediaType.parse(mimeType),
+        ),
+      });
+      final response = await _apiClient.dio.post(
+        '/recipes/$uuid/photo',
+        data: formData,
+      );
+      final url = response.data['url'] as String;
+      dev.log('Photo uploaded: $url', name: 'RecipeRepository');
+      return url;
+    } on DioException catch (e, stack) {
+      dev.log('Failed to upload photo for recipe $uuid: ${e.message}',
+          name: 'RecipeRepository', error: e, stackTrace: stack);
+      throw Exception(_formatDioError('Failed to upload photo', e));
     }
   }
 }

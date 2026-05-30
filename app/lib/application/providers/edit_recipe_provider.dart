@@ -1,4 +1,5 @@
 import 'dart:developer' as dev;
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/recipe.dart';
@@ -91,6 +92,9 @@ class EditRecipeState {
   final bool isSaving;
   final String? imageUrl;
   final bool isInMealPlan;
+  final Uint8List? pendingPhotoBytes;
+  final String? pendingPhotoFilename;
+  final bool isUploadingPhoto;
 
   const EditRecipeState({
     required this.name,
@@ -104,6 +108,9 @@ class EditRecipeState {
     this.isSaving = false,
     this.imageUrl,
     this.isInMealPlan = false,
+    this.pendingPhotoBytes,
+    this.pendingPhotoFilename,
+    this.isUploadingPhoto = false,
   });
 
   factory EditRecipeState.fromRecipe(Recipe recipe) {
@@ -189,7 +196,12 @@ class EditRecipeState {
     List<EditableLabel>? labels,
     bool? isSaving,
     String? imageUrl,
+    bool clearImageUrl = false,
     bool? isInMealPlan,
+    Uint8List? pendingPhotoBytes,
+    String? pendingPhotoFilename,
+    bool clearPendingPhoto = false,
+    bool? isUploadingPhoto,
   }) {
     return EditRecipeState(
       name: name ?? this.name,
@@ -201,8 +213,11 @@ class EditRecipeState {
       steps: steps ?? this.steps,
       labels: labels ?? this.labels,
       isSaving: isSaving ?? this.isSaving,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
       isInMealPlan: isInMealPlan ?? this.isInMealPlan,
+      pendingPhotoBytes: clearPendingPhoto ? null : (pendingPhotoBytes ?? this.pendingPhotoBytes),
+      pendingPhotoFilename: clearPendingPhoto ? null : (pendingPhotoFilename ?? this.pendingPhotoFilename),
+      isUploadingPhoto: isUploadingPhoto ?? this.isUploadingPhoto,
     );
   }
 }
@@ -244,6 +259,20 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
 
   void updateServings(int value) {
     state = state.copyWith(servings: value);
+  }
+
+  void setPhoto(Uint8List bytes, String filename) {
+    state = state.copyWith(
+      pendingPhotoBytes: bytes,
+      pendingPhotoFilename: filename,
+    );
+  }
+
+  void removePhoto() {
+    state = state.copyWith(
+      clearImageUrl: true,
+      clearPendingPhoto: true,
+    );
   }
 
   // Ingredient CRUD
@@ -352,14 +381,27 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
 
     state = state.copyWith(isSaving: true);
     try {
+      String recipeUuid;
       final uuid = _uuid;
       if (uuid == null) {
         final created = await _repository.createRecipe(state.toRecipe(''));
-        dev.log('Recipe ${created.uuid} created', name: 'EditRecipeNotifier');
+        recipeUuid = created.uuid;
+        dev.log('Recipe $recipeUuid created', name: 'EditRecipeNotifier');
       } else {
         await _repository.updateRecipe(uuid, state.toRecipe(uuid));
+        recipeUuid = uuid;
         dev.log('Recipe $uuid updated', name: 'EditRecipeNotifier');
       }
+
+      if (state.pendingPhotoBytes != null && state.pendingPhotoFilename != null) {
+        final url = await _repository.uploadRecipePhoto(
+          recipeUuid,
+          state.pendingPhotoBytes!,
+          state.pendingPhotoFilename!,
+        );
+        dev.log('Photo uploaded for $recipeUuid: $url', name: 'EditRecipeNotifier');
+      }
+
       state = state.copyWith(isSaving: false);
       _ref.invalidate(recipeListProvider);
       _ref.invalidate(favouriteRecipesProvider);

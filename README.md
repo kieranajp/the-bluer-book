@@ -7,7 +7,7 @@ API the app talks to, it ships an **MCP server** so Claude (or any LLM assistant
 search, write, and tidy up recipes for you. There's also a built-in chat assistant that
 uses those same tools.
 
-## What you can do
+## 🍳 What you can do
 
 - Keep recipes — ingredients (with quantities, units, prep notes and components like
   "sauce" or "filling"), ordered steps, photos, cook/prep times and servings.
@@ -20,7 +20,7 @@ uses those same tools.
 - Ask an assistant — chat to find or create recipes, or point Claude at the MCP server
   and let it manage the book directly.
 
-## How it's built
+## 🔧 How it's built
 
 | Layer        | Tech                                                            |
 |--------------|-----------------------------------------------------------------|
@@ -30,7 +30,7 @@ uses those same tools.
 | Mobile/web   | Flutter (Riverpod, Dio, freezed) in `app/`                      |
 | Infra        | Docker, Helm charts, Prometheus metrics, Ory (Hydra/Oathkeeper) |
 
-## Running it locally
+## 🚀 Running it locally
 
 You'll need Go, Docker, and (for the app) Flutter.
 
@@ -70,7 +70,7 @@ dart run build_runner build --delete-conflicting-outputs   # generate model code
 flutter run --dart-define=API_URL=http://localhost:8080
 ```
 
-## Project layout
+## 📁 Project layout
 
 ```
 .                  Go backend (cmd/, internal/, migrations/)
@@ -79,7 +79,7 @@ charts/            Helm charts
 docs/              architecture & contributor docs
 ```
 
-## Contributing / working on it
+## 🤝 Contributing / working on it
 
 - High-level design: [`docs/architecture.md`](docs/architecture.md)
 - Backend conventions: [`docs/backend.md`](docs/backend.md)
@@ -87,7 +87,7 @@ docs/              architecture & contributor docs
 - If you (or an AI agent) are making changes, start with [`AGENTS.md`](AGENTS.md) — it
   captures the non-obvious rules and points at the deep dives.
 
-## Roadmap
+## 🗺️ Roadmap
 
 LLM-powered semantic search · shopping lists · photo uploads · richer meal planning ·
 voice-driven interactions.

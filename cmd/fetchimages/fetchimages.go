@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -159,23 +160,23 @@ func run(c *cli.Context) error {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			imageURL, err := extractOGImage(ctx, httpClient, r.URL)
+			imageURL, source, err := extractRecipeImage(ctx, httpClient, r.URL)
 			if err != nil {
-				log.Warn().Err(err).Str("recipe", r.Name).Str("url", r.URL).Msg("Failed to extract og:image")
+				log.Warn().Err(err).Str("recipe", r.Name).Str("url", r.URL).Msg("Failed to extract image")
 				mu.Lock()
 				failed++
 				mu.Unlock()
 				return
 			}
 			if imageURL == "" {
-				log.Warn().Str("recipe", r.Name).Str("url", r.URL).Msg("No og:image found")
+				log.Warn().Str("recipe", r.Name).Str("url", r.URL).Msg("No image found")
 				mu.Lock()
 				skipped++
 				mu.Unlock()
 				return
 			}
 
-			log.Info().Str("recipe", r.Name).Str("og:image", imageURL).Msg("Found image")
+			log.Info().Str("recipe", r.Name).Str("image", imageURL).Str("source", source).Msg("Found image")
 
 			if c.Bool("dry-run") {
 				mu.Lock()
@@ -250,52 +251,154 @@ func loadRecipesNeedingImages(ctx context.Context, db *sql.DB, onlyMissing bool)
 	return out, rows.Err()
 }
 
-func extractOGImage(ctx context.Context, client *http.Client, pageURL string) (string, error) {
+// extractRecipeImage fetches a page and extracts a dish photo URL.
+// It tries schema.org/Recipe JSON-LD first (more reliable for recipe sites),
+// then falls back to og:image. Returns (url, source, error).
+func extractRecipeImage(ctx context.Context, client *http.Client, pageURL string) (string, string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", pageURL, nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; BluerBook/1.0)")
 	req.Header.Set("Accept", "text/html")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
+		return "", "", fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
+
+	var ogImage string
+	var jsonLDScripts []string
 
 	tokenizer := html.NewTokenizer(io.LimitReader(resp.Body, 512*1024))
 	for {
 		tt := tokenizer.Next()
 		switch tt {
 		case html.ErrorToken:
-			return "", nil
+			goto done
 		case html.StartTagToken, html.SelfClosingTagToken:
 			t := tokenizer.Token()
-			if t.Data != "meta" {
-				if t.Data == "body" {
-					return "", nil
-				}
-				continue
+
+			if t.Data == "body" {
+				goto done
 			}
-			var property, content string
-			for _, a := range t.Attr {
-				switch a.Key {
-				case "property", "name":
-					property = a.Val
-				case "content":
-					content = a.Val
+
+			if t.Data == "meta" {
+				var property, content string
+				for _, a := range t.Attr {
+					switch a.Key {
+					case "property", "name":
+						property = a.Val
+					case "content":
+						content = a.Val
+					}
+				}
+				if property == "og:image" && content != "" && ogImage == "" {
+					ogImage = content
 				}
 			}
-			if property == "og:image" && content != "" {
-				return resolveURL(pageURL, content)
+
+			if t.Data == "script" {
+				isJSONLD := false
+				for _, a := range t.Attr {
+					if a.Key == "type" && a.Val == "application/ld+json" {
+						isJSONLD = true
+					}
+				}
+				if isJSONLD {
+					tokenizer.Next()
+					jsonLDScripts = append(jsonLDScripts, string(tokenizer.Text()))
+				}
 			}
 		}
 	}
+
+done:
+	if img := extractImageFromJSONLD(jsonLDScripts); img != "" {
+		resolved, err := resolveURL(pageURL, img)
+		if err == nil {
+			return resolved, "json-ld", nil
+		}
+	}
+
+	if ogImage != "" {
+		resolved, err := resolveURL(pageURL, ogImage)
+		if err == nil {
+			return resolved, "og:image", nil
+		}
+	}
+
+	return "", "", nil
+}
+
+func extractImageFromJSONLD(scripts []string) string {
+	for _, raw := range scripts {
+		var data any
+		if err := json.Unmarshal([]byte(raw), &data); err != nil {
+			continue
+		}
+		if img := findRecipeImage(data); img != "" {
+			return img
+		}
+	}
+	return ""
+}
+
+func findRecipeImage(v any) string {
+	switch val := v.(type) {
+	case map[string]any:
+		typ, _ := val["@type"].(string)
+		if typ == "Recipe" {
+			return extractImageField(val["image"])
+		}
+		// @type can also be an array like ["Recipe", "HowTo"]
+		if types, ok := val["@type"].([]any); ok {
+			for _, t := range types {
+				if s, ok := t.(string); ok && s == "Recipe" {
+					return extractImageField(val["image"])
+				}
+			}
+		}
+		// Check @graph arrays (common in Yoast SEO, Rank Math, etc.)
+		if graph, ok := val["@graph"].([]any); ok {
+			for _, item := range graph {
+				if img := findRecipeImage(item); img != "" {
+					return img
+				}
+			}
+		}
+	case []any:
+		for _, item := range val {
+			if img := findRecipeImage(item); img != "" {
+				return img
+			}
+		}
+	}
+	return ""
+}
+
+func extractImageField(v any) string {
+	switch img := v.(type) {
+	case string:
+		return img
+	case []any:
+		if len(img) > 0 {
+			if s, ok := img[0].(string); ok {
+				return s
+			}
+			return extractImageField(img[0])
+		}
+	case map[string]any:
+		if url, ok := img["url"].(string); ok {
+			return url
+		}
+	}
+	return ""
 }
 
 func resolveURL(base, ref string) (string, error) {

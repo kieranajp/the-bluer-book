@@ -1,5 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Optional front-camera access for touchless hand-wave gestures in
+         cooking mode. Marked not required so the app still installs on
+         camera-less devices; the feature degrades to on-screen swipes. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
     <application
         android:label="The Bluer Book"
         android:name="${applicationName}"

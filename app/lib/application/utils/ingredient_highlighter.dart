@@ -95,6 +95,30 @@ List<HighlightSegment> highlightIngredients(
   return segments;
 }
 
+/// Returns the distinct ingredients mentioned in a step [description], in the
+/// order they first appear. Reuses [highlightIngredients] so the linking logic
+/// (case-insensitive, plural-aware, longest-name-first) stays in one place.
+///
+/// Used by cooking mode to show "the ingredients you need for this step" next
+/// to each instruction.
+List<Ingredient> ingredientsInStep(
+  String description,
+  List<Ingredient> ingredients,
+) {
+  final segments = highlightIngredients(description, ingredients);
+  final seen = <String>{};
+  final result = <Ingredient>[];
+  for (final segment in segments) {
+    final ingredient = segment.ingredient;
+    if (ingredient == null) continue;
+    // Dedupe by name so an ingredient mentioned twice in one step appears once.
+    if (seen.add(ingredient.detail.name.toLowerCase())) {
+      result.add(ingredient);
+    }
+  }
+  return result;
+}
+
 /// Returns a set of singular/plural variants for [name].
 Set<String> _pluralVariants(String name) {
   final lower = name.toLowerCase();
@@ -167,4 +191,29 @@ String formatIngredientTooltip(Ingredient ingredient) {
   }
 
   return buffer.toString().trim();
+}
+
+/// Formats just the quantity + unit of an ingredient (e.g. "200 g", "2"),
+/// for the standalone quantity pills shown in cooking mode. Returns an empty
+/// string when there is nothing useful to show.
+String formatIngredientQuantity(Ingredient ingredient) {
+  final buffer = StringBuffer();
+
+  if (ingredient.quantity > 0) {
+    if (ingredient.quantity == ingredient.quantity.toInt()) {
+      buffer.write(ingredient.quantity.toInt());
+    } else {
+      buffer.write(ingredient.quantity);
+    }
+  }
+
+  final unit = ingredient.unit?.abbreviation?.isNotEmpty == true
+      ? ingredient.unit!.abbreviation!
+      : (ingredient.unit?.name.isNotEmpty == true ? ingredient.unit!.name : null);
+  if (unit != null) {
+    if (buffer.isNotEmpty) buffer.write(' ');
+    buffer.write(unit);
+  }
+
+  return buffer.toString();
 }

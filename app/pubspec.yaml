@@ -55,6 +55,12 @@ dependencies:
   # Markdown rendering
   flutter_markdown: ^0.7.7
 
+  # Keep the screen awake during cooking mode
+  wakelock_plus: ^1.2.8
+
+  # Front-camera frame stream for touchless hand-wave gestures (cooking mode)
+  camera: ^0.11.0+2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

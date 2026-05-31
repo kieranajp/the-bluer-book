@@ -6,12 +6,12 @@ import '../styles/colours.dart';
 /// A small star icon for toggling meal plan status (used in list items).
 class MealPlanStarIcon extends ConsumerWidget {
   final String uuid;
-  final bool isFavourite;
+  final bool isInMealPlan;
 
   const MealPlanStarIcon({
     super.key,
     required this.uuid,
-    required this.isFavourite,
+    required this.isInMealPlan,
   });
 
   Future<void> _toggle(BuildContext context, WidgetRef ref) async {
@@ -22,7 +22,7 @@ class MealPlanStarIcon extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isFavourite ? 'Removed from meal plan' : 'Added to meal plan',
+              isInMealPlan ? 'Removed from meal plan' : 'Added to meal plan',
             ),
             duration: const Duration(seconds: 2),
           ),
@@ -45,8 +45,8 @@ class MealPlanStarIcon extends ConsumerWidget {
     return GestureDetector(
       onTap: () => _toggle(context, ref),
       child: Icon(
-        isFavourite ? Icons.star_rounded : Icons.star_outline_rounded,
-        color: isFavourite
+        isInMealPlan ? Icons.star_rounded : Icons.star_outline_rounded,
+        color: isInMealPlan
             ? context.colours.tertiary
             : context.colours.textSecondary,
         size: 22,

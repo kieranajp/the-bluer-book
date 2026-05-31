@@ -46,18 +46,29 @@ func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info().Str("recipe_id", savedRecipe.UUID.String()).Str("name", savedRecipe.Name).Msg("Recipe created via API")
 }
 
-// GET /api/recipes/{id}
-func (h *RecipeHandler) GetRecipe(w http.ResponseWriter, r *http.Request) {
-	// Extract ID from URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/recipes/")
-	if path == "" {
+// recipeIDFromPath reads and validates the {id} path parameter captured by the
+// ServeMux route. It writes an error response and returns ok=false when the ID
+// is missing or malformed, so callers can simply `return` on !ok.
+func (h *RecipeHandler) recipeIDFromPath(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	id := r.PathValue("id")
+	if id == "" {
 		h.writeErrorResponse(w, http.StatusBadRequest, "missing_id", "Recipe ID is required")
-		return
+		return uuid.Nil, false
 	}
 
-	recipeID, err := uuid.Parse(path)
+	recipeID, err := uuid.Parse(id)
 	if err != nil {
 		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
+		return uuid.Nil, false
+	}
+
+	return recipeID, true
+}
+
+// GET /api/recipes/{id}
+func (h *RecipeHandler) GetRecipe(w http.ResponseWriter, r *http.Request) {
+	recipeID, ok := h.recipeIDFromPath(w, r)
+	if !ok {
 		return
 	}
 
@@ -169,16 +180,8 @@ func (h *RecipeHandler) writeErrorResponse(w http.ResponseWriter, statusCode int
 
 // PUT /api/recipes/{id}
 func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
-	// Extract ID from URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/recipes/")
-	if path == "" {
-		h.writeErrorResponse(w, http.StatusBadRequest, "missing_id", "Recipe ID is required")
-		return
-	}
-
-	recipeID, err := uuid.Parse(path)
-	if err != nil {
-		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
+	recipeID, ok := h.recipeIDFromPath(w, r)
+	if !ok {
 		return
 	}
 
@@ -211,21 +214,13 @@ func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /api/recipes/{id} - Soft delete (archive)
 func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
-	// Extract ID from URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/recipes/")
-	if path == "" {
-		h.writeErrorResponse(w, http.StatusBadRequest, "missing_id", "Recipe ID is required")
-		return
-	}
-
-	recipeID, err := uuid.Parse(path)
-	if err != nil {
-		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
+	recipeID, ok := h.recipeIDFromPath(w, r)
+	if !ok {
 		return
 	}
 
 	// Archive (soft delete) the recipe
-	err = h.recipeService.ArchiveRecipe(r.Context(), recipeID)
+	err := h.recipeService.ArchiveRecipe(r.Context(), recipeID)
 	if err != nil {
 		if errors.Is(err, recipe.ErrRecipeNotFound) {
 			h.writeErrorResponse(w, http.StatusNotFound, "recipe_not_found", "Recipe not found")
@@ -243,16 +238,8 @@ func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/recipes/{id}/restore - Restore archived recipe
 func (h *RecipeHandler) RestoreRecipe(w http.ResponseWriter, r *http.Request) {
-	// Extract ID from URL path
-	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/recipes/"), "/")
-	if len(pathParts) != 2 || pathParts[1] != "restore" {
-		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_path", "Invalid restore path")
-		return
-	}
-
-	recipeID, err := uuid.Parse(pathParts[0])
-	if err != nil {
-		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
+	recipeID, ok := h.recipeIDFromPath(w, r)
+	if !ok {
 		return
 	}
 
@@ -314,21 +301,12 @@ func (h *RecipeHandler) ListArchivedRecipes(w http.ResponseWriter, r *http.Reque
 
 // POST /api/recipes/{id}/meal-plan - Add recipe to meal plan
 func (h *RecipeHandler) AddToMealPlan(w http.ResponseWriter, r *http.Request) {
-	// Extract ID from URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/recipes/")
-	pathParts := strings.Split(path, "/")
-	if len(pathParts) != 2 || pathParts[1] != "meal-plan" {
-		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_path", "Invalid meal plan path")
+	recipeID, ok := h.recipeIDFromPath(w, r)
+	if !ok {
 		return
 	}
 
-	recipeID, err := uuid.Parse(pathParts[0])
-	if err != nil {
-		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
-		return
-	}
-
-	err = h.recipeService.AddToMealPlan(r.Context(), recipeID)
+	err := h.recipeService.AddToMealPlan(r.Context(), recipeID)
 	if err != nil {
 		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to add recipe to meal plan")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "meal_plan_add_failed", "Failed to add recipe to meal plan")
@@ -341,21 +319,12 @@ func (h *RecipeHandler) AddToMealPlan(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /api/recipes/{id}/meal-plan - Remove recipe from meal plan
 func (h *RecipeHandler) RemoveFromMealPlan(w http.ResponseWriter, r *http.Request) {
-	// Extract ID from URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/recipes/")
-	pathParts := strings.Split(path, "/")
-	if len(pathParts) != 2 || pathParts[1] != "meal-plan" {
-		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_path", "Invalid meal plan path")
+	recipeID, ok := h.recipeIDFromPath(w, r)
+	if !ok {
 		return
 	}
 
-	recipeID, err := uuid.Parse(pathParts[0])
-	if err != nil {
-		h.writeErrorResponse(w, http.StatusBadRequest, "invalid_id", "Invalid recipe ID format")
-		return
-	}
-
-	err = h.recipeService.RemoveFromMealPlan(r.Context(), recipeID)
+	err := h.recipeService.RemoveFromMealPlan(r.Context(), recipeID)
 	if err != nil {
 		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to remove recipe from meal plan")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "meal_plan_remove_failed", "Failed to remove recipe from meal plan")

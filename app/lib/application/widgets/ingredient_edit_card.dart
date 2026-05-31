@@ -6,6 +6,9 @@ import '../styles/colours.dart';
 import '../styles/decorations.dart';
 import '../styles/spacing.dart';
 import '../styles/text_styles.dart';
+import 'edit_card_text_field.dart';
+import 'ingredient_autocomplete_field.dart';
+import 'unit_autocomplete_field.dart';
 
 class IngredientEditCard extends StatefulWidget {
   final int index;
@@ -50,6 +53,11 @@ class _IngredientEditCardState extends State<IngredientEditCard> {
       summary += ', ${widget.ingredient.preparation}';
     }
     return summary;
+  }
+
+  String _formatQuantity(double qty) {
+    if (qty == qty.toInt()) return qty.toInt().toString();
+    return qty.toString();
   }
 
   @override
@@ -106,14 +114,17 @@ class _IngredientEditCardState extends State<IngredientEditCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildIngredientAutocomplete(context),
+                  IngredientAutocompleteField(
+                    ingredient: widget.ingredient,
+                    available: widget.availableIngredients,
+                    onChanged: widget.onChanged,
+                  ),
                   const SizedBox(height: Spacing.s),
                   Row(
                     children: [
                       Expanded(
                         flex: 2,
-                        child: _buildTextField(
-                          context,
+                        child: EditCardTextField(
                           label: 'Qty',
                           value: _formatQuantity(widget.ingredient.quantity),
                           keyboardType: const TextInputType.numberWithOptions(
@@ -129,21 +140,23 @@ class _IngredientEditCardState extends State<IngredientEditCard> {
                       const SizedBox(width: Spacing.xs),
                       Expanded(
                         flex: 3,
-                        child: _buildUnitAutocomplete(context),
+                        child: UnitAutocompleteField(
+                          ingredient: widget.ingredient,
+                          available: widget.availableUnits,
+                          onChanged: widget.onChanged,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: Spacing.s),
-                  _buildTextField(
-                    context,
+                  EditCardTextField(
                     label: 'Preparation (optional)',
                     value: widget.ingredient.preparation,
                     onChanged: (v) => widget.onChanged(
                         widget.ingredient.clone()..preparation = v),
                   ),
                   const SizedBox(height: Spacing.s),
-                  _buildTextField(
-                    context,
+                  EditCardTextField(
                     label: 'Component (optional)',
                     value: widget.ingredient.component,
                     onChanged: (v) => widget.onChanged(
@@ -154,161 +167,6 @@ class _IngredientEditCardState extends State<IngredientEditCard> {
             ),
         ],
       ),
-    );
-  }
-
-  Widget _buildIngredientAutocomplete(BuildContext context) {
-    return Autocomplete<IngredientDetail>(
-      initialValue: TextEditingValue(text: widget.ingredient.name),
-      displayStringForOption: (ing) => ing.name,
-      optionsBuilder: (textEditingValue) {
-        final query = textEditingValue.text.toLowerCase().trim();
-        if (query.isEmpty) {
-          return widget.availableIngredients;
-        }
-        return widget.availableIngredients
-            .where((ing) => ing.name.toLowerCase().contains(query));
-      },
-      onSelected: (ing) {
-        widget.onChanged(widget.ingredient.clone()..name = ing.name);
-      },
-      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-        return TextFormField(
-          controller: controller,
-          focusNode: focusNode,
-          decoration: _inputDecoration(context, 'Name'),
-          style: TextStyles.body(context),
-          onChanged: (v) =>
-              widget.onChanged(widget.ingredient.clone()..name = v),
-        );
-      },
-      optionsViewBuilder: (context, onSelected, options) {
-        return _buildOptionsDropdown<IngredientDetail>(
-          options: options,
-          onSelected: onSelected,
-          titleBuilder: (ing) => ing.name,
-        );
-      },
-    );
-  }
-
-  Widget _buildUnitAutocomplete(BuildContext context) {
-    return Autocomplete<IngredientUnit>(
-      initialValue: TextEditingValue(text: widget.ingredient.unitName),
-      displayStringForOption: (unit) => unit.name,
-      optionsBuilder: (textEditingValue) {
-        final query = textEditingValue.text.toLowerCase().trim();
-        if (query.isEmpty) {
-          return widget.availableUnits;
-        }
-        return widget.availableUnits
-            .where((unit) => unit.name.toLowerCase().contains(query));
-      },
-      onSelected: (unit) {
-        widget.onChanged(widget.ingredient.clone()
-          ..unitName = unit.name
-          ..unitAbbreviation = unit.abbreviation ?? '');
-      },
-      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-        return TextFormField(
-          controller: controller,
-          focusNode: focusNode,
-          decoration: _inputDecoration(context, 'Unit (optional)'),
-          style: TextStyles.body(context),
-          onChanged: (v) =>
-              widget.onChanged(widget.ingredient.clone()..unitName = v),
-        );
-      },
-      optionsViewBuilder: (context, onSelected, options) {
-        return _buildOptionsDropdown<IngredientUnit>(
-          options: options,
-          onSelected: onSelected,
-          titleBuilder: (unit) => unit.name,
-          subtitleBuilder: (unit) =>
-              unit.abbreviation != null && unit.abbreviation!.isNotEmpty
-                  ? unit.abbreviation
-                  : null,
-        );
-      },
-    );
-  }
-
-  Widget _buildOptionsDropdown<T extends Object>({
-    required Iterable<T> options,
-    required AutocompleteOnSelected<T> onSelected,
-    required String Function(T) titleBuilder,
-    String? Function(T)? subtitleBuilder,
-  }) {
-    return Align(
-      alignment: Alignment.topLeft,
-      child: Material(
-        elevation: 4,
-        borderRadius: BorderRadius.circular(12),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 200),
-          child: ListView.builder(
-            padding: EdgeInsets.zero,
-            shrinkWrap: true,
-            itemCount: options.length,
-            itemBuilder: (context, index) {
-              final item = options.elementAt(index);
-              final subtitle = subtitleBuilder?.call(item);
-              return ListTile(
-                dense: true,
-                title: Text(titleBuilder(item)),
-                subtitle: subtitle != null ? Text(subtitle) : null,
-                onTap: () => onSelected(item),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(BuildContext context, String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: TextStyles.caption(context),
-      filled: true,
-      fillColor: context.colours.background,
-      contentPadding: const EdgeInsets.symmetric(
-          horizontal: Spacing.s, vertical: Spacing.xs),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: context.colours.border),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: context.colours.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: context.colours.primary),
-      ),
-    );
-  }
-
-  String _formatQuantity(double qty) {
-    if (qty == qty.toInt()) return qty.toInt().toString();
-    return qty.toString();
-  }
-
-  Widget _buildTextField(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required ValueChanged<String> onChanged,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return TextFormField(
-      initialValue: value,
-      decoration: _inputDecoration(context, label),
-      style: TextStyles.body(context),
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      onChanged: onChanged,
     );
   }
 }

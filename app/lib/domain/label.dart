@@ -3,6 +3,10 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'label.freezed.dart';
 part 'label.g.dart';
 
+/// The label taxonomy types, in canonical display order. Mirrors the enum on
+/// the backend MCP `create_recipe`/`update_recipe` tools — keep the two in sync.
+const List<String> kLabelTypes = ['course', 'cuisine', 'diet', 'method'];
+
 @freezed
 class Label with _$Label {
   const factory Label({

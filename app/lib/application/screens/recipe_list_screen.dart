@@ -42,13 +42,11 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     super.dispose();
   }
 
-  static const _typeOrder = ['course', 'cuisine', 'diet', 'method'];
-
   List<FilterOption> _buildFilterOptions(List<LabelSummary> labels, int total) {
     final used = labels.where((l) => l.uses > 0).toList()
       ..sort((a, b) {
-        final ti = _typeOrder.indexOf(a.type);
-        final tj = _typeOrder.indexOf(b.type);
+        final ti = kLabelTypes.indexOf(a.type);
+        final tj = kLabelTypes.indexOf(b.type);
         if (ti != tj) return ti.compareTo(tj);
         return b.uses.compareTo(a.uses);
       });
@@ -105,7 +103,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(labelsProvider);
-            ref.invalidate(favouriteRecipesProvider);
+            ref.invalidate(mealPlanRecipesProvider);
             await notifier.refresh();
           },
           child: NotificationListener<ScrollNotification>(

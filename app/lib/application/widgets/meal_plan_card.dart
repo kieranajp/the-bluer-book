@@ -104,7 +104,7 @@ class _MealPlanImage extends StatelessWidget {
               ],
             ),
             child: Icon(
-              recipe.isFavourite ? Icons.star : Icons.star_border,
+              recipe.isInMealPlan ? Icons.star : Icons.star_border,
               color: Colors.white,
               size: 20,
             ),

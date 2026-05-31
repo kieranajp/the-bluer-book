@@ -6,11 +6,13 @@ import '../../domain/ingredient.dart';
 import '../../domain/recipe.dart';
 import '../providers/edit_recipe_provider.dart';
 import '../providers/recipe_providers.dart';
+import '../widgets/add_label_dialog.dart';
 import '../widgets/ingredient_edit_card.dart';
 import '../widgets/step_edit_card.dart';
 import '../widgets/label_edit_chip.dart';
 import '../widgets/striped_placeholder.dart';
 import '../styles/colours.dart';
+import '../styles/decorations.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 
@@ -27,18 +29,11 @@ class EditRecipeScreen extends ConsumerStatefulWidget {
 
 class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _labelController = TextEditingController();
 
   AutoDisposeStateNotifierProvider<EditRecipeNotifier, EditRecipeState>
       get _provider {
     final recipe = widget.recipe;
     return recipe == null ? newRecipeProvider : editRecipeProvider(recipe);
-  }
-
-  @override
-  void dispose() {
-    _labelController.dispose();
-    super.dispose();
   }
 
   Future<void> _save() async {
@@ -91,66 +86,12 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
   }
 
   void _addLabel() {
-    _labelController.clear();
-    String selectedType = 'course';
     showDialog(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Add Label'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: selectedType,
-                  decoration: const InputDecoration(labelText: 'Type'),
-                  items: const [
-                    DropdownMenuItem(value: 'course', child: Text('course')),
-                    DropdownMenuItem(value: 'cuisine', child: Text('cuisine')),
-                    DropdownMenuItem(value: 'diet', child: Text('diet')),
-                    DropdownMenuItem(value: 'method', child: Text('method')),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) setDialogState(() => selectedType = v);
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _labelController,
-                  decoration: const InputDecoration(
-                    hintText: 'Name (e.g. main, indian, gluten_free)',
-                  ),
-                  autofocus: true,
-                  onSubmitted: (value) {
-                    ref.read(_provider.notifier).addLabel(
-                          type: selectedType,
-                          name: value,
-                        );
-                    Navigator.pop(dialogContext);
-                  },
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  ref.read(_provider.notifier).addLabel(
-                        type: selectedType,
-                        name: _labelController.text,
-                      );
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text('Add'),
-              ),
-            ],
-          ),
-        );
-      },
+      builder: (_) => AddLabelDialog(
+        onAdd: (type, name) =>
+            ref.read(_provider.notifier).addLabel(type: type, name: name),
+      ),
     );
   }
 
@@ -624,26 +565,7 @@ class _FormTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       initialValue: value,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyles.caption(context),
-        filled: true,
-        fillColor: context.colours.background,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: Spacing.s, vertical: Spacing.xs),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: context.colours.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: context.colours.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: context.colours.primary),
-        ),
-      ),
+      decoration: Decorations.input(context, label),
       style: TextStyles.body(context),
       maxLines: maxLines ?? 1,
       keyboardType: keyboardType,

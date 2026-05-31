@@ -126,7 +126,7 @@ class EditRecipeState {
       steps: recipe.steps.map((s) => EditableStep.fromStep(s)).toList(),
       labels: recipe.labels.map((l) => EditableLabel.fromLabel(l)).toList(),
       imageUrl: recipe.imageUrl,
-      isInMealPlan: recipe.isFavourite,
+      isInMealPlan: recipe.isInMealPlan,
     );
   }
 
@@ -150,7 +150,7 @@ class EditRecipeState {
       cookingTime: cookingTime,
       servings: servings,
       imageUrl: imageUrl,
-      isFavourite: isInMealPlan,
+      isInMealPlan: isInMealPlan,
       ingredients: ingredients
           .map((i) => Ingredient(
                 quantity: i.quantity,
@@ -404,7 +404,7 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
 
       state = state.copyWith(isSaving: false);
       _ref.invalidate(recipeListProvider);
-      _ref.invalidate(favouriteRecipesProvider);
+      _ref.invalidate(mealPlanRecipesProvider);
       return true;
     } catch (e, stack) {
       dev.log('Failed to save recipe ${_uuid ?? "(new)"}',

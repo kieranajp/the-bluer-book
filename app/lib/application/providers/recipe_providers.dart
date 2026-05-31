@@ -25,8 +25,8 @@ final allRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
   return ref.watch(recipeRepositoryProvider).getAllRecipes();
 });
 
-final favouriteRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
-  return ref.watch(recipeRepositoryProvider).getFavouriteRecipes();
+final mealPlanRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
+  return ref.watch(recipeRepositoryProvider).getMealPlanRecipes();
 });
 
 final labelsProvider = FutureProvider<List<LabelSummary>>((ref) async {
@@ -183,10 +183,10 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
     }
 
     final recipe = recipes[recipeIndex];
-    final wasInMealPlan = recipe.isFavourite;
+    final wasInMealPlan = recipe.isInMealPlan;
 
     // Optimistic update
-    final updatedRecipe = recipe.copyWith(isFavourite: !wasInMealPlan);
+    final updatedRecipe = recipe.copyWith(isInMealPlan: !wasInMealPlan);
     final updatedRecipes = [...recipes];
     updatedRecipes[recipeIndex] = updatedRecipe;
     state = AsyncValue.data(updatedRecipes);
@@ -199,8 +199,8 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
         await _repository.addToMealPlan(uuid);
       }
 
-      // Invalidate favourite recipes to refresh meal plan section
-      _ref.invalidate(favouriteRecipesProvider);
+      // Invalidate the meal plan list to refresh the meal plan section
+      _ref.invalidate(mealPlanRecipesProvider);
     } catch (e, stack) {
       dev.log('Failed to toggle meal plan for $uuid', name: 'RecipeListNotifier', error: e, stackTrace: stack);
       // Revert optimistic update on error
@@ -238,10 +238,10 @@ class RecipeDetailNotifier extends StateNotifier<AsyncValue<Recipe?>> {
     final recipe = currentState.value;
     if (recipe == null) return;
 
-    final wasInMealPlan = recipe.isFavourite;
+    final wasInMealPlan = recipe.isInMealPlan;
 
     // Optimistic update
-    final updatedRecipe = recipe.copyWith(isFavourite: !wasInMealPlan);
+    final updatedRecipe = recipe.copyWith(isInMealPlan: !wasInMealPlan);
     state = AsyncValue.data(updatedRecipe);
 
     try {
@@ -253,7 +253,7 @@ class RecipeDetailNotifier extends StateNotifier<AsyncValue<Recipe?>> {
       }
 
       // Invalidate providers to refresh lists
-      _ref.invalidate(favouriteRecipesProvider);
+      _ref.invalidate(mealPlanRecipesProvider);
       _ref.invalidate(recipeListProvider);
     } catch (e, stack) {
       dev.log('Failed to toggle meal plan', name: 'RecipeDetailNotifier', error: e, stackTrace: stack);

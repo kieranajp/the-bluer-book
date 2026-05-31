@@ -26,7 +26,7 @@ Recipe _testRecipe({String? imageUrl}) => Recipe(
       cookingTime: 15,
       servings: 4,
       imageUrl: imageUrl,
-      isFavourite: true,
+      isInMealPlan: true,
       ingredients: const [
         Ingredient(
           quantity: 200,

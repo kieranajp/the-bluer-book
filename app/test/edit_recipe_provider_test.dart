@@ -16,7 +16,7 @@ Recipe _testRecipe() => const Recipe(
       cookingTime: 15,
       servings: 4,
       imageUrl: 'https://example.com/photo.jpg',
-      isFavourite: true,
+      isInMealPlan: true,
       ingredients: [
         Ingredient(
           quantity: 200,
@@ -105,7 +105,7 @@ void main() {
       expect(recipe.cookingTime, 15);
       expect(recipe.servings, 4);
       expect(recipe.imageUrl, 'https://example.com/photo.jpg');
-      expect(recipe.isFavourite, true);
+      expect(recipe.isInMealPlan, true);
     });
 
     test('auto-assigns step order from list position', () {

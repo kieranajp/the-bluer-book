@@ -24,6 +24,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/upload"
 )
 
 var (
@@ -78,6 +79,11 @@ var (
 				EnvVars: []string{"GEMINI_MODEL"},
 				Value:   "gemini-3.5-flash",
 			},
+			&cli.StringFlag{Name: "r2-account-id", EnvVars: []string{"R2_ACCOUNT_ID"}},
+			&cli.StringFlag{Name: "r2-access-key-id", EnvVars: []string{"R2_ACCESS_KEY_ID"}},
+			&cli.StringFlag{Name: "r2-secret-access-key", EnvVars: []string{"R2_SECRET_ACCESS_KEY"}},
+			&cli.StringFlag{Name: "r2-bucket", EnvVars: []string{"R2_BUCKET"}},
+			&cli.StringFlag{Name: "r2-public-url", EnvVars: []string{"R2_PUBLIC_URL"}},
 		},
 		Action: run,
 	}
@@ -143,8 +149,25 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to create chat handler: %w", err)
 	}
 
+	// Create photo handler if R2 is configured
+	var photoHandler *api.PhotoHandler
+	if c.String("r2-account-id") != "" && c.String("r2-bucket") != "" {
+		r2 := upload.NewR2Uploader(
+			c.String("r2-account-id"),
+			c.String("r2-access-key-id"),
+			c.String("r2-secret-access-key"),
+			c.String("r2-bucket"),
+			c.String("r2-public-url"),
+			log,
+		)
+		photoHandler = api.NewPhotoHandler(r2, queries, sqlDB, log)
+		log.Info().Msg("R2 photo upload enabled")
+	} else {
+		log.Warn().Msg("R2 not configured — photo upload endpoint disabled")
+	}
+
 	// Create API router
-	router := api.NewRouter(recipeService, chatHandler, log)
+	router := api.NewRouter(recipeService, chatHandler, photoHandler, log)
 
 	// Create HTTP server
 	httpServer := &http.Server{

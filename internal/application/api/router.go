@@ -12,7 +12,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 )
 
-func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, logger logger.Logger) http.Handler {
+func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, photoHandler *PhotoHandler, logger logger.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	// Prometheus metrics endpoint
@@ -48,6 +48,11 @@ func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, l
 			http.HandlerFunc(recipeHandler.UpdateRecipe),
 		),
 	)
+
+	// Photo upload
+	if photoHandler != nil {
+		mux.HandleFunc("POST /api/recipes/{id}/photo", photoHandler.UploadRecipePhoto)
+	}
 
 	// Chat endpoint
 	mux.HandleFunc("POST /api/chat", chatHandler.HandleChat)

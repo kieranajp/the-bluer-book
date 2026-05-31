@@ -55,6 +55,17 @@ spec:
           capabilities:
             drop:
             - ALL
+      - name: fetch-images
+        image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
+        command: ["./bluer-book", "fetch-images", "--continue-on-error"]
+        envFrom:
+        - secretRef:
+            name: {{ .Values.secretName }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
       containers:
       - name: bluer-book
         image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}

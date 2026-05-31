@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	fetchimages "github.com/kieranajp/the-bluer-book/cmd/fetchimages"
 	"github.com/kieranajp/the-bluer-book/cmd/migrate"
 	"github.com/kieranajp/the-bluer-book/cmd/server"
 	"github.com/kieranajp/the-bluer-book/cmd/tag"
@@ -32,6 +33,7 @@ func main() {
 			server.Command,
 			migrate.Command,
 			tag.Command,
+			fetchimages.Command,
 		},
 	}
 

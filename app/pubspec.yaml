@@ -38,6 +38,7 @@ dependencies:
 
   # HTTP client
   dio: ^5.7.0
+  http_parser: ^4.1.0
 
   # JSON serialisation
   freezed_annotation: ^2.4.4
@@ -54,6 +55,9 @@ dependencies:
 
   # Markdown rendering
   flutter_markdown: ^0.7.7
+
+  # Image picker for recipe photos
+  image_picker: ^1.1.2
 
   # Keep the screen awake during cooking mode
   wakelock_plus: ^1.6.1

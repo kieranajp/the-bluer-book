@@ -37,8 +37,14 @@ class MealPlanScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: context.colours.background,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(favouriteRecipesProvider);
+            await ref.read(favouriteRecipesProvider.future);
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
             SliverAppBar(
               floating: true,
               backgroundColor: context.colours.background,
@@ -94,7 +100,8 @@ class MealPlanScreen extends ConsumerWidget {
             const SliverToBoxAdapter(
               child: SizedBox(height: Spacing.bottomSpacer),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );

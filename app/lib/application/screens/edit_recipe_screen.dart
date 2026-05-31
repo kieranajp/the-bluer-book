@@ -270,7 +270,6 @@ class _PhotoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colours;
     final hasImage = editState.pendingPhotoBytes != null || (editState.imageUrl != null && editState.imageUrl!.isNotEmpty);
 
     return Column(

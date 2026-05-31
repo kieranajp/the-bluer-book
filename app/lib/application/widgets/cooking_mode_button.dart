@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/recipe.dart';
-import '../screens/cooking_mode_screen.dart';
+import '../screens/cooking_mode/cooking_mode_screen.dart';
 import '../styles/colours.dart';
 import '../styles/shapes.dart';
 

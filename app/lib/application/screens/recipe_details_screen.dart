@@ -6,6 +6,7 @@ import '../../domain/recipe_share.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
 import '../widgets/add_to_plan_button.dart';
+import '../widgets/cooking_mode_button.dart';
 import '../widgets/ingredients_list.dart';
 import '../widgets/instructions_list.dart';
 import '../widgets/recipe_header.dart';
@@ -73,6 +74,10 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
               servings: recipe.servings,
             ),
           ),
+          if (recipe.steps.isNotEmpty)
+            SliverToBoxAdapter(
+              child: CookingModeButton(recipe: recipe),
+            ),
           SliverToBoxAdapter(
             child: AddToPlanButton(
               uuid: recipe.uuid,

@@ -176,6 +176,77 @@ void main() {
     });
   });
 
+  group('ingredientsInStep', () {
+    test('returns only the ingredients mentioned in the step', () {
+      final result = ingredientsInStep(
+        'Whisk the eggs into the flour.',
+        [_ingredient('flour'), _ingredient('sugar'), _ingredient('egg')],
+      );
+      expect(result.map((i) => i.detail.name), ['egg', 'flour']);
+    });
+
+    test('preserves order of first appearance', () {
+      final result = ingredientsInStep(
+        'Add the sugar, then the flour.',
+        [_ingredient('flour'), _ingredient('sugar')],
+      );
+      expect(result.map((i) => i.detail.name), ['sugar', 'flour']);
+    });
+
+    test('dedupes an ingredient mentioned multiple times', () {
+      final result = ingredientsInStep(
+        'Add flour, then add more flour.',
+        [_ingredient('flour')],
+      );
+      expect(result.length, 1);
+      expect(result.first.detail.name, 'flour');
+    });
+
+    test('returns empty when nothing matches', () {
+      final result = ingredientsInStep(
+        'Preheat the oven to 180C.',
+        [_ingredient('flour')],
+      );
+      expect(result, isEmpty);
+    });
+  });
+
+  group('formatIngredientQuantity', () {
+    test('formats quantity with unit abbreviation', () {
+      final result = formatIngredientQuantity(Ingredient(
+        quantity: 200,
+        detail: const IngredientDetail(name: 'flour'),
+        unit: const IngredientUnit(name: 'grams', abbreviation: 'g'),
+      ));
+      expect(result, '200 g');
+    });
+
+    test('falls back to unit name without abbreviation', () {
+      final result = formatIngredientQuantity(Ingredient(
+        quantity: 2,
+        detail: const IngredientDetail(name: 'eggs'),
+        unit: const IngredientUnit(name: 'large'),
+      ));
+      expect(result, '2 large');
+    });
+
+    test('omits unit when none and drops trailing decimals', () {
+      final result = formatIngredientQuantity(const Ingredient(
+        quantity: 3,
+        detail: IngredientDetail(name: 'eggs'),
+      ));
+      expect(result, '3');
+    });
+
+    test('returns empty string when there is nothing to show', () {
+      final result = formatIngredientQuantity(const Ingredient(
+        quantity: 0,
+        detail: IngredientDetail(name: 'salt'),
+      ));
+      expect(result, '');
+    });
+  });
+
   group('formatIngredientTooltip', () {
     test('formats quantity and unit abbreviation', () {
       final result = formatIngredientTooltip(Ingredient(

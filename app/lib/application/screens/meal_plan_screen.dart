@@ -13,9 +13,9 @@ class MealPlanScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final favouriteRecipesAsync = ref.watch(favouriteRecipesProvider);
+    final mealPlanRecipesAsync = ref.watch(mealPlanRecipesProvider);
 
-    ref.listen<AsyncValue<List<Recipe>>>(favouriteRecipesProvider, (previous, next) {
+    ref.listen<AsyncValue<List<Recipe>>>(mealPlanRecipesProvider, (previous, next) {
       if (next.hasError && !(previous?.hasError ?? false)) {
         final error = next.error;
         final message = error is Exception
@@ -27,7 +27,7 @@ class MealPlanScreen extends ConsumerWidget {
             behavior: SnackBarBehavior.floating,
             action: SnackBarAction(
               label: 'Retry',
-              onPressed: () => ref.invalidate(favouriteRecipesProvider),
+              onPressed: () => ref.invalidate(mealPlanRecipesProvider),
             ),
           ),
         );
@@ -39,8 +39,8 @@ class MealPlanScreen extends ConsumerWidget {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(favouriteRecipesProvider);
-            await ref.read(favouriteRecipesProvider.future);
+            ref.invalidate(mealPlanRecipesProvider);
+            await ref.read(mealPlanRecipesProvider.future);
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -54,7 +54,7 @@ class MealPlanScreen extends ConsumerWidget {
                 style: TextStyles.appBarTitle(context),
               ),
             ),
-            favouriteRecipesAsync.when(
+            mealPlanRecipesAsync.when(
               data: (recipes) => recipes.isEmpty
                   ? const SliverFillRemaining(
                       hasScrollBody: false,
@@ -89,7 +89,7 @@ class MealPlanScreen extends ConsumerWidget {
                   icon: Icons.cloud_off,
                   title: 'Couldn\'t load meal plan',
                   action: OutlinedButton.icon(
-                    onPressed: () => ref.invalidate(favouriteRecipesProvider),
+                    onPressed: () => ref.invalidate(mealPlanRecipesProvider),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Retry'),
                   ),

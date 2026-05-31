@@ -65,7 +65,7 @@ class _MealPlanCarouselState extends ConsumerState<MealPlanCarousel> {
   }
 
   Widget _content(BuildContext context) {
-    final mealPlanAsync = ref.watch(favouriteRecipesProvider);
+    final mealPlanAsync = ref.watch(mealPlanRecipesProvider);
 
     return mealPlanAsync.when(
       data: (recipes) {

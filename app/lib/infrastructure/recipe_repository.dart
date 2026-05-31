@@ -66,16 +66,16 @@ class RecipeRepository {
     return result.recipes;
   }
 
-  Future<List<Recipe>> getFavouriteRecipes() async {
+  Future<List<Recipe>> getMealPlanRecipes() async {
     try {
-      dev.log('Fetching favourite recipes', name: 'RecipeRepository');
+      dev.log('Fetching meal plan recipes', name: 'RecipeRepository');
       final response = await _apiClient.dio.get('/recipes/meal-plan');
       final Map<String, dynamic> data = response.data;
       final List<dynamic> recipes = data['recipes'];
-      dev.log('Fetched ${recipes.length} favourite recipes', name: 'RecipeRepository');
+      dev.log('Fetched ${recipes.length} meal plan recipes', name: 'RecipeRepository');
       return recipes.map((json) => Recipe.fromJson(json)).toList();
     } on DioException catch (e, stack) {
-      dev.log('Failed to load favourite recipes: ${e.message}',
+      dev.log('Failed to load meal plan recipes: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
       throw Exception(_formatDioError('Failed to load meal plan', e));
     }
@@ -90,16 +90,6 @@ class RecipeRepository {
       dev.log('Failed to load recipe $uuid: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
       throw Exception(_formatDioError('Failed to load recipe', e));
-    }
-  }
-
-  Future<void> toggleFavourite(int id) async {
-    try {
-      await _apiClient.dio.post('/recipes/$id/favourite');
-    } on DioException catch (e, stack) {
-      dev.log('Failed to toggle favourite for recipe $id: ${e.message}',
-          name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to toggle favourite', e));
     }
   }
 

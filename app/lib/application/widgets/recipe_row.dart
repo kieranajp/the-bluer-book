@@ -74,7 +74,7 @@ class RecipeRow extends ConsumerWidget {
                       const SizedBox(width: 8),
                       MealPlanStarIcon(
                         uuid: recipe.uuid,
-                        isFavourite: recipe.isFavourite,
+                        isInMealPlan: recipe.isInMealPlan,
                       ),
                     ],
                   ),

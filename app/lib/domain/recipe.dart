@@ -16,7 +16,7 @@ class Recipe with _$Recipe {
     @JsonKey(name: 'cookTime') required int cookingTime,
     required int servings,
     @JsonKey(name: 'mainPhoto') String? imageUrl,
-    @JsonKey(name: 'isInMealPlan') required bool isFavourite,
+    required bool isInMealPlan,
     required List<Ingredient> ingredients,
     required List<Step> steps,
     required List<Label> labels,

@@ -105,7 +105,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(labelsProvider);
-            ref.invalidate(favouriteRecipesProvider);
+            ref.invalidate(mealPlanRecipesProvider);
             await notifier.refresh();
           },
           child: NotificationListener<ScrollNotification>(

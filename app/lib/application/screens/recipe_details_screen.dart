@@ -39,7 +39,7 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
       setState(() => _refreshed = fresh);
       // Keep the list and meal plan in sync with the latest data.
       ref.read(recipeListProvider.notifier).updateRecipe(fresh);
-      ref.invalidate(favouriteRecipesProvider);
+      ref.invalidate(mealPlanRecipesProvider);
     } catch (e) {
       if (!mounted) return;
       final message = e is Exception
@@ -88,7 +88,7 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
               onBookmark: () => ref
                   .read(recipeListProvider.notifier)
                   .toggleMealPlan(recipe.uuid),
-              bookmarkActive: recipe.isFavourite,
+              bookmarkActive: recipe.isInMealPlan,
             ),
           ),
           SliverToBoxAdapter(
@@ -112,7 +112,7 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
           SliverToBoxAdapter(
             child: AddToPlanButton(
               uuid: recipe.uuid,
-              isInMealPlan: recipe.isFavourite,
+              isInMealPlan: recipe.isInMealPlan,
             ),
           ),
           SliverToBoxAdapter(

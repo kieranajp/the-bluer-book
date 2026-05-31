@@ -47,6 +47,9 @@ the obvious stuff.
 - **Flutter styling**: never hardcode colours or sizes. Use `context.colours`
   (the `Colours` ThemeExtension) plus `Spacing` / `TextStyles` / `Shapes`. The
   `ColorScheme` is hand-built — do not switch to `ColorScheme.fromSeed`.
+- **Flutter widget size**: extract widget *classes*, never `Widget _buildX()` helper
+  methods. Screens orchestrate; sections render; logic lives in notifiers; dialogs are
+  widgets. The smell is a long `build`, not a long file — see `docs/frontend.md`.
 
 ## Build & test
 

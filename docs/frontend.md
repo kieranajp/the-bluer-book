@@ -19,6 +19,69 @@ app/lib/
 
 State management is **Riverpod**; HTTP is **Dio**; models are **freezed**.
 
+## Keeping widgets small (the rule that matters most here)
+
+Flutter tutorials happily let a screen grow into a 1000-line `build` method. We don't.
+The codebase stays readable by following four rules — when you touch the UI, keep to
+them.
+
+### 1. Extract widget *classes*, never `Widget _buildX()` helper methods
+
+A method that returns a widget rebuilds with its parent, can't be `const`, gets no
+element identity, and quietly turns into the 1000-line file we're avoiding. Pull the
+piece out into a private `StatelessWidget`/`StatefulWidget` class with named fields
+instead.
+
+```dart
+// ❌ don't — UI assembled from a method on the State/widget
+Widget _buildHeader(BuildContext context) { ... }
+
+// ✅ do — a real widget class with explicit inputs
+class _Header extends StatelessWidget {
+  final String title;
+  const _Header({required this.title});
+  @override
+  Widget build(BuildContext context) { ... }
+}
+```
+
+`edit_recipe_screen.dart`'s `_FormTextField` and all of `cooking_mode_screen.dart`'s
+`_TopBar` / `_StepPage` / `_BottomControls` are the model to copy. (A handful of older
+`_buildX` methods survive in `ingredient_edit_card.dart`, `instructions_list.dart` and
+`meal_plan_carousel.dart` — treat those as debt to migrate, not as a pattern to follow.)
+
+### 2. Screens orchestrate; sections render
+
+A screen widget wires providers to a column of section widgets and handles
+navigation/snackbars — it does not build form fields or list rows itself. `build` should
+read like a table of contents. See `edit_recipe_screen.dart` (delegates to
+`_BasicInfoSection`, `_IngredientsSection`, …) and `recipe_list_screen.dart`.
+
+### 3. Logic goes in the notifier, not the widget
+
+Validation, save, CRUD, reordering, optimistic toggles — all live in a `StateNotifier`
+(`EditRecipeNotifier`, `RecipeListNotifier`). Widgets call `notifier.doThing()` and
+render state. If a widget is computing or mutating domain data, move it down.
+
+### 4. Dialogs and bottom sheets are widgets too
+
+Don't inline an `AlertDialog` + `StatefulBuilder` inside a screen's `State`. Make it a
+widget (see `theme_selector_dialog.dart`) and `showDialog(builder: (_) => MyDialog())`.
+(`edit_recipe_screen.dart`'s `_addLabel` is the current exception to fix.)
+
+### Reusable cross-cutting logic lives in `utils/`
+
+Pure helpers (string highlighting, time formatting, the camera/gesture controller) go in
+`application/utils/`, not in the widget that happens to use them first
+(`ingredient_highlighter.dart`, `time_format.dart`, `wave_gesture_detector.dart`).
+
+### Rule of thumb on size
+
+There's no hard line limit — `cooking_mode_screen.dart` is 700 lines and perfectly fine
+because it's ~10 small widget classes. The smell isn't file length, it's a **single
+`build` method** (or `_buildX` helper) that's longer than a screenful. When one is, split
+it into classes.
+
 ## Domain models
 
 `@freezed` immutable classes with `fromJson`/`toJson`. Generated `*.freezed.dart` and

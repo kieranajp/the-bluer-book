@@ -27,22 +27,53 @@ class RecipeDetailsScreen extends ConsumerStatefulWidget {
 class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
   int _selectedTab = 0;
 
+  /// Freshly fetched copy from a pull-to-refresh. Used as the fallback when
+  /// the recipe isn't part of the currently loaded list page.
+  Recipe? _refreshed;
+
+  Future<void> _refresh() async {
+    try {
+      final fresh =
+          await ref.read(recipeRepositoryProvider).getRecipe(widget.recipe.uuid);
+      if (!mounted) return;
+      setState(() => _refreshed = fresh);
+      // Keep the list and meal plan in sync with the latest data.
+      ref.read(recipeListProvider.notifier).updateRecipe(fresh);
+      ref.invalidate(favouriteRecipesProvider);
+    } catch (e) {
+      if (!mounted) return;
+      final message = e is Exception
+          ? e.toString().replaceFirst('Exception: ', '')
+          : 'Failed to refresh recipe';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final recipeListAsync = ref.watch(recipeListProvider);
+    final fallback = _refreshed ?? widget.recipe;
     final recipe = recipeListAsync.maybeWhen(
       data: (recipes) => recipes.firstWhere(
         (r) => r.uuid == widget.recipe.uuid,
-        orElse: () => widget.recipe,
+        orElse: () => fallback,
       ),
-      orElse: () => widget.recipe,
+      orElse: () => fallback,
     );
 
     return Scaffold(
       backgroundColor: context.colours.background,
       extendBodyBehindAppBar: true,
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
           SliverToBoxAdapter(
             child: RecipeHeroImage(
               imageUrl: recipe.imageUrl,
@@ -101,7 +132,8 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
                   ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
-        ],
+          ],
+        ),
       ),
     );
   }

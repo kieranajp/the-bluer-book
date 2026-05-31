@@ -102,15 +102,22 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     return Scaffold(
       backgroundColor: context.colours.background,
       body: SafeArea(
-        child: NotificationListener<ScrollNotification>(
-          onNotification: (n) {
-            if (n is ScrollEndNotification && n.metrics.extentAfter < 200) {
-              notifier.loadMore();
-            }
-            return false;
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(labelsProvider);
+            ref.invalidate(favouriteRecipesProvider);
+            await notifier.refresh();
           },
-          child: CustomScrollView(
-            slivers: [
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (n) {
+              if (n is ScrollEndNotification && n.metrics.extentAfter < 200) {
+                notifier.loadMore();
+              }
+              return false;
+            },
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
               const SliverToBoxAdapter(child: HomeHeader()),
               const SliverToBoxAdapter(child: HomeHero()),
               SliverToBoxAdapter(child: PillSearch(onChanged: _onSearchChanged)),
@@ -182,7 +189,8 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                   ),
                 ),
               const SliverToBoxAdapter(child: SizedBox(height: 110)),
-            ],
+              ],
+            ),
           ),
         ),
       ),

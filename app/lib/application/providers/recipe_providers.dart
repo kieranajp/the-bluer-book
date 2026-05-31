@@ -103,6 +103,27 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
     }
   }
 
+  /// Reload the current page from scratch, preserving the active
+  /// search, sort and label filters. Used for pull-to-refresh.
+  Future<void> refresh() => loadRecipes(
+        search: _currentSearch,
+        sort: _currentSort,
+        labels: _currentLabels,
+      );
+
+  /// Replace a single recipe in the loaded list (matched by uuid) with a
+  /// freshly fetched copy, without disturbing pagination or scroll position.
+  void updateRecipe(Recipe updated) {
+    final currentState = state;
+    if (!currentState.hasValue) return;
+    final recipes = currentState.value!;
+    final index = recipes.indexWhere((r) => r.uuid == updated.uuid);
+    if (index == -1) return;
+    final next = [...recipes];
+    next[index] = updated;
+    state = AsyncValue.data(next);
+  }
+
   Future<void> setSort(RecipeSort sort) =>
       loadRecipes(search: _currentSearch, sort: sort, labels: _currentLabels);
 
@@ -200,10 +221,10 @@ class RecipeDetailNotifier extends StateNotifier<AsyncValue<Recipe?>> {
 
   RecipeDetailNotifier(this._repository, this._ref) : super(const AsyncValue.data(null));
 
-  Future<void> loadRecipe(int id) async {
+  Future<void> loadRecipe(String uuid) async {
     state = const AsyncValue.loading();
     try {
-      final recipe = await _repository.getRecipe(id);
+      final recipe = await _repository.getRecipe(uuid);
       state = AsyncValue.data(recipe);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -243,9 +264,9 @@ class RecipeDetailNotifier extends StateNotifier<AsyncValue<Recipe?>> {
   }
 }
 
-final recipeDetailProvider = StateNotifierProvider.family<RecipeDetailNotifier, AsyncValue<Recipe?>, int>((ref, id) {
+final recipeDetailProvider = StateNotifierProvider.family<RecipeDetailNotifier, AsyncValue<Recipe?>, String>((ref, uuid) {
   final notifier = RecipeDetailNotifier(ref.watch(recipeRepositoryProvider), ref);
-  notifier.loadRecipe(id);
+  notifier.loadRecipe(uuid);
   return notifier;
 });
 

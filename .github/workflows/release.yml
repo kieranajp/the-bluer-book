@@ -29,11 +29,44 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Derive version from release tag
+        id: version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          # Strip a leading "v" (e.g. v1.2.3 -> 1.2.3) to get the versionName.
+          BUILD_NAME="${TAG#v}"
+          # Require a semver-shaped tag so we can compute a versionCode from it.
+          if [[ ! "$BUILD_NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            echo "::error::Release tag '$TAG' is not in the expected X.Y.Z (or vX.Y.Z) format" >&2
+            exit 1
+          fi
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+          # Pack the semver into a single monotonically-increasing integer so every
+          # newer release gets a strictly higher Android versionCode.
+          # Allows up to 1000 for each of minor/patch (e.g. 1.2.3 -> 1002003).
+          BUILD_NUMBER=$(( MAJOR * 1000000 + MINOR * 1000 + PATCH ))
+          echo "build_name=$BUILD_NAME" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Building versionName=$BUILD_NAME versionCode=$BUILD_NUMBER"
+
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "${{ runner.temp }}/release.jks"
+
       - name: Build release APK
         env:
           API_URL: ${{ secrets.API_URL }}
           OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
           OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           printf '%s\n' \
             "API_URL=${API_URL}" \
@@ -41,7 +74,10 @@ jobs:
             "OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}" \
             "OAUTH_SCOPE=recipes:api" \
             > env/release.env
-          flutter build apk --release --dart-define-from-file=env/release.env
+          flutter build apk --release \
+            --dart-define-from-file=env/release.env \
+            --build-name="${{ steps.version.outputs.build_name }}" \
+            --build-number="${{ steps.version.outputs.build_number }}"
 
       - name: Upload APK to release
         env:

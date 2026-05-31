@@ -83,13 +83,13 @@ class RecipeRepository {
     }
   }
 
-  Future<Recipe> getRecipe(int id) async {
+  Future<Recipe> getRecipe(String uuid) async {
     try {
-      dev.log('Fetching recipe $id', name: 'RecipeRepository');
-      final response = await _apiClient.dio.get('/recipes/$id');
+      dev.log('Fetching recipe $uuid', name: 'RecipeRepository');
+      final response = await _apiClient.dio.get('/recipes/$uuid');
       return Recipe.fromJson(response.data);
     } on DioException catch (e, stack) {
-      dev.log('Failed to load recipe $id: ${e.message}',
+      dev.log('Failed to load recipe $uuid: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
       throw Exception(_formatDioError('Failed to load recipe', e));
     }

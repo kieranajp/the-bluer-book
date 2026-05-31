@@ -18,22 +18,26 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  int _previousIndex = 0;
-
   void _selectTab(int i) {
-    _previousIndex = ref.read(selectedTabProvider);
     ref.read(selectedTabProvider.notifier).state = i;
+  }
+
+  void _openChat() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const ChatScreen(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(selectedTabProvider);
-    final isChatActive = currentIndex == 2;
 
     final tabs = [
       const RecipeListScreen(),
       const MealPlanScreen(),
-      ChatScreen(onBack: () => _selectTab(_previousIndex)),
       const SettingsScreen(),
     ];
 
@@ -41,16 +45,16 @@ class _AppShellState extends ConsumerState<AppShell> {
       body: Stack(
         children: [
           IndexedStack(index: currentIndex, children: tabs),
-          if (!isChatActive)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _FloatingNavBar(
-                currentIndex: currentIndex,
-                onTabSelected: _selectTab,
-              ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _FloatingNavBar(
+              currentIndex: currentIndex,
+              onTabSelected: _selectTab,
+              onChatTap: _openChat,
             ),
+          ),
         ],
       ),
     );
@@ -60,10 +64,12 @@ class _AppShellState extends ConsumerState<AppShell> {
 class _FloatingNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
+  final VoidCallback onChatTap;
 
   const _FloatingNavBar({
     required this.currentIndex,
     required this.onTabSelected,
+    required this.onChatTap,
   });
 
   @override
@@ -118,16 +124,16 @@ class _FloatingNavBar extends StatelessWidget {
                   child: _NavItem(
                     icon: Icons.chat_bubble_outline_rounded,
                     label: 'Chat',
-                    active: currentIndex == 2,
-                    onTap: () => onTabSelected(2),
+                    active: false,
+                    onTap: onChatTap,
                   ),
                 ),
                 Expanded(
                   child: _NavItem(
                     icon: Icons.settings_outlined,
                     label: 'Settings',
-                    active: currentIndex == 3,
-                    onTap: () => onTabSelected(3),
+                    active: currentIndex == 2,
+                    onTap: () => onTabSelected(2),
                   ),
                 ),
               ],

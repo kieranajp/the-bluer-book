@@ -22,52 +22,71 @@ State management is **Riverpod**; HTTP is **Dio**; models are **freezed**.
 ## Keeping widgets small (the rule that matters most here)
 
 Flutter tutorials happily let a screen grow into a 1000-line `build` method. We don't.
-The codebase stays readable by following four rules — when you touch the UI, keep to
-them.
+Five rules keep the UI readable — follow them when you touch it.
 
-### 1. Extract widget *classes*, never `Widget _buildX()` helper methods
+### 1. One widget class per file
 
-A method that returns a widget rebuilds with its parent, can't be `const`, gets no
-element identity, and quietly turns into the 1000-line file we're avoiding. Pull the
-piece out into a private `StatelessWidget`/`StatefulWidget` class with named fields
-instead.
+This is a hard preference here: **one public widget class to a file**, named after the
+file (`step_page.dart` → `class StepPage`). We'd rather navigate many small files than
+scroll up and down one big one, so do **not** pile a screen's sub-widgets into the screen
+file as `_`-private classes.
+
+A screen with its own sub-widgets gets a **folder**:
+
+```
+screens/cooking_mode/
+  cooking_mode_screen.dart      # CookingModeScreen — the entry point
+  cooking_top_bar.dart          # CookingTopBar
+  cooking_step_page.dart        # CookingStepPage
+  cooking_bottom_controls.dart  # CookingBottomControls
+  ...
+```
+
+Because Dart privacy is library- (file-)scoped, splitting means the sub-widgets are
+**public classes**. Two consequences: prefix screen-only widgets to show ownership and
+avoid collisions (`CookingStepPage`, not `StepPage` — note the shared `EmptyState` widget
+already exists), and only promote one to the shared `widgets/` directory when something
+outside the screen actually reuses it.
+
+### 2. Extract widget *classes*, never `Widget _buildX()` helper methods
+
+A method that returns a widget rebuilds with its parent, can't be `const`, and gets no
+element identity. Pull the piece into a widget class (in its own file, per rule 1):
 
 ```dart
-// ❌ don't — UI assembled from a method on the State/widget
+// ❌ don't — UI assembled from a method
 Widget _buildHeader(BuildContext context) { ... }
 
-// ✅ do — a real widget class with explicit inputs
-class _Header extends StatelessWidget {
+// ✅ do — a widget class with explicit inputs, in header.dart
+class Header extends StatelessWidget {
   final String title;
-  const _Header({required this.title});
+  const Header({super.key, required this.title});
   @override
   Widget build(BuildContext context) { ... }
 }
 ```
 
-`edit_recipe_screen.dart`'s `_FormTextField` and all of `cooking_mode_screen.dart`'s
-`_TopBar` / `_StepPage` / `_BottomControls` are the model to copy. (A handful of older
-`_buildX` methods survive in `ingredient_edit_card.dart`, `instructions_list.dart` and
-`meal_plan_carousel.dart` — treat those as debt to migrate, not as a pattern to follow.)
+(Non-widget helpers — returning an `InputDecoration`, a `TextStyle`, a formatted string —
+are fine as methods/functions; this rule is specifically about helpers that return
+`Widget`s. Shared decoration/style helpers belong in `styles/`.)
 
-### 2. Screens orchestrate; sections render
+### 3. Screens orchestrate; sections render
 
-A screen widget wires providers to a column of section widgets and handles
-navigation/snackbars — it does not build form fields or list rows itself. `build` should
-read like a table of contents. See `edit_recipe_screen.dart` (delegates to
-`_BasicInfoSection`, `_IngredientsSection`, …) and `recipe_list_screen.dart`.
+A screen wires providers to a column of section widgets and handles navigation/snackbars
+— it does not build form fields or list rows itself. `build` should read like a table of
+contents. See `edit_recipe_screen.dart` and `recipe_list_screen.dart`.
 
-### 3. Logic goes in the notifier, not the widget
+### 4. Logic goes in the notifier, not the widget
 
 Validation, save, CRUD, reordering, optimistic toggles — all live in a `StateNotifier`
-(`EditRecipeNotifier`, `RecipeListNotifier`). Widgets call `notifier.doThing()` and
-render state. If a widget is computing or mutating domain data, move it down.
+(`EditRecipeNotifier`, `RecipeListNotifier`). Widgets call `notifier.doThing()` and render
+state. If a widget is computing or mutating domain data, move it down.
 
-### 4. Dialogs and bottom sheets are widgets too
+### 5. Dialogs and bottom sheets are widgets too
 
 Don't inline an `AlertDialog` + `StatefulBuilder` inside a screen's `State`. Make it a
-widget (see `theme_selector_dialog.dart`) and `showDialog(builder: (_) => MyDialog())`.
-(`edit_recipe_screen.dart`'s `_addLabel` is the current exception to fix.)
+widget in its own file (see `theme_selector_dialog.dart` / `add_label_dialog.dart`) and
+`showDialog(builder: (_) => const MyDialog())`.
 
 ### Reusable cross-cutting logic lives in `utils/`
 
@@ -75,12 +94,10 @@ Pure helpers (string highlighting, time formatting, the camera/gesture controlle
 `application/utils/`, not in the widget that happens to use them first
 (`ingredient_highlighter.dart`, `time_format.dart`, `wave_gesture_detector.dart`).
 
-### Rule of thumb on size
+### The smell
 
-There's no hard line limit — `cooking_mode_screen.dart` is 700 lines and perfectly fine
-because it's ~10 small widget classes. The smell isn't file length, it's a **single
-`build` method** (or `_buildX` helper) that's longer than a screenful. When one is, split
-it into classes.
+It's a **single `build` (or `_buildX`) method longer than a screenful**, or a file with
+more than one widget class in it. When you hit either, split into classes and files.
 
 ## Domain models
 

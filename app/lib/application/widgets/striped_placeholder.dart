@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../styles/colours.dart';
+import 'image_shimmer.dart';
 
 /// Striped image placeholder — used when a recipe has no image yet. Matches
 /// the Garden Plot mockup atom (45° stripe + tonal overlay).
@@ -117,6 +118,26 @@ class RecipeImage extends StatelessWidget {
         height: height,
         width: width,
         fit: fit,
+        // Shimmer while the image streams in, instead of a blank gap.
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return ImageShimmer(
+            borderRadius: radius,
+            height: height,
+            width: width,
+          );
+        },
+        // Fade freshly-decoded frames in so they don't pop while scrolling.
+        // Cache hits load synchronously and skip the fade.
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded) return child;
+          return AnimatedOpacity(
+            opacity: frame == null ? 0 : 1,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+            child: child,
+          );
+        },
         errorBuilder: (_, _, _) => StripedPlaceholder(
           borderRadius: radius,
           height: height,

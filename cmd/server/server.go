@@ -80,6 +80,7 @@ var (
 				Value:   "gemini-3.5-flash",
 			},
 			&cli.StringFlag{Name: "r2-account-id", EnvVars: []string{"R2_ACCOUNT_ID"}},
+			&cli.StringFlag{Name: "r2-jurisdiction", EnvVars: []string{"R2_JURISDICTION"}},
 			&cli.StringFlag{Name: "r2-access-key-id", EnvVars: []string{"R2_ACCESS_KEY_ID"}},
 			&cli.StringFlag{Name: "r2-secret-access-key", EnvVars: []string{"R2_SECRET_ACCESS_KEY"}},
 			&cli.StringFlag{Name: "r2-bucket", EnvVars: []string{"R2_BUCKET"}},
@@ -154,6 +155,7 @@ func run(c *cli.Context) error {
 	if c.String("r2-account-id") != "" && c.String("r2-bucket") != "" {
 		r2 := upload.NewR2Uploader(
 			c.String("r2-account-id"),
+			c.String("r2-jurisdiction"),
 			c.String("r2-access-key-id"),
 			c.String("r2-secret-access-key"),
 			c.String("r2-bucket"),

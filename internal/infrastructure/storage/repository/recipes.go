@@ -356,7 +356,7 @@ func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, s
 	for i, row := range recipeRows {
 		rec, err := r.buildRecipeFromRows(ctx, q, row.Uuid, row.Name, row.Description,
 			row.CookTime, row.PrepTime, row.Servings, row.Url,
-			row.CreatedAt, row.UpdatedAt, row.MainPhotoID, sql.NullString{})
+			row.CreatedAt, row.UpdatedAt, row.MainPhotoUuid, row.MainPhotoUrl)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -748,7 +748,7 @@ func (r *recipeRepository) ListMealPlanRecipes(ctx context.Context) ([]*recipe.R
 	for i, row := range rows {
 		rec, err := r.buildRecipeFromRows(ctx, r.db, row.Uuid, row.Name,
 			row.Description, row.CookTime, row.PrepTime, row.Servings,
-			row.Url, row.CreatedAt, row.UpdatedAt, row.MainPhotoID, sql.NullString{})
+			row.Url, row.CreatedAt, row.UpdatedAt, row.MainPhotoUuid, row.MainPhotoUrl)
 		if err != nil {
 			return nil, err
 		}

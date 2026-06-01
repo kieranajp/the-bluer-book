@@ -53,6 +53,9 @@ dependencies:
   # Native share sheet
   share_plus: ^13.1.0
 
+  # Open recipe source links in the browser
+  url_launcher: ^6.3.0
+
   # Markdown rendering
   flutter_markdown: ^0.7.7
 

@@ -31,6 +31,8 @@ mixin _$Recipe {
   int get servings => throw _privateConstructorUsedError;
   @JsonKey(name: 'mainPhoto')
   String? get imageUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'url')
+  String? get url => throw _privateConstructorUsedError;
   @JsonKey(name: 'isInMealPlan')
   bool get isInMealPlan => throw _privateConstructorUsedError;
   List<Ingredient> get ingredients => throw _privateConstructorUsedError;
@@ -59,6 +61,7 @@ abstract class $RecipeCopyWith<$Res> {
     @JsonKey(name: 'cookTime') int cookingTime,
     int servings,
     @JsonKey(name: 'mainPhoto') String? imageUrl,
+    @JsonKey(name: 'url') String? url,
     @JsonKey(name: 'isInMealPlan') bool isInMealPlan,
     List<Ingredient> ingredients,
     List<Step> steps,
@@ -88,6 +91,7 @@ class _$RecipeCopyWithImpl<$Res, $Val extends Recipe>
     Object? cookingTime = null,
     Object? servings = null,
     Object? imageUrl = freezed,
+    Object? url = freezed,
     Object? isInMealPlan = null,
     Object? ingredients = null,
     Object? steps = null,
@@ -122,6 +126,10 @@ class _$RecipeCopyWithImpl<$Res, $Val extends Recipe>
             imageUrl: freezed == imageUrl
                 ? _value.imageUrl
                 : imageUrl // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            url: freezed == url
+                ? _value.url
+                : url // ignore: cast_nullable_to_non_nullable
                       as String?,
             isInMealPlan: null == isInMealPlan
                 ? _value.isInMealPlan
@@ -161,6 +169,7 @@ abstract class _$$RecipeImplCopyWith<$Res> implements $RecipeCopyWith<$Res> {
     @JsonKey(name: 'cookTime') int cookingTime,
     int servings,
     @JsonKey(name: 'mainPhoto') String? imageUrl,
+    @JsonKey(name: 'url') String? url,
     @JsonKey(name: 'isInMealPlan') bool isInMealPlan,
     List<Ingredient> ingredients,
     List<Step> steps,
@@ -189,6 +198,7 @@ class __$$RecipeImplCopyWithImpl<$Res>
     Object? cookingTime = null,
     Object? servings = null,
     Object? imageUrl = freezed,
+    Object? url = freezed,
     Object? isInMealPlan = null,
     Object? ingredients = null,
     Object? steps = null,
@@ -224,6 +234,10 @@ class __$$RecipeImplCopyWithImpl<$Res>
             ? _value.imageUrl
             : imageUrl // ignore: cast_nullable_to_non_nullable
                   as String?,
+        url: freezed == url
+            ? _value.url
+            : url // ignore: cast_nullable_to_non_nullable
+                  as String?,
         isInMealPlan: null == isInMealPlan
             ? _value.isInMealPlan
             : isInMealPlan // ignore: cast_nullable_to_non_nullable
@@ -256,6 +270,7 @@ class _$RecipeImpl implements _Recipe {
     @JsonKey(name: 'cookTime') required this.cookingTime,
     required this.servings,
     @JsonKey(name: 'mainPhoto') this.imageUrl,
+    @JsonKey(name: 'url') this.url,
     @JsonKey(name: 'isInMealPlan') required this.isInMealPlan,
     required final List<Ingredient> ingredients,
     required final List<Step> steps,
@@ -285,6 +300,9 @@ class _$RecipeImpl implements _Recipe {
   @JsonKey(name: 'mainPhoto')
   final String? imageUrl;
   @override
+  @JsonKey(name: 'url')
+  final String? url;
+  @override
   @JsonKey(name: 'isInMealPlan')
   final bool isInMealPlan;
   final List<Ingredient> _ingredients;
@@ -313,7 +331,7 @@ class _$RecipeImpl implements _Recipe {
 
   @override
   String toString() {
-    return 'Recipe(uuid: $uuid, name: $name, description: $description, preparationTime: $preparationTime, cookingTime: $cookingTime, servings: $servings, imageUrl: $imageUrl, isInMealPlan: $isInMealPlan, ingredients: $ingredients, steps: $steps, labels: $labels)';
+    return 'Recipe(uuid: $uuid, name: $name, description: $description, preparationTime: $preparationTime, cookingTime: $cookingTime, servings: $servings, imageUrl: $imageUrl, url: $url, isInMealPlan: $isInMealPlan, ingredients: $ingredients, steps: $steps, labels: $labels)';
   }
 
   @override
@@ -333,6 +351,7 @@ class _$RecipeImpl implements _Recipe {
                 other.servings == servings) &&
             (identical(other.imageUrl, imageUrl) ||
                 other.imageUrl == imageUrl) &&
+            (identical(other.url, url) || other.url == url) &&
             (identical(other.isInMealPlan, isInMealPlan) ||
                 other.isInMealPlan == isInMealPlan) &&
             const DeepCollectionEquality().equals(
@@ -354,6 +373,7 @@ class _$RecipeImpl implements _Recipe {
     cookingTime,
     servings,
     imageUrl,
+    url,
     isInMealPlan,
     const DeepCollectionEquality().hash(_ingredients),
     const DeepCollectionEquality().hash(_steps),
@@ -383,6 +403,7 @@ abstract class _Recipe implements Recipe {
     @JsonKey(name: 'cookTime') required final int cookingTime,
     required final int servings,
     @JsonKey(name: 'mainPhoto') final String? imageUrl,
+    @JsonKey(name: 'url') final String? url,
     @JsonKey(name: 'isInMealPlan') required final bool isInMealPlan,
     required final List<Ingredient> ingredients,
     required final List<Step> steps,
@@ -408,6 +429,9 @@ abstract class _Recipe implements Recipe {
   @override
   @JsonKey(name: 'mainPhoto')
   String? get imageUrl;
+  @override
+  @JsonKey(name: 'url')
+  String? get url;
   @override
   @JsonKey(name: 'isInMealPlan')
   bool get isInMealPlan;

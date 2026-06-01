@@ -91,6 +91,7 @@ class EditRecipeState {
   final List<EditableLabel> labels;
   final bool isSaving;
   final String? imageUrl;
+  final String url;
   final bool isInMealPlan;
   final Uint8List? pendingPhotoBytes;
   final String? pendingPhotoFilename;
@@ -107,6 +108,7 @@ class EditRecipeState {
     required this.labels,
     this.isSaving = false,
     this.imageUrl,
+    this.url = '',
     this.isInMealPlan = false,
     this.pendingPhotoBytes,
     this.pendingPhotoFilename,
@@ -126,6 +128,7 @@ class EditRecipeState {
       steps: recipe.steps.map((s) => EditableStep.fromStep(s)).toList(),
       labels: recipe.labels.map((l) => EditableLabel.fromLabel(l)).toList(),
       imageUrl: recipe.imageUrl,
+      url: recipe.url ?? '',
       isInMealPlan: recipe.isInMealPlan,
     );
   }
@@ -150,6 +153,7 @@ class EditRecipeState {
       cookingTime: cookingTime,
       servings: servings,
       imageUrl: imageUrl,
+      url: url.trim().isEmpty ? null : url.trim(),
       isInMealPlan: isInMealPlan,
       ingredients: ingredients
           .map((i) => Ingredient(
@@ -197,6 +201,7 @@ class EditRecipeState {
     bool? isSaving,
     String? imageUrl,
     bool clearImageUrl = false,
+    String? url,
     bool? isInMealPlan,
     Uint8List? pendingPhotoBytes,
     String? pendingPhotoFilename,
@@ -214,6 +219,7 @@ class EditRecipeState {
       labels: labels ?? this.labels,
       isSaving: isSaving ?? this.isSaving,
       imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
+      url: url ?? this.url,
       isInMealPlan: isInMealPlan ?? this.isInMealPlan,
       pendingPhotoBytes: clearPendingPhoto ? null : (pendingPhotoBytes ?? this.pendingPhotoBytes),
       pendingPhotoFilename: clearPendingPhoto ? null : (pendingPhotoFilename ?? this.pendingPhotoFilename),
@@ -259,6 +265,10 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
 
   void updateServings(int value) {
     state = state.copyWith(servings: value);
+  }
+
+  void updateUrl(String value) {
+    state = state.copyWith(url: value);
   }
 
   void setPhoto(Uint8List bytes, String filename) {

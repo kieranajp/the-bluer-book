@@ -96,6 +96,7 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
               name: recipe.name,
               description: recipe.description,
               labels: recipe.labels,
+              url: recipe.url,
             ),
           ),
           SliverToBoxAdapter(

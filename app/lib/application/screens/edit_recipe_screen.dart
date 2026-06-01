@@ -338,6 +338,13 @@ class _BasicInfoSection extends StatelessWidget {
           onChanged: notifier.updateDescription,
           maxLines: 3,
         ),
+        const SizedBox(height: Spacing.s),
+        _FormTextField(
+          label: 'Source URL',
+          value: editState.url,
+          onChanged: notifier.updateUrl,
+          keyboardType: TextInputType.url,
+        ),
       ],
     );
   }

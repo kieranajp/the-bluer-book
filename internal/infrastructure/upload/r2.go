@@ -23,8 +23,11 @@ type R2Uploader struct {
 	logger    logger.Logger
 }
 
-func NewR2Uploader(accountID, accessKeyID, secretAccessKey, bucket, publicURL string, log logger.Logger) *R2Uploader {
+func NewR2Uploader(accountID, jurisdiction, accessKeyID, secretAccessKey, bucket, publicURL string, log logger.Logger) *R2Uploader {
 	endpoint := fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID)
+	if jurisdiction != "" {
+		endpoint = fmt.Sprintf("https://%s.%s.r2.cloudflarestorage.com", accountID, jurisdiction)
+	}
 	client := s3.New(s3.Options{
 		Region:       "auto",
 		BaseEndpoint: &endpoint,

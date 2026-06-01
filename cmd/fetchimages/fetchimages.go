@@ -44,6 +44,11 @@ var Command = &cli.Command{
 			EnvVars: []string{"R2_ACCOUNT_ID"},
 		},
 		&cli.StringFlag{
+			Name:    "r2-jurisdiction",
+			Usage:   "R2 jurisdiction (e.g. 'eu'); leave blank for default",
+			EnvVars: []string{"R2_JURISDICTION"},
+		},
+		&cli.StringFlag{
 			Name:    "r2-access-key-id",
 			Usage:   "R2 access key ID",
 			EnvVars: []string{"R2_ACCESS_KEY_ID"},
@@ -123,6 +128,9 @@ func run(c *cli.Context) error {
 			return fmt.Errorf("R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, and R2_PUBLIC_URL are required (or use --dry-run)")
 		}
 		endpoint := fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID)
+		if j := c.String("r2-jurisdiction"); j != "" {
+			endpoint = fmt.Sprintf("https://%s.%s.r2.cloudflarestorage.com", accountID, j)
+		}
 		s3Client = s3.New(s3.Options{
 			Region:       "auto",
 			BaseEndpoint: &endpoint,

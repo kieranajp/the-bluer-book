@@ -19,6 +19,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
@@ -43,15 +44,26 @@ var (
 				Usage:   "MCP server listen address",
 				EnvVars: []string{"MCP_ADDR"},
 				Value:   ":8082",
-			}, &cli.StringFlag{
+			},
+			&cli.StringFlag{
 				Name:    "db-user",
-				Usage:   "Database Username",
+				Usage:   "Owner DB role (only used as fallback when app-db-user is unset)",
 				EnvVars: []string{"DB_USER"},
 			},
 			&cli.StringFlag{
 				Name:    "db-pass",
-				Usage:   "Database Password",
+				Usage:   "Owner DB password",
 				EnvVars: []string{"DB_PASS"},
+			},
+			&cli.StringFlag{
+				Name:    "app-db-user",
+				Usage:   "Non-owner DB role for the server (RLS subject)",
+				EnvVars: []string{"APP_DB_USER"},
+			},
+			&cli.StringFlag{
+				Name:    "app-db-pass",
+				Usage:   "Non-owner DB password",
+				EnvVars: []string{"APP_DB_PASS"},
 			},
 			&cli.StringFlag{
 				Name:    "db-name",
@@ -98,8 +110,10 @@ func run(c *cli.Context) error {
 	// Initialize logger
 	log := logger.New(logger.LogLevelInfo)
 
-	// Set up database
-	sqlDB, err := sql.Open("postgres", cfg.DBDSN())
+	// Set up database. The server connects as the non-owner app role so
+	// FORCE ROW LEVEL SECURITY applies; the owner role is only used by
+	// `migrate`.
+	sqlDB, err := sql.Open("postgres", cfg.AppDBDSN())
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -111,8 +125,11 @@ func run(c *cli.Context) error {
 	}
 
 	// Initialize dependencies
-	queries := db.New(sqlDB)
-	repo := repository.NewRecipeRepository(queries, sqlDB, log)
+	repo := repository.NewRecipeRepository(sqlDB, log)
+
+	// Account/identity queries run on the pool — these tables are not under
+	// RLS (they're the resolution layer that runs *before* the home GUC is set).
+	userResolver := auth.NewResolver(db.New(sqlDB))
 
 	// Create probes
 	recipeProbe := metrics.NewRecipeProbe(log)
@@ -162,14 +179,14 @@ func run(c *cli.Context) error {
 			c.String("r2-public-url"),
 			log,
 		)
-		photoHandler = api.NewPhotoHandler(r2, queries, sqlDB, log)
+		photoHandler = api.NewPhotoHandler(r2, sqlDB, log)
 		log.Info().Msg("R2 photo upload enabled")
 	} else {
 		log.Warn().Msg("R2 not configured — photo upload endpoint disabled")
 	}
 
 	// Create API router
-	router := api.NewRouter(recipeService, chatHandler, photoHandler, log)
+	router := api.NewRouter(recipeService, chatHandler, photoHandler, userResolver, log)
 
 	// Create HTTP server
 	httpServer := &http.Server{

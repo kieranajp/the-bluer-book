@@ -5,6 +5,7 @@ import '../styles/colours.dart';
 import '../styles/decorations.dart';
 import '../styles/spacing.dart';
 import '../styles/text_styles.dart';
+import 'striped_placeholder.dart';
 
 class MealPlanCard extends StatelessWidget {
   final Recipe recipe;
@@ -66,26 +67,12 @@ class _MealPlanImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            width: double.infinity,
-            height: Spacing.mealPlanImageHeight,
-            color: context.colours.border,
-            child: recipe.imageUrl != null
-                ? Image.network(
-                    recipe.imageUrl!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: Spacing.mealPlanImageHeight,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      Icons.restaurant,
-                      size: 48,
-                      color: context.colours.textSecondary.withValues(alpha: 0.4),
-                    ),
-                  )
-                : Icon(Icons.restaurant, size: 48,
-                    color: context.colours.textSecondary.withValues(alpha: 0.4)),
+        SizedBox(
+          width: double.infinity,
+          height: Spacing.mealPlanImageHeight,
+          child: RecipeImage(
+            imageUrl: recipe.imageUrl,
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
         Positioned(

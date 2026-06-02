@@ -81,12 +81,15 @@ class MealPlanScreen extends ConsumerWidget {
                       sliver: SliverGrid(
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          mainAxisSpacing: Spacing.m,
+                          mainAxisSpacing: Spacing.l,
                           crossAxisSpacing: Spacing.m,
-                          childAspectRatio: 0.78,
+                          childAspectRatio: 0.72,
                         ),
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) => MealPlanCard(recipe: recipes[index]),
+                          (context, index) => MealPlanCard(
+                            recipe: recipes[index],
+                            mirror: index.isOdd,
+                          ),
                           childCount: recipes.length,
                         ),
                       ),

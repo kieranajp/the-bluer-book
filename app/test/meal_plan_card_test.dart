@@ -14,7 +14,13 @@ Widget wrapInApp(Widget child) {
       useMaterial3: true,
       extensions: const [Colours.light],
     ),
-    home: Scaffold(body: SingleChildScrollView(child: child)),
+    // MealPlanCard fills its grid cell (it has an Expanded image region), so
+    // give it bounded constraints like the SliverGrid does on screen.
+    home: Scaffold(
+      body: Center(
+        child: SizedBox(width: 180, height: 250, child: child),
+      ),
+    ),
   );
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/pantry_providers.dart';
 import '../providers/recipe_providers.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
 import '../styles/colours.dart';
 import '../styles/spacing.dart';
@@ -78,7 +79,7 @@ class PantryScreen extends ConsumerWidget {
                 },
                 loading: () => const SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(child: BrandLoader()),
                 ),
                 error: (error, stack) => SliverFillRemaining(
                   hasScrollBody: false,

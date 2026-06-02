@@ -5,6 +5,7 @@ import '../styles/colours.dart';
 import '../styles/shapes.dart';
 import '../styles/spacing.dart';
 import '../styles/text_styles.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
 
 /// What you still need to buy for your meal plan — every ingredient your
@@ -65,7 +66,7 @@ class ShoppingListScreen extends ConsumerWidget {
                       ),
                 loading: () => const SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(child: BrandLoader()),
                 ),
                 error: (error, stack) => SliverFillRemaining(
                   hasScrollBody: false,

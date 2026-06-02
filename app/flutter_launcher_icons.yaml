@@ -1,6 +1,10 @@
 flutter_launcher_icons:
   android: true
   ios: true
+  remove_alpha_ios: true
+  # Flat denim icon (sprig + elastic band) — used for iOS + Android legacy.
   image_path: "assets/icon.png"
-  adaptive_icon_background: "#4E6983"
-  adaptive_icon_foreground: "assets/icon.png"
+  # Adaptive (Android 8+): band lives in the background so it bleeds to the
+  # edge as a strap under any mask; the sprig sits in the transparent foreground.
+  adaptive_icon_background: "assets/icon_background.png"
+  adaptive_icon_foreground: "assets/icon_foreground.png"

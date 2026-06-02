@@ -13,6 +13,12 @@ func (NoopRecipeProbe) MealPlanChanged(string, string)    {}
 func (NoopRecipeProbe) RecipeSearched(int)                {}
 func (NoopRecipeProbe) RecipeError(string, error)         {}
 
+// NoopPantryProbe is a no-op implementation of pantry.Probe for tests.
+type NoopPantryProbe struct{}
+
+func (NoopPantryProbe) PantryChanged(string, string) {}
+func (NoopPantryProbe) PantryError(string, error)    {}
+
 // NoopChatProbe is a no-op implementation of chat.Probe for tests.
 type NoopChatProbe struct{}
 

@@ -1,20 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app/domain/ingredient.dart';
+import 'package:app/domain/pantry_item.dart';
+import 'package:app/application/providers/pantry_providers.dart';
 import 'package:app/application/widgets/ingredients_list.dart';
 import 'package:app/application/styles/colours.dart';
+import 'package:app/infrastructure/pantry_repository.dart';
+
+/// IngredientsList now reads the shared pantry (a ConsumerWidget). Stub it with
+/// an empty pantry so these rendering tests don't touch the network.
+class _EmptyPantryRepository implements PantryRepository {
+  @override
+  Future<List<PantryItem>> getPantry() async => const [];
+
+  @override
+  Future<void> addToPantry(String ingredient) async {}
+
+  @override
+  Future<void> removeFromPantry(String ingredient) async {}
+}
 
 /// The redesigned IngredientsList renders each row as two separate Text
 /// widgets: the qty (in a monospace pill on the right) and the name (with
 /// optional preparation note appended). These tests assert on both parts.
 Widget wrapInApp(Widget child) {
-  return MaterialApp(
-    theme: ThemeData(
-      useMaterial3: true,
-      extensions: const [Colours.light],
+  return ProviderScope(
+    overrides: [
+      pantryRepositoryProvider.overrideWithValue(_EmptyPantryRepository()),
+    ],
+    child: MaterialApp(
+      theme: ThemeData(
+        useMaterial3: true,
+        extensions: const [Colours.light],
+      ),
+      home: Scaffold(body: child),
     ),
-    home: Scaffold(body: child),
   );
 }
 

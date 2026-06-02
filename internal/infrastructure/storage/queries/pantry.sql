@@ -14,3 +14,15 @@ SELECT i.name, p.added_at
 FROM pantry_items p
 INNER JOIN ingredients i ON i.uuid = p.ingredient_id
 ORDER BY i.name ASC;
+
+-- name: ListMealPlanShortfall :many
+-- Ingredients needed across the (non-archived) meal plan that are NOT already
+-- in the pantry. This is the shopping list.
+SELECT DISTINCT i.name
+FROM meal_plan_recipes mp
+INNER JOIN recipes r ON r.uuid = mp.recipe_id AND r.archived_at IS NULL
+INNER JOIN recipe_ingredient ri ON ri.recipe_id = mp.recipe_id
+INNER JOIN ingredients i ON i.uuid = ri.ingredient_id
+LEFT JOIN pantry_items pi ON pi.ingredient_id = ri.ingredient_id
+WHERE pi.ingredient_id IS NULL
+ORDER BY i.name ASC;

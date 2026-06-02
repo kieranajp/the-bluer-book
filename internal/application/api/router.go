@@ -44,6 +44,9 @@ func NewRouter(recipeService service.RecipeService, pantryService pantryservice.
 	mux.HandleFunc("PUT /api/pantry/{ingredient}", pantryHandler.AddToPantry)
 	mux.HandleFunc("DELETE /api/pantry/{ingredient}", pantryHandler.RemoveFromPantry)
 
+	// Shopping list (meal plan minus pantry)
+	mux.HandleFunc("GET /api/shopping-list", pantryHandler.ShoppingList)
+
 	mux.Handle("POST /api/recipes",
 		validationMiddleware.ValidateCreateRecipe(
 			http.HandlerFunc(recipeHandler.CreateRecipe),

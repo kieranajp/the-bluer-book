@@ -7,6 +7,7 @@ import '../widgets/empty_state.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
+import 'shopping_list_screen.dart';
 
 class MealPlanScreen extends ConsumerWidget {
   const MealPlanScreen({super.key});
@@ -53,6 +54,17 @@ class MealPlanScreen extends ConsumerWidget {
                 'Meal Plan',
                 style: TextStyles.appBarTitle(context),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  tooltip: 'Shopping list',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ShoppingListScreen(),
+                    ),
+                  ),
+                ),
+              ],
             ),
             mealPlanRecipesAsync.when(
               data: (recipes) => recipes.isEmpty

@@ -1,7 +1,8 @@
 # Design: Pantry inventory → "what can I cook" + shopping list
 
-> Status: **Phase 1 implemented** (pantry CRUD + recipe checkoff rewired);
-> Phases 2–3 still to come. Scope decisions baked in (agreed up front):
+> Status: **Phases 1–3 implemented** (pantry CRUD + checkoff; "what can I cook"
+> badges/sort; shopping list from the meal plan). Only "Future: quantities & units"
+> remains. Scope decisions baked in (agreed up front):
 > - **Matching: have / don't-have only.** Track _presence_ of an ingredient, not
 >   quantities or units. Avoids the unit-conversion problem entirely for v1.
 > - **Single-user / shared.** One pantry, one meal plan, like the existing
@@ -238,10 +239,13 @@ migration** (a deliberate simplification of the original sketch below):
   so cookability is computed client-side.
 - Recipe-list badges + "Cook now" sort.
 
-**Phase 3 — Shopping list from the meal plan**
-- `ListMealPlanShortfall` + `/api/shopping-list`.
-- Shopping-list screen: checkable items; **checking one off calls `AddToPantry`**, so it
-  leaves the list and appears in the pantry. Closes the loop.
+**Phase 3 — Shopping list from the meal plan** ✅ _shipped_
+- `ListMealPlanShortfall` query (DISTINCT ingredient names across non-archived meal-plan
+  recipes, minus the pantry) + `PantryService.ShoppingList` + `GET /api/shopping-list`
+  → `{ "items": [name, …], "total": N }`.
+- Shopping-list screen, opened from a cart action on the Meal Plan screen. Checking an
+  item off reuses `PUT /api/pantry/{ingredient}` — it lands in the pantry and drops off
+  the list (optimistic; invalidates `pantryProvider`). Closes the loop.
 
 **Future — quantities & units (explicitly out of v1)**
 - The natural extension point is adding `quantity DOUBLE PRECISION` + `unit_id UUID` to

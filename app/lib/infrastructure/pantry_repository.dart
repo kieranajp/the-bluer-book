@@ -58,4 +58,19 @@ class PantryRepository {
       throw Exception(_formatDioError('Failed to remove from pantry', e));
     }
   }
+
+  /// Ingredients needed for the meal plan that aren't yet in the pantry.
+  Future<List<String>> getShoppingList() async {
+    try {
+      dev.log('Fetching shopping list', name: 'PantryRepository');
+      final response = await _apiClient.dio.get('/shopping-list');
+      final Map<String, dynamic> data = response.data;
+      final List<dynamic> items = data['items'] ?? const [];
+      return items.map((e) => e as String).toList();
+    } on DioException catch (e, stack) {
+      dev.log('Failed to load shopping list: ${e.message}',
+          name: 'PantryRepository', error: e, stackTrace: stack);
+      throw Exception(_formatDioError('Failed to load shopping list', e));
+    }
+  }
 }

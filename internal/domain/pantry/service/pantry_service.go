@@ -13,6 +13,9 @@ type PantryService interface {
 	AddToPantry(ctx context.Context, ingredient string) error
 	RemoveFromPantry(ctx context.Context, ingredient string) error
 	ListPantry(ctx context.Context) ([]pantry.PantryItem, error)
+	// ShoppingList returns the ingredients needed for the meal plan that
+	// aren't already in the pantry.
+	ShoppingList(ctx context.Context) ([]string, error)
 }
 
 type pantryService struct {
@@ -47,4 +50,8 @@ func (s *pantryService) RemoveFromPantry(ctx context.Context, ingredient string)
 
 func (s *pantryService) ListPantry(ctx context.Context) ([]pantry.PantryItem, error) {
 	return s.repo.ListPantry(ctx)
+}
+
+func (s *pantryService) ShoppingList(ctx context.Context) ([]string, error) {
+	return s.repo.ShoppingList(ctx)
 }

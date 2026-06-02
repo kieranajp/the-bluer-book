@@ -33,25 +33,31 @@ final labelsProvider = FutureProvider<List<LabelSummary>>((ref) async {
   return ref.watch(recipeRepositoryProvider).getLabels();
 });
 
-enum RecipeSort { newest, name, time }
+enum RecipeSort { newest, name, time, cookable }
 
 extension RecipeSortApi on RecipeSort {
+  /// Server-side sort key. `cookable` has none — the server returns its default
+  /// order and the list is re-sorted client-side from the pantry (the client
+  /// already has each recipe's ingredients and the pantry set).
   String get apiValue => switch (this) {
         RecipeSort.newest => '',
         RecipeSort.name => 'name',
         RecipeSort.time => 'time',
+        RecipeSort.cookable => '',
       };
 
   String get label => switch (this) {
         RecipeSort.newest => 'Newest',
         RecipeSort.name => 'A–Z',
         RecipeSort.time => 'Quickest',
+        RecipeSort.cookable => 'Cook now',
       };
 
   RecipeSort get next => switch (this) {
         RecipeSort.newest => RecipeSort.name,
         RecipeSort.name => RecipeSort.time,
-        RecipeSort.time => RecipeSort.newest,
+        RecipeSort.time => RecipeSort.cookable,
+        RecipeSort.cookable => RecipeSort.newest,
       };
 }
 

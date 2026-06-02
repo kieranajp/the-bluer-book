@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/recipe.dart';
+import '../providers/pantry_providers.dart';
 import '../screens/recipe_details_screen.dart';
 import '../styles/colours.dart';
 import '../styles/label_colours.dart';
 import '../styles/shapes.dart';
+import '../utils/cookability.dart';
 import '../utils/time_format.dart';
 import 'meal_plan_toggle_button.dart';
 import 'striped_placeholder.dart';
@@ -21,6 +23,10 @@ class RecipeRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colours;
     final totalTime = recipe.preparationTime + recipe.cookingTime;
+    final pantry = ref.watch(pantryProvider).valueOrNull ?? const <String>{};
+    final cook = cookabilityOf(recipe, pantry);
+    // Only meaningful once the pantry has something in it.
+    final showCookBadge = pantry.isNotEmpty && cook.total > 0;
 
     return InkWell(
       onTap: () => Navigator.push(
@@ -103,6 +109,10 @@ class RecipeRow extends ConsumerWidget {
                           color: c.textSecondary,
                         ),
                       ),
+                      if (showCookBadge) ...[
+                        const SizedBox(width: 8),
+                        _CookBadge(cook: cook),
+                      ],
                       if (recipe.labels.isNotEmpty) const SizedBox(width: 8),
                       Expanded(
                         child: SizedBox(
@@ -146,6 +156,49 @@ class RecipeRow extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Small pill showing how cookable a recipe is from the current pantry:
+/// "Ready" when you have every ingredient, otherwise "Missing N".
+class _CookBadge extends StatelessWidget {
+  final Cookability cook;
+
+  const _CookBadge({required this.cook});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colours;
+    final ready = cook.ready;
+    final bg = ready ? c.primaryContainer : c.surfaceContainer;
+    final fg = ready ? c.primary : c.textSecondary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            ready ? Icons.check_circle_rounded : Icons.shopping_basket_outlined,
+            size: 11,
+            color: fg,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            ready ? 'Ready' : 'Missing ${cook.missing}',
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+              color: fg,
+            ),
+          ),
+        ],
       ),
     );
   }

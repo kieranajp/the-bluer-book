@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/label.dart';
 import '../../domain/recipe.dart';
+import '../providers/pantry_providers.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
 import '../styles/label_colours.dart';
 import '../styles/spacing.dart';
+import '../utils/cookability.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/filter_chip_row.dart';
 import '../widgets/home_header.dart';
@@ -42,6 +44,27 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     super.dispose();
   }
 
+  /// "Cook now" sorts the loaded recipes by fewest missing ingredients
+  /// (ready first), breaking ties by name. Other sorts are handled server-side,
+  /// so the list is shown as-is. Note: this only orders what's currently
+  /// loaded — across pages it's approximate until more are fetched.
+  List<Recipe> _sortForDisplay(
+    List<Recipe> recipes,
+    RecipeSort sort,
+    Set<String> pantry,
+  ) {
+    if (sort != RecipeSort.cookable) return recipes;
+    final missing = {
+      for (final r in recipes) r.uuid: cookabilityOf(r, pantry).missing,
+    };
+    return [...recipes]..sort((a, b) {
+        final cmp = missing[a.uuid]!.compareTo(missing[b.uuid]!);
+        return cmp != 0
+            ? cmp
+            : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+  }
+
   List<FilterOption> _buildFilterOptions(List<LabelSummary> labels, int total) {
     final used = labels.where((l) => l.uses > 0).toList()
       ..sort((a, b) {
@@ -68,6 +91,8 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     final labelsAsync = ref.watch(labelsProvider);
     final notifier = ref.read(recipeListProvider.notifier);
     final activeLabels = ref.watch(recipeListProvider.notifier).activeLabels;
+    // Watched so "Cook now" re-sorts live as the pantry changes.
+    final pantry = ref.watch(pantryProvider).valueOrNull ?? const <String>{};
 
     ref.listen<AsyncValue<List<Recipe>>>(filteredRecipesProvider, (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {
@@ -141,24 +166,28 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                 ),
               ),
               recipesAsync.when(
-                data: (recipes) => recipes.isEmpty
-                    ? SliverToBoxAdapter(
-                        child: EmptyState(
-                          icon: Icons.restaurant_menu,
-                          title: ref.watch(searchQueryProvider).isNotEmpty
-                              ? 'No recipes match your search'
-                              : 'No recipes yet',
-                        ),
-                      )
-                    : SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, i) => RecipeRowSwipeable(
-                            recipe: recipes[i],
-                            isLast: i == recipes.length - 1,
-                          ),
-                          childCount: recipes.length,
-                        ),
+                data: (recipes) {
+                  if (recipes.isEmpty) {
+                    return SliverToBoxAdapter(
+                      child: EmptyState(
+                        icon: Icons.restaurant_menu,
+                        title: ref.watch(searchQueryProvider).isNotEmpty
+                            ? 'No recipes match your search'
+                            : 'No recipes yet',
                       ),
+                    );
+                  }
+                  final displayed = _sortForDisplay(recipes, notifier.sort, pantry);
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) => RecipeRowSwipeable(
+                        recipe: displayed[i],
+                        isLast: i == displayed.length - 1,
+                      ),
+                      childCount: displayed.length,
+                    ),
+                  );
+                },
                 loading: () => const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.all(Spacing.xl),

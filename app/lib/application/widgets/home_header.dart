@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/settings_screen.dart';
 import '../styles/colours.dart';
 import '../styles/shapes.dart';
 
@@ -32,6 +33,13 @@ class HomeHeader extends StatelessWidget {
                 color: c.textSecondary,
                 letterSpacing: 0.1,
               ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: c.textSecondary),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
             ),
           ),
         ],

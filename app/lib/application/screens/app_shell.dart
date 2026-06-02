@@ -9,7 +9,6 @@ import 'edit_recipe_screen.dart';
 import 'meal_plan_screen.dart';
 import 'pantry_screen.dart';
 import 'recipe_list_screen.dart';
-import 'settings_screen.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -40,7 +39,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       const RecipeListScreen(),
       const MealPlanScreen(),
       const PantryScreen(),
-      const SettingsScreen(),
     ];
 
     return Scaffold(
@@ -136,14 +134,6 @@ class _FloatingNavBar extends StatelessWidget {
                     label: 'Chat',
                     active: false,
                     onTap: onChatTap,
-                  ),
-                ),
-                Expanded(
-                  child: _NavItem(
-                    icon: Icons.settings_outlined,
-                    label: 'Settings',
-                    active: currentIndex == 3,
-                    onTap: () => onTabSelected(3),
                   ),
                 ),
               ],

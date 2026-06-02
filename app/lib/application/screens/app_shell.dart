@@ -7,6 +7,7 @@ import '../styles/colours.dart';
 import 'chat_screen.dart';
 import 'edit_recipe_screen.dart';
 import 'meal_plan_screen.dart';
+import 'pantry_screen.dart';
 import 'recipe_list_screen.dart';
 import 'settings_screen.dart';
 
@@ -38,6 +39,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final tabs = [
       const RecipeListScreen(),
       const MealPlanScreen(),
+      const PantryScreen(),
       const SettingsScreen(),
     ];
 
@@ -122,6 +124,14 @@ class _FloatingNavBar extends StatelessWidget {
                 _AddButton(),
                 Expanded(
                   child: _NavItem(
+                    icon: Icons.kitchen_outlined,
+                    label: 'Pantry',
+                    active: currentIndex == 2,
+                    onTap: () => onTabSelected(2),
+                  ),
+                ),
+                Expanded(
+                  child: _NavItem(
                     icon: Icons.chat_bubble_outline_rounded,
                     label: 'Chat',
                     active: false,
@@ -132,8 +142,8 @@ class _FloatingNavBar extends StatelessWidget {
                   child: _NavItem(
                     icon: Icons.settings_outlined,
                     label: 'Settings',
-                    active: currentIndex == 2,
-                    onTap: () => onTabSelected(2),
+                    active: currentIndex == 3,
+                    onTap: () => onTabSelected(3),
                   ),
                 ),
               ],

@@ -7,12 +7,13 @@ import (
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api/middleware"
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
+	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 )
 
-func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, photoHandler *PhotoHandler, logger logger.Logger) http.Handler {
+func NewRouter(recipeService service.RecipeService, pantryService pantryservice.PantryService, chatHandler *chat.Handler, photoHandler *PhotoHandler, logger logger.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	// Prometheus metrics endpoint
@@ -20,6 +21,7 @@ func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, p
 
 	// Create handlers
 	recipeHandler := NewRecipeHandler(recipeService, logger)
+	pantryHandler := NewPantryHandler(pantryService, logger)
 	validationMiddleware := middleware.NewValidationMiddleware(logger)
 
 	mux.HandleFunc("GET /api/units", recipeHandler.ListUnits)
@@ -36,6 +38,11 @@ func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, p
 	// Meal planning routes
 	mux.HandleFunc("POST /api/recipes/{id}/meal-plan", recipeHandler.AddToMealPlan)
 	mux.HandleFunc("DELETE /api/recipes/{id}/meal-plan", recipeHandler.RemoveFromMealPlan)
+
+	// Pantry routes
+	mux.HandleFunc("GET /api/pantry", pantryHandler.ListPantry)
+	mux.HandleFunc("PUT /api/pantry/{ingredient}", pantryHandler.AddToPantry)
+	mux.HandleFunc("DELETE /api/pantry/{ingredient}", pantryHandler.RemoveFromPantry)
 
 	mux.Handle("POST /api/recipes",
 		validationMiddleware.ValidateCreateRecipe(

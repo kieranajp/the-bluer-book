@@ -9,6 +9,7 @@ sql:
       - "migrations/00006_add_ingredient_component.sql"
       - "migrations/00007_label_taxonomy.sql"
       - "migrations/00008_consolidate_units.sql"
+      - "migrations/00009_pantry.sql"
     queries: "internal/infrastructure/storage/queries"
     gen:
       go:

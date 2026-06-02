@@ -1,12 +1,20 @@
 # Design: Pantry inventory → "what can I cook" + shopping list
 
-> Status: **proposal / for review.** No code written yet.
-> Scope decisions baked in (agreed up front):
+> Status: **Phase 1 implemented** (pantry CRUD + recipe checkoff rewired);
+> Phases 2–3 still to come. Scope decisions baked in (agreed up front):
 > - **Matching: have / don't-have only.** Track _presence_ of an ingredient, not
 >   quantities or units. Avoids the unit-conversion problem entirely for v1.
 > - **Single-user / shared.** One pantry, one meal plan, like the existing
 >   `meal_plan_recipes` table (no `user_id`).
 > - **Build order:** design first; implementation phased (see Roadmap).
+>
+> **Implementation note — keyed by ingredient name, not UUID.** Ingredient UUIDs
+> are never exposed to the client (the Go `Ingredient` value object and the
+> Flutter `IngredientDetail` model carry only `name`, which is `UNIQUE` in the
+> `ingredients` table). The pantry API therefore speaks ingredient _names_ and
+> resolves them to the `ingredient_id` FK server-side — simpler and consistent
+> with the rest of the app. The table still stores the FK, so the matching
+> joins in Phases 2–3 are unchanged.
 
 ## The idea
 
@@ -66,15 +74,17 @@ CREATE INDEX idx_pantry_items_added_at ON pantry_items(added_at DESC);
 
 ```sql
 -- name: AddToPantry :exec
+-- Resolve the ingredient by its (unique) name and record that we have it.
 INSERT INTO pantry_items (ingredient_id)
-VALUES ($1)
+SELECT uuid FROM ingredients WHERE name = $1
 ON CONFLICT (ingredient_id) DO NOTHING;
 
 -- name: RemoveFromPantry :exec
-DELETE FROM pantry_items WHERE ingredient_id = $1;
+DELETE FROM pantry_items
+WHERE ingredient_id = (SELECT uuid FROM ingredients WHERE name = $1);
 
 -- name: ListPantry :many
-SELECT i.uuid, i.name, p.added_at
+SELECT i.name, p.added_at
 FROM pantry_items p
 INNER JOIN ingredients i ON i.uuid = p.ingredient_id
 ORDER BY i.name ASC;
@@ -158,13 +168,14 @@ UUID validation for the ingredient id, and the standard error envelope.
 
 ```
 GET    /api/pantry                      → { "items": [...], "total": N }   # ListPantry
-PUT    /api/pantry/{ingredientID}       → 204                              # AddToPantry
-DELETE /api/pantry/{ingredientID}       → 204                              # RemoveFromPantry
+PUT    /api/pantry/{ingredient}         → 204                              # AddToPantry
+DELETE /api/pantry/{ingredient}         → 204                              # RemoveFromPantry
 GET    /api/recipes/cookable            → { "recipes": [...] }             # Phase 2
 GET    /api/shopping-list               → { "items": [...] }               # Phase 3
 ```
 
-`PUT` (idempotent add) pairs with the `ON CONFLICT DO NOTHING` upsert — repeat taps are safe.
+`{ingredient}` is the URL-encoded ingredient name. `PUT` (idempotent add) pairs
+with the `ON CONFLICT DO NOTHING` upsert — repeat taps are safe.
 
 ### 6. MCP (optional, nice-to-have)
 

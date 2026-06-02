@@ -18,6 +18,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/application/api"
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
+	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
@@ -113,13 +114,16 @@ func run(c *cli.Context) error {
 	// Initialize dependencies
 	queries := db.New(sqlDB)
 	repo := repository.NewRecipeRepository(queries, sqlDB, log)
+	pantryRepo := repository.NewPantryRepository(queries, log)
 
 	// Create probes
 	recipeProbe := metrics.NewRecipeProbe(log)
+	pantryProbe := metrics.NewPantryProbe(log)
 	chatProbe := metrics.NewChatProbe(log)
 
 	// Initialize services
 	recipeService := service.NewRecipeService(repo, recipeProbe)
+	pantryService := pantryservice.NewPantryService(pantryRepo, pantryProbe)
 
 	// Create MCP handler
 	mcpHandler := mcp.NewRecipeMCPHandler(recipeService, log)
@@ -169,7 +173,7 @@ func run(c *cli.Context) error {
 	}
 
 	// Create API router
-	router := api.NewRouter(recipeService, chatHandler, photoHandler, log)
+	router := api.NewRouter(recipeService, pantryService, chatHandler, photoHandler, log)
 
 	// Create HTTP server
 	httpServer := &http.Server{

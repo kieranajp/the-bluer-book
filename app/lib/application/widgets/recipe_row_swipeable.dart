@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
+import '../styles/colours.dart';
 import 'delete_recipe_dialog.dart';
 import 'recipe_row.dart';
 import 'swipe_to_reveal.dart';
@@ -56,6 +57,7 @@ class RecipeRowSwipeable extends ConsumerWidget {
       actionBackgroundColor: scheme.error,
       actionForegroundColor: scheme.onError,
       actionSemanticLabel: 'Delete ${recipe.name}',
+      childBackgroundColor: context.colours.background,
       onAction: () => _confirmAndDelete(context, ref),
       child: RecipeRow(recipe: recipe, isLast: isLast),
     );

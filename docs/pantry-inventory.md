@@ -207,10 +207,21 @@ Mirrors recipe data flow: `domain/*.dart` (freezed) → `infrastructure/*_reposi
    tapping calls `pantryRepository.add/remove` and invalidates `pantryProvider`. The
    "X of Y ready" summary becomes "X of Y in your pantry" — and it's now *true*.
 
-### "What can I cook" surfacing
+### "What can I cook" surfacing — **implemented (Phase 2), frontend-only**
 
-Phase 2 adds a sort/filter on the recipe list ("Cookable first") and a small badge per
-card — e.g. **"Ready"** (missing 0) or **"Missing 2"** — driven by `cookableRecipesProvider`.
+The recipe list already ships each recipe's full ingredient list, and Phase 1 already
+exposes the pantry as a `Set<String>` of names. So cookability is computed entirely on
+the client — **no `ListCookableRecipes` query, no `/api/recipes/cookable` endpoint, no
+migration** (a deliberate simplification of the original sketch below):
+
+- `application/utils/cookability.dart` — `cookabilityOf(recipe, pantry)` → `{total, have,
+  missing, ready}`.
+- `recipe_row.dart` — a small badge per card: **"Ready"** (have all) or **"Missing N"**,
+  shown only once the pantry is non-empty.
+- `RecipeSort.cookable` ("Cook now") — re-sorts the loaded recipes by fewest missing
+  (ready first). Since the list is server-paginated and there's no server-side cookable
+  sort, this orders what's currently loaded — approximate across pages until more load.
+  Accepted trade-off (chosen over a dedicated view).
 
 ---
 
@@ -221,9 +232,11 @@ card — e.g. **"Ready"** (missing 0) or **"Missing 2"** — driven by `cookable
 - Pantry screen + tab.
 - Re-point `ingredients_list.dart` at the pantry → the checkoff finally persists.
 
-**Phase 2 — "What can I cook"**
-- `ListCookableRecipes` query + `Cookable()` service method + `/api/recipes/cookable`.
-- Recipe-list badges + "cookable first" sort.
+**Phase 2 — "What can I cook"** ✅ _shipped (frontend-only; see above)_
+- ~~`ListCookableRecipes` query + `Cookable()` service method + `/api/recipes/cookable`~~
+  — turned out unnecessary: the client already has each recipe's ingredients + the pantry,
+  so cookability is computed client-side.
+- Recipe-list badges + "Cook now" sort.
 
 **Phase 3 — Shopping list from the meal plan**
 - `ListMealPlanShortfall` + `/api/shopping-list`.

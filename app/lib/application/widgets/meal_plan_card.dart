@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 import '../../domain/recipe.dart';
 import '../screens/recipe_details_screen.dart';
 import '../styles/colours.dart';
-import '../styles/decorations.dart';
-import '../styles/spacing.dart';
+import '../styles/shapes.dart';
 import '../styles/text_styles.dart';
+import '../utils/time_format.dart';
 import 'striped_placeholder.dart';
 
+/// A torn-corner meal-plan card for the two-column grid on the Meal Plan
+/// screen. Shares the cookbook-page shape DNA, full-bleed image and serif
+/// title with the home carousel, scaled down for the grid. Set [mirror] to
+/// flip the torn corners so adjacent columns read as a symmetric spread.
 class MealPlanCard extends StatelessWidget {
   final Recipe recipe;
+  final bool mirror;
 
-  const MealPlanCard({super.key, required this.recipe});
+  const MealPlanCard({super.key, required this.recipe, this.mirror = false});
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colours;
     final totalTime = recipe.preparationTime + recipe.cookingTime;
 
     return GestureDetector(
@@ -26,78 +32,95 @@ class MealPlanCard extends StatelessWidget {
         );
       },
       child: Container(
-        width: 200,
-        decoration: Decorations.card(context),
-        child: Padding(
-          padding: const EdgeInsets.all(Spacing.s),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _MealPlanImage(recipe: recipe),
-              const SizedBox(height: Spacing.s),
-              Text(
-                recipe.name,
-                style: TextStyles.cardSubtitle(context),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Row(
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          color: c.surfaceContainer,
+          borderRadius: mirror ? Shapes.tornCornerMirror : Shapes.tornCorner,
+          boxShadow: [
+            BoxShadow(
+              color: c.shadow,
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Icon(Icons.schedule, size: 14,
-                      color: context.colours.textSecondary),
-                  const SizedBox(width: 4),
-                  Text('${totalTime}m', style: TextStyles.caption(context)),
+                  RecipeImage(
+                    imageUrl: recipe.imageUrl,
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: _PlanStar(active: recipe.isInMealPlan),
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    recipe.name,
+                    style: TextStyles.serifCardTitleSmall(context),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.schedule, size: 14, color: c.textSecondary),
+                      const SizedBox(width: 5),
+                      Text(
+                        formatMinutes(totalTime),
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: c.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _MealPlanImage extends StatelessWidget {
-  final Recipe recipe;
+/// Translucent membership star floating over the card image.
+class _PlanStar extends StatelessWidget {
+  final bool active;
 
-  const _MealPlanImage({required this.recipe});
+  const _PlanStar({required this.active});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: Spacing.mealPlanImageHeight,
-          child: RecipeImage(
-            imageUrl: recipe.imageUrl,
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        Positioned(
-          top: Spacing.xs,
-          right: Spacing.xs,
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: context.colours.primary.withValues(alpha: 0.9),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 4,
-                ),
-              ],
-            ),
-            child: Icon(
-              recipe.isInMealPlan ? Icons.star : Icons.star_border,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-        ),
-      ],
+    return Container(
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.5),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        active ? Icons.star : Icons.star_border,
+        color: Colors.white,
+        size: 18,
+      ),
     );
   }
 }

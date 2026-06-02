@@ -40,6 +40,17 @@ class Shapes {
     bottomLeft: Radius.circular(16),
   );
 
+  /// Horizontal mirror of [tornCorner] — big top-right + bottom-left. Pair it
+  /// with [tornCorner] across a two-column grid so each row reads as a
+  /// symmetric, hand-cut spread instead of a uniform stamp. Used by the
+  /// meal-plan grid cards.
+  static const tornCornerMirror = BorderRadius.only(
+    topLeft: Radius.circular(14),
+    topRight: Radius.circular(36),
+    bottomRight: Radius.circular(14),
+    bottomLeft: Radius.circular(36),
+  );
+
   /// The asymmetric "lift the panel into the hero" corner used on the
   /// details screen content sheet — big top-left, tight top-right.
   static const sheetTop = BorderRadius.only(

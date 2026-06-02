@@ -130,6 +130,16 @@ class TextStyles {
         color: context.colours.textPrimary,
       );
 
+  // Compact serif title for the tighter meal-plan grid cards.
+  static TextStyle serifCardTitleSmall(BuildContext context) =>
+      GoogleFonts.instrumentSerif(
+        fontSize: 20,
+        height: 1.1,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.2,
+        color: context.colours.textPrimary,
+      );
+
   // Uppercase section label (e.g. "ON THE MEAL PLAN").
   static TextStyle sectionLabel(BuildContext context) => GoogleFonts.workSans(
         fontSize: 12,

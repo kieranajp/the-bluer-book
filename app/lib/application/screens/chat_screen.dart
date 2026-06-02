@@ -5,6 +5,7 @@ import '../providers/chat_providers.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -183,11 +184,7 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: context.colours.primary,
-              child: const Icon(Icons.restaurant, size: 16, color: Colors.white),
-            ),
+            const BrandMark(size: 32),
             const SizedBox(width: Spacing.xs),
           ],
           Flexible(

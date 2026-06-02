@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/settings_screen.dart';
 import '../styles/colours.dart';
-import '../styles/shapes.dart';
+import 'brand_mark.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
@@ -13,16 +13,7 @@ class HomeHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: c.tertiaryContainer,
-              borderRadius: Shapes.blob(44),
-            ),
-            alignment: Alignment.center,
-            child: const Text('🥦', style: TextStyle(fontSize: 24)),
-          ),
+          const BrandMark(),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

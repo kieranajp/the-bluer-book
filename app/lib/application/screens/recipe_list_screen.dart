@@ -10,6 +10,7 @@ import '../styles/colours.dart';
 import '../styles/label_colours.dart';
 import '../styles/spacing.dart';
 import '../utils/cookability.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/filter_chip_row.dart';
 import '../widgets/home_header.dart';
@@ -191,7 +192,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                 loading: () => const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.all(Spacing.xl),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(child: BrandLoader()),
                   ),
                 ),
                 error: (_, _) => SliverToBoxAdapter(

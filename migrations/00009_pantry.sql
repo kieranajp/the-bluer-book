@@ -1,3 +1,4 @@
+-- +goose Up
 -- Add pantry inventory functionality
 -- Tracks which ingredients the user currently has at home. Presence-only by
 -- design (v1): no quantity/unit — "have / don't have". Mirrors the
@@ -12,3 +13,6 @@ CREATE TABLE pantry_items (
 
 -- Index for ordering the pantry by when items were added.
 CREATE INDEX idx_pantry_items_added_at ON pantry_items(added_at DESC);
+
+-- +goose Down
+DROP TABLE IF EXISTS pantry_items;

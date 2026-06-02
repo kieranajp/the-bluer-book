@@ -99,6 +99,21 @@ Pure helpers (string highlighting, time formatting, the camera/gesture controlle
 It's a **single `build` (or `_buildX`) method longer than a screenful**, or a file with
 more than one widget class in it. When you hit either, split into classes and files.
 
+### Enforced in CI
+
+Rules 1 and 2 are mechanically checked by `app/tool/widget_lint` (run on every
+PR): **one widget class per file**, and **no `Widget`-returning helpers** (only
+the framework `build` override may return a `Widget`). A second widget class in a
+file — public sibling or private `_SubWidget` — fails the build, as does a
+`Widget _buildX()` helper. Non-widget helpers (returning `InputDecoration`, a
+`String`, `List<Widget>`, …) are fine.
+
+Pre-existing violations are grandfathered in `tool/widget_lint/baseline.txt` so
+the check could be switched on without a big-bang refactor; new violations fail.
+The baseline is a ratchet — shrink it as you split files, don't grow it. Run it
+locally with `cd app/tool/widget_lint && dart pub get && dart run widget_lint`.
+See `tool/widget_lint/README.md`.
+
 ## Domain models
 
 `@freezed` immutable classes with `fromJson`/`toJson`. Generated `*.freezed.dart` and

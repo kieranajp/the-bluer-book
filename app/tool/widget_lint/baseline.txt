@@ -1,0 +1,39 @@
+# widget_lint baseline — grandfathered structural violations.
+#
+# Each line is `<relpath>|<rule>|<name>`. Entries here are KNOWN
+# pre-existing violations that do NOT fail CI. New violations do.
+# Burn this list down over time; do not add to it casually.
+# Regenerate with: dart run widget_lint --update-baseline
+#
+lib/application/screens/app_shell.dart|one-widget-per-file|_AddButton
+lib/application/screens/app_shell.dart|one-widget-per-file|_FloatingNavBar
+lib/application/screens/app_shell.dart|one-widget-per-file|_NavItem
+lib/application/screens/chat_screen.dart|one-widget-per-file|_MessageBubble
+lib/application/screens/edit_recipe_screen.dart|one-widget-per-file|_BasicInfoSection
+lib/application/screens/edit_recipe_screen.dart|one-widget-per-file|_DetailsSection
+lib/application/screens/edit_recipe_screen.dart|one-widget-per-file|_FormTextField
+lib/application/screens/edit_recipe_screen.dart|one-widget-per-file|_IngredientsSection
+lib/application/screens/edit_recipe_screen.dart|one-widget-per-file|_LabelsSection
+lib/application/screens/edit_recipe_screen.dart|one-widget-per-file|_PhotoSection
+lib/application/screens/edit_recipe_screen.dart|one-widget-per-file|_StepsSection
+lib/application/screens/pantry_screen.dart|one-widget-per-file|_AddIngredientField
+lib/application/screens/pantry_screen.dart|one-widget-per-file|_PantryChip
+lib/application/screens/settings_screen.dart|one-widget-per-file|_ThemeOptionTile
+lib/application/screens/shopping_list_screen.dart|one-widget-per-file|_ShoppingRow
+lib/application/widgets/brand_mark.dart|one-widget-per-file|BrandLoader
+lib/application/widgets/filter_chip_row.dart|one-widget-per-file|_Chip
+lib/application/widgets/ingredients_list.dart|one-widget-per-file|_IngredientRow
+lib/application/widgets/ingredients_list.dart|one-widget-per-file|_Summary
+lib/application/widgets/label_tag.dart|one-widget-per-file|LabelTagFull
+lib/application/widgets/meal_plan_card.dart|one-widget-per-file|_MealPlanImage
+lib/application/widgets/meal_plan_carousel_card.dart|one-widget-per-file|_Kebab
+lib/application/widgets/meal_plan_carousel_card.dart|one-widget-per-file|_PlanBadge
+lib/application/widgets/recipe_header.dart|one-widget-per-file|_LabelChip
+lib/application/widgets/recipe_header.dart|one-widget-per-file|_SourceLink
+lib/application/widgets/recipe_hero_image.dart|one-widget-per-file|_GlassButton
+lib/application/widgets/recipe_row.dart|one-widget-per-file|_CookBadge
+lib/application/widgets/recipe_stats_card.dart|one-widget-per-file|_Divider
+lib/application/widgets/recipe_stats_card.dart|one-widget-per-file|_StatCell
+lib/application/widgets/recipe_tab_bar.dart|one-widget-per-file|_Segment
+lib/application/widgets/striped_placeholder.dart|one-widget-per-file|RecipeImage
+lib/application/widgets/theme_selector_dialog.dart|one-widget-per-file|_ThemeOption

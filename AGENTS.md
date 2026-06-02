@@ -50,7 +50,9 @@ the obvious stuff.
 - **Flutter widget size**: **one widget class per file** (a screen + its sub-widgets =
   a folder of files, public classes prefixed for ownership). Extract widget *classes*,
   never `Widget _buildX()` helper methods. Screens orchestrate; logic lives in notifiers;
-  dialogs are widgets. See `docs/frontend.md`.
+  dialogs are widgets. See `docs/frontend.md`. **Enforced in CI** by
+  `app/tool/widget_lint` (one widget class per file + no `Widget`-returning helpers);
+  existing violations are grandfathered in its `baseline.txt` — shrink it, don't grow it.
 
 ## Build & test
 

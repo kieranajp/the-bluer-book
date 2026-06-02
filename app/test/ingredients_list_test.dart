@@ -20,6 +20,9 @@ class _EmptyPantryRepository implements PantryRepository {
 
   @override
   Future<void> removeFromPantry(String ingredient) async {}
+
+  @override
+  Future<List<String>> getShoppingList() async => const [];
 }
 
 /// The redesigned IngredientsList renders each row as two separate Text

@@ -168,6 +168,35 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
     }
   }
 
+  /// Delete (archive) a recipe. Optimistically removes it from the loaded
+  /// list — and shrinks the total count — then reverts if the API call fails.
+  Future<void> deleteRecipe(String uuid) async {
+    final currentState = state;
+    if (!currentState.hasValue) return;
+
+    final recipes = currentState.value!;
+    final recipeIndex = recipes.indexWhere((r) => r.uuid == uuid);
+    if (recipeIndex == -1) return;
+
+    // Optimistic removal
+    final updatedRecipes = [...recipes]..removeAt(recipeIndex);
+    final previousTotal = _total;
+    if (_total > 0) _total -= 1;
+    state = AsyncValue.data(updatedRecipes);
+
+    try {
+      await _repository.deleteRecipe(uuid);
+      // The recipe may have been on the meal plan — refresh that section too.
+      _ref.invalidate(mealPlanRecipesProvider);
+    } catch (e, stack) {
+      dev.log('Failed to delete $uuid', name: 'RecipeListNotifier', error: e, stackTrace: stack);
+      // Revert optimistic update on error
+      _total = previousTotal;
+      state = AsyncValue.data(recipes);
+      rethrow;
+    }
+  }
+
   Future<void> toggleMealPlan(String uuid) async {
     final currentState = state;
     if (!currentState.hasValue) {

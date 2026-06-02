@@ -14,10 +14,11 @@ import (
 // --- Stub ---
 
 type stubPantryService struct {
-	items   []pantry.PantryItem
-	err     error
-	added   []string
-	removed []string
+	items    []pantry.PantryItem
+	shopping []string
+	err      error
+	added    []string
+	removed  []string
 }
 
 func (s *stubPantryService) AddToPantry(_ context.Context, ingredient string) error {
@@ -38,6 +39,10 @@ func (s *stubPantryService) RemoveFromPantry(_ context.Context, ingredient strin
 
 func (s *stubPantryService) ListPantry(_ context.Context) ([]pantry.PantryItem, error) {
 	return s.items, s.err
+}
+
+func (s *stubPantryService) ShoppingList(_ context.Context) ([]string, error) {
+	return s.shopping, s.err
 }
 
 // --- Tests ---
@@ -80,6 +85,72 @@ func TestListPantry_ServiceError(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/pantry", nil)
 	rec := httptest.NewRecorder()
 	h.ListPantry(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", rec.Code)
+	}
+}
+
+func TestShoppingList_Success(t *testing.T) {
+	svc := &stubPantryService{shopping: []string{"eggs", "milk"}}
+	h := NewPantryHandler(svc, &noopLogger{})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/shopping-list", nil)
+	rec := httptest.NewRecorder()
+	h.ShoppingList(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var body struct {
+		Items []string `json:"items"`
+		Total int      `json:"total"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Total != 2 || len(body.Items) != 2 {
+		t.Fatalf("expected 2 items, got total=%d len=%d", body.Total, len(body.Items))
+	}
+	if body.Items[0] != "eggs" {
+		t.Errorf("expected first item %q, got %q", "eggs", body.Items[0])
+	}
+}
+
+func TestShoppingList_EmptyIsArrayNotNull(t *testing.T) {
+	svc := &stubPantryService{shopping: nil}
+	h := NewPantryHandler(svc, &noopLogger{})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/shopping-list", nil)
+	rec := httptest.NewRecorder()
+	h.ShoppingList(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var body struct {
+		Items []string `json:"items"`
+		Total int      `json:"total"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Items == nil {
+		t.Errorf("expected items to be [] not null")
+	}
+	if body.Total != 0 {
+		t.Errorf("expected total 0, got %d", body.Total)
+	}
+}
+
+func TestShoppingList_ServiceError(t *testing.T) {
+	svc := &stubPantryService{err: errors.New("db down")}
+	h := NewPantryHandler(svc, &noopLogger{})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/shopping-list", nil)
+	rec := httptest.NewRecorder()
+	h.ShoppingList(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", rec.Code)

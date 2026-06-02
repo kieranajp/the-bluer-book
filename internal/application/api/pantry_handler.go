@@ -59,6 +59,26 @@ func (h *PantryHandler) ListPantry(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GET /api/shopping-list - Ingredients needed for the meal plan but not yet in the pantry
+func (h *PantryHandler) ShoppingList(w http.ResponseWriter, r *http.Request) {
+	items, err := h.pantryService.ShoppingList(r.Context())
+	if err != nil {
+		h.logger.Error().Err(err).Msg("Failed to build shopping list")
+		h.writeErrorResponse(w, http.StatusInternalServerError, "shopping_list_failed", "Failed to build shopping list")
+		return
+	}
+
+	if items == nil {
+		items = []string{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"items": items,
+		"total": len(items),
+	})
+}
+
 // PUT /api/pantry/{ingredient} - Mark an ingredient as in the pantry (idempotent)
 func (h *PantryHandler) AddToPantry(w http.ResponseWriter, r *http.Request) {
 	ingredient, ok := h.ingredientFromPath(w, r)

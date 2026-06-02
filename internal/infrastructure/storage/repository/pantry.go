@@ -12,6 +12,7 @@ type PantryRepository interface {
 	AddToPantry(ctx context.Context, ingredient string) error
 	RemoveFromPantry(ctx context.Context, ingredient string) error
 	ListPantry(ctx context.Context) ([]pantry.PantryItem, error)
+	ShoppingList(ctx context.Context) ([]string, error)
 }
 
 type pantryRepository struct {
@@ -45,4 +46,8 @@ func (r *pantryRepository) ListPantry(ctx context.Context) ([]pantry.PantryItem,
 		}
 	}
 	return items, nil
+}
+
+func (r *pantryRepository) ShoppingList(ctx context.Context) ([]string, error) {
+	return r.db.ListMealPlanShortfall(ctx)
 }

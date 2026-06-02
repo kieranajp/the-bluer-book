@@ -75,3 +75,48 @@ final pantryProvider =
     StateNotifierProvider<PantryNotifier, AsyncValue<Set<String>>>((ref) {
   return PantryNotifier(ref.watch(pantryRepositoryProvider));
 });
+
+/// The shopping list: ingredients needed for the meal plan that aren't in the
+/// pantry. autoDispose so it re-fetches each time the screen is opened (it
+/// depends on both the meal plan and the pantry, which change elsewhere).
+class ShoppingListNotifier extends StateNotifier<AsyncValue<List<String>>> {
+  final PantryRepository _repository;
+  final Ref _ref;
+
+  ShoppingListNotifier(this._repository, this._ref)
+      : super(const AsyncValue.loading()) {
+    load();
+  }
+
+  Future<void> load() async {
+    state = const AsyncValue.loading();
+    try {
+      state = AsyncValue.data(await _repository.getShoppingList());
+    } catch (e, stack) {
+      dev.log('Failed to load shopping list',
+          name: 'ShoppingListNotifier', error: e, stackTrace: stack);
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  /// Mark an item as bought: it goes into the pantry and leaves the list.
+  /// Optimistic — reverts if the API call fails.
+  Future<void> check(String ingredient) async {
+    final current = state.valueOrNull ?? const <String>[];
+    state = AsyncValue.data(current.where((e) => e != ingredient).toList());
+    try {
+      await _repository.addToPantry(ingredient);
+      _ref.invalidate(pantryProvider);
+    } catch (e, stack) {
+      dev.log('Failed to check off "$ingredient"',
+          name: 'ShoppingListNotifier', error: e, stackTrace: stack);
+      state = AsyncValue.data(current);
+      rethrow;
+    }
+  }
+}
+
+final shoppingListProvider = StateNotifierProvider.autoDispose<
+    ShoppingListNotifier, AsyncValue<List<String>>>((ref) {
+  return ShoppingListNotifier(ref.watch(pantryRepositoryProvider), ref);
+});

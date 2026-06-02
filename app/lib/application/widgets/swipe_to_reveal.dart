@@ -15,6 +15,11 @@ class SwipeToReveal extends StatefulWidget {
   final String actionSemanticLabel;
   final Future<void> Function() onAction;
 
+  /// Opaque background painted behind [child] so the trailing action stays
+  /// hidden until the row is swiped. Without this the (transparent) child
+  /// would let the action bleed through at rest.
+  final Color childBackgroundColor;
+
   /// Width of the revealed action area.
   final double actionExtent;
 
@@ -26,6 +31,7 @@ class SwipeToReveal extends StatefulWidget {
     required this.actionForegroundColor,
     required this.actionSemanticLabel,
     required this.onAction,
+    required this.childBackgroundColor,
     this.actionExtent = 88,
   });
 
@@ -132,7 +138,10 @@ class _SwipeToRevealState extends State<SwipeToReveal>
                   ],
                 );
               },
-              child: widget.child,
+              child: ColoredBox(
+                color: widget.childBackgroundColor,
+                child: widget.child,
+              ),
             ),
           ),
         ],

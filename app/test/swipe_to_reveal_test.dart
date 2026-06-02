@@ -21,6 +21,7 @@ void main() {
           actionBackgroundColor: Colors.red,
           actionForegroundColor: Colors.white,
           actionSemanticLabel: 'Delete',
+          childBackgroundColor: Colors.white,
           onAction: () async => fired++,
           child: const SizedBox(
             height: 80,

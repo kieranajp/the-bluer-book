@@ -14,7 +14,7 @@ import '../widgets/home_header.dart';
 import '../widgets/home_hero.dart';
 import '../widgets/meal_plan_carousel.dart';
 import '../widgets/pill_search.dart';
-import '../widgets/recipe_row.dart';
+import '../widgets/recipe_row_swipeable.dart';
 import '../widgets/section_label.dart';
 
 /// Home — "My Kitchen", Garden Plot / M3 Expressive.
@@ -152,7 +152,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                       )
                     : SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (context, i) => RecipeRow(
+                          (context, i) => RecipeRowSwipeable(
                             recipe: recipes[i],
                             isLast: i == recipes.length - 1,
                           ),

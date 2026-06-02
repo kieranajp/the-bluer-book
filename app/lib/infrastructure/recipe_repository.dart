@@ -95,6 +95,17 @@ class RecipeRepository {
     }
   }
 
+  Future<void> deleteRecipe(String uuid) async {
+    try {
+      dev.log('Deleting recipe $uuid', name: 'RecipeRepository');
+      await _apiClient.dio.delete('/recipes/$uuid');
+    } on DioException catch (e, stack) {
+      dev.log('Failed to delete recipe $uuid: ${e.message}',
+          name: 'RecipeRepository', error: e, stackTrace: stack);
+      throw Exception(_formatDioError('Failed to delete recipe', e));
+    }
+  }
+
   Future<void> addToMealPlan(String uuid) async {
     try {
       dev.log('Adding $uuid to meal plan', name: 'RecipeRepository');

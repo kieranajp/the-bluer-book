@@ -41,7 +41,7 @@ class Decorations {
         ],
       );
 
-  /// Standard card decoration used by recipe list items, meal plan cards, etc.
+  /// Standard card decoration used by recipe list items, edit form cards, etc.
   static BoxDecoration card(BuildContext context) => BoxDecoration(
         color: context.colours.surface,
         borderRadius: BorderRadius.circular(12),

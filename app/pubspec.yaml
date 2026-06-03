@@ -56,8 +56,9 @@ dependencies:
   # Open recipe source links in the browser
   url_launcher: ^6.3.0
 
-  # Markdown rendering
-  flutter_markdown: ^0.7.7
+  # Markdown rendering (flutter_markdown_plus is the maintained successor to
+  # the discontinued google flutter_markdown — same MarkdownBody API)
+  flutter_markdown_plus: ^1.0.7
 
   # Image picker for recipe photos
   image_picker: ^1.1.2

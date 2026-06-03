@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'dart:typed_data';
+
 import 'package:app/domain/ingredient.dart';
 import 'package:app/domain/pantry_item.dart';
+import 'package:app/domain/shopping_list_item.dart';
 import 'package:app/application/providers/pantry_providers.dart';
 import 'package:app/application/widgets/ingredients_list.dart';
 import 'package:app/application/styles/colours.dart';
@@ -22,7 +25,17 @@ class _EmptyPantryRepository implements PantryRepository {
   Future<void> removeFromPantry(String ingredient) async {}
 
   @override
-  Future<List<String>> getShoppingList() async => const [];
+  Future<List<ShoppingListItem>> getShoppingList() async => const [];
+
+  @override
+  Future<void> addCustomShoppingItem(String name) async {}
+
+  @override
+  Future<void> removeCustomShoppingItem(String name) async {}
+
+  @override
+  Future<List<String>> scanShoppingList(Uint8List bytes, String filename) async =>
+      const [];
 }
 
 /// The redesigned IngredientsList renders each row as two separate Text

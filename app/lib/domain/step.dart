@@ -4,7 +4,7 @@ part 'step.freezed.dart';
 part 'step.g.dart';
 
 @freezed
-class Step with _$Step {
+abstract class Step with _$Step {
   const factory Step({
     required int order,
     required String description,

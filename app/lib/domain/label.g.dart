@@ -6,25 +6,22 @@ part of 'label.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$LabelImpl _$$LabelImplFromJson(Map<String, dynamic> json) => _$LabelImpl(
-      type: json['type'] as String,
-      name: json['name'] as String,
-    );
+_Label _$LabelFromJson(Map<String, dynamic> json) =>
+    _Label(type: json['type'] as String, name: json['name'] as String);
 
-Map<String, dynamic> _$$LabelImplToJson(_$LabelImpl instance) =>
-    <String, dynamic>{
-      'type': instance.type,
-      'name': instance.name,
-    };
+Map<String, dynamic> _$LabelToJson(_Label instance) => <String, dynamic>{
+  'type': instance.type,
+  'name': instance.name,
+};
 
-_$LabelSummaryImpl _$$LabelSummaryImplFromJson(Map<String, dynamic> json) =>
-    _$LabelSummaryImpl(
+_LabelSummary _$LabelSummaryFromJson(Map<String, dynamic> json) =>
+    _LabelSummary(
       type: json['type'] as String,
       name: json['name'] as String,
       uses: (json['uses'] as num).toInt(),
     );
 
-Map<String, dynamic> _$$LabelSummaryImplToJson(_$LabelSummaryImpl instance) =>
+Map<String, dynamic> _$LabelSummaryToJson(_LabelSummary instance) =>
     <String, dynamic>{
       'type': instance.type,
       'name': instance.name,

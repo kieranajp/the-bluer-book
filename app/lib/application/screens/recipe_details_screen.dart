@@ -14,6 +14,7 @@ import '../widgets/recipe_hero_image.dart';
 import '../widgets/recipe_stats_card.dart';
 import '../widgets/recipe_tab_bar.dart';
 import 'edit_recipe/edit_recipe_screen.dart';
+import '../utils/error_message.dart';
 
 class RecipeDetailsScreen extends ConsumerStatefulWidget {
   final Recipe recipe;
@@ -42,9 +43,7 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
       ref.invalidate(mealPlanRecipesProvider);
     } catch (e) {
       if (!mounted) return;
-      final message = e is Exception
-          ? e.toString().replaceFirst('Exception: ', '')
-          : 'Failed to refresh recipe';
+      final message = errorMessage(e, fallback: 'Failed to refresh recipe');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/recipe.dart';
 import '../../providers/edit_recipe_provider.dart';
+import '../../utils/error_message.dart';
 import '../../widgets/add_label_dialog.dart';
 import '../../styles/colours.dart';
 import '../../styles/text_styles.dart';
@@ -55,22 +56,11 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Failed to save recipe: ${_describeError(e)}'),
+          content: Text(errorMessage(e, fallback: 'Failed to save recipe')),
           duration: const Duration(seconds: 8),
         ),
       );
     }
-  }
-
-  /// Turns a thrown error into a readable message, stripping the
-  /// `Exception:` prefix that `toString()` adds so the underlying reason
-  /// (e.g. a validation failure from the API) is shown to the user.
-  String _describeError(Object error) {
-    final message = error is Exception ? error.toString() : '$error';
-    const prefix = 'Exception: ';
-    return message.startsWith(prefix)
-        ? message.substring(prefix.length)
-        : message;
   }
 
   Future<bool> _onWillPop() async {

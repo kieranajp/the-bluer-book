@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/ingredient.dart';
 import '../providers/pantry_providers.dart';
 import '../styles/colours.dart';
+import '../utils/error_message.dart';
 import 'ingredient_row.dart';
 import 'ingredients_summary.dart';
 
@@ -28,10 +29,11 @@ class IngredientsList extends ConsumerWidget {
       final messenger = ScaffoldMessenger.of(context);
       try {
         await ref.read(pantryProvider.notifier).toggle(name);
-      } catch (_) {
+      } catch (e) {
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text("Couldn't update your pantry"),
+          SnackBar(
+            content:
+                Text(errorMessage(e, fallback: "Couldn't update your pantry")),
             behavior: SnackBarBehavior.floating,
           ),
         );

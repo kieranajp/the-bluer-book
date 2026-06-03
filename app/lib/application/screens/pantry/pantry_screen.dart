@@ -9,6 +9,7 @@ import '../../widgets/brand_loader.dart';
 import '../../widgets/empty_state.dart';
 import 'pantry_add_ingredient_field.dart';
 import 'pantry_chip.dart';
+import '../../utils/error_message.dart';
 
 /// Your at-home inventory. Add the ingredients you have so the app can tell
 /// you what you can cook (and, later, what's missing for your meal plan).
@@ -24,10 +25,8 @@ class PantryScreen extends ConsumerWidget {
 
     ref.listen<AsyncValue<Set<String>>>(pantryProvider, (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {
-        final error = next.error;
-        final message = error is Exception
-            ? error.toString().replaceFirst('Exception: ', '')
-            : 'Failed to load pantry';
+        final message =
+            errorMessage(next.error, fallback: 'Failed to load pantry');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),

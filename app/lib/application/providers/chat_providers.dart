@@ -1,7 +1,9 @@
 import 'dart:developer' as dev;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../infrastructure/analytics/analytics.dart';
 import '../../infrastructure/chat_service.dart';
+import 'analytics_providers.dart';
 import 'recipe_providers.dart';
 
 final chatServiceProvider = Provider<ChatService>((ref) {
@@ -44,6 +46,15 @@ class ChatNotifier extends Notifier<List<ChatMessage>> {
 
   Future<void> sendMessage(String text) async {
     if (_isStreaming || text.trim().isEmpty) return;
+
+    ref.read(analyticsProvider).capture(
+      AnalyticsEvent.chatMessageSent,
+      properties: {
+        'message_length': text.trim().length,
+        // No session yet ⇒ this is the first message of the conversation.
+        'is_first_message': _sessionId == null,
+      },
+    );
 
     // Add user message
     state = [

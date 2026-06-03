@@ -85,6 +85,16 @@ dart run build_runner build --delete-conflicting-outputs   # generate model code
 flutter run --dart-define=API_URL=http://localhost:8080
 ```
 
+Product analytics (PostHog) are **off by default** — they only switch on when you pass a
+key at build time:
+
+```bash
+flutter run \
+  --dart-define=API_URL=http://localhost:8080 \
+  --dart-define=POSTHOG_API_KEY=phc_xxx \
+  --dart-define=POSTHOG_HOST=https://eu.i.posthog.com   # optional; EU is the default
+```
+
 ## 📁 Project layout
 
 ```

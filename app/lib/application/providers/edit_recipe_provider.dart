@@ -6,7 +6,9 @@ import '../../domain/recipe.dart';
 import '../../domain/ingredient.dart';
 import '../../domain/step.dart' as domain;
 import '../../domain/label.dart';
+import '../../infrastructure/analytics/analytics.dart';
 import '../../infrastructure/recipe_repository.dart';
+import 'analytics_providers.dart';
 import 'recipe_providers.dart';
 
 // --- Mutable form state classes ---
@@ -402,7 +404,8 @@ class EditRecipeNotifier extends Notifier<EditRecipeState> {
     try {
       String recipeUuid;
       final uuid = _uuid;
-      if (uuid == null) {
+      final isNew = uuid == null;
+      if (isNew) {
         final created = await _repository.createRecipe(state.toRecipe(''));
         recipeUuid = created.uuid;
         dev.log('Recipe $recipeUuid created', name: 'EditRecipeNotifier');
@@ -424,6 +427,19 @@ class EditRecipeNotifier extends Notifier<EditRecipeState> {
       state = state.copyWith(isSaving: false);
       ref.invalidate(recipeListProvider);
       ref.invalidate(mealPlanRecipesProvider);
+      final analytics = ref.read(analyticsProvider);
+      if (isNew) {
+        analytics.capture(AnalyticsEvent.recipeCreated, properties: {
+          'ingredient_count': state.ingredients.length,
+          'step_count': state.steps.length,
+          'has_photo': state.pendingPhotoBytes != null,
+        });
+      } else {
+        analytics.capture(AnalyticsEvent.recipeUpdated, properties: {
+          'recipe_uuid': recipeUuid,
+          'has_photo': state.pendingPhotoBytes != null,
+        });
+      }
       return true;
     } catch (e, stack) {
       dev.log('Failed to save recipe ${_uuid ?? "(new)"}',

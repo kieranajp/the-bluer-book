@@ -69,6 +69,10 @@ dependencies:
   # Front-camera frame stream for touchless hand-wave gestures (cooking mode)
   camera: ^0.12.0+1
 
+  # Product analytics. Disabled unless POSTHOG_API_KEY is supplied via
+  # --dart-define; see infrastructure/config/analytics_config.dart.
+  posthog_flutter: ^5.25.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

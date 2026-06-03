@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/label.dart';
 import '../../domain/recipe.dart';
+import '../../infrastructure/analytics/analytics.dart';
+import '../providers/analytics_providers.dart';
 import '../providers/pantry_providers.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
@@ -36,6 +38,15 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     ref.read(searchQueryProvider.notifier).set(query);
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
+      final trimmed = query.trim();
+      if (trimmed.isNotEmpty) {
+        // Track that a search happened; the query itself is kept private —
+        // only its length is sent.
+        ref.read(analyticsProvider).capture(
+          AnalyticsEvent.recipeSearched,
+          properties: {'query_length': trimmed.length},
+        );
+      }
       ref.read(recipeListProvider.notifier).loadRecipes(search: query);
     });
   }

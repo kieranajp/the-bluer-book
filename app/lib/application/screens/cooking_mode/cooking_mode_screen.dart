@@ -4,6 +4,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../domain/recipe.dart';
 import '../../../domain/step.dart' as domain;
+import '../../../infrastructure/analytics/analytics.dart';
+import '../../providers/analytics_providers.dart';
 import '../../providers/recipe_providers.dart';
 import '../../styles/colours.dart';
 import '../../utils/ingredient_highlighter.dart';
@@ -46,6 +48,13 @@ class _CookingModeScreenState extends ConsumerState<CookingModeScreen> {
     // Keep the screen on while cooking — nobody wants the display sleeping
     // mid-step with wet hands.
     WakelockPlus.enable();
+    ref.read(analyticsProvider).capture(
+      AnalyticsEvent.cookingModeStarted,
+      properties: {
+        'recipe_uuid': widget.recipe.uuid,
+        'step_count': widget.recipe.steps.length,
+      },
+    );
   }
 
   @override

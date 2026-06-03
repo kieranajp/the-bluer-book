@@ -4,8 +4,13 @@ import 'application/screens/app_shell/app_shell.dart';
 import 'application/styles/app_theme.dart';
 import 'application/styles/colours.dart';
 import 'application/providers/theme_provider.dart';
+import 'infrastructure/analytics/posthog_analytics.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Initialise analytics before the app starts. A no-op unless a PostHog key
+  // was supplied via --dart-define (see AnalyticsConfig).
+  await PostHogAnalytics.setup();
   runApp(const ProviderScope(child: BluerBook()));
 }
 

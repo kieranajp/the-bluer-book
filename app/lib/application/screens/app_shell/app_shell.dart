@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../infrastructure/analytics/analytics.dart';
+import '../../providers/analytics_providers.dart';
 import '../../providers/tab_provider.dart';
 import '../chat/chat_screen.dart';
 import '../meal_plan_screen.dart';
@@ -15,11 +17,20 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
+  @override
+  void initState() {
+    super.initState();
+    // Home is shown first; later tab switches are tracked in
+    // SelectedTabNotifier.select.
+    ref.read(analyticsProvider).screen(AnalyticsScreen.home);
+  }
+
   void _selectTab(int i) {
     ref.read(selectedTabProvider.notifier).select(i);
   }
 
   void _openChat() {
+    ref.read(analyticsProvider).screen(AnalyticsScreen.chat);
     Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,

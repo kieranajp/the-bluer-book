@@ -205,6 +205,40 @@ platform-aware in `ApiConfig` (and overridable with `--dart-define=API_URL=...`)
 Logging convention everywhere: `dev.log(..., name: '<ClassName>')` — the mirror of the
 backend's structured logs.
 
+## Product analytics
+
+Usage events go to **PostHog**, behind a small `Analytics` interface
+(`infrastructure/analytics/analytics.dart`) — mirroring the backend's `recipe.Probe`
+shape: an interface the app fires against, a `NoopAnalytics` for when nothing's
+listening, and the real `PostHogAnalytics` in infrastructure. Reach it through
+`analyticsProvider` (`providers/analytics_providers.dart`); it resolves to
+`PostHogAnalytics` when a key is configured and `NoopAnalytics` otherwise, so call sites
+fire events unconditionally — **no null checks, and tests/keyless builds send nothing.**
+
+```dart
+ref.read(analyticsProvider).capture(
+  AnalyticsEvent.mealPlanToggled,
+  properties: {'added': true, 'recipe_uuid': uuid},
+);
+ref.read(analyticsProvider).screen(AnalyticsScreen.recipe);
+```
+
+Rules of the road:
+
+- **Configured at build time, off by default.** `AnalyticsConfig` reads
+  `POSTHOG_API_KEY` (and optional `POSTHOG_HOST`, defaulting to **EU** cloud) from
+  `--dart-define`. No key ⇒ disabled. PostHog is initialised once in `main()` via
+  `PostHogAnalytics.setup()` before `runApp`.
+- **Event names live in `AnalyticsEvent` / screen names in `AnalyticsScreen`** — never
+  inline a raw event string at a call site, so the vocabulary stays consistent and
+  greppable.
+- **Fire from the notifier, not the widget**, wherever a notifier owns the action (meal
+  plan toggle, save, archive, chat send) — the analytics equivalent of the backend's
+  "fire probe calls from the service". Screen views and screen-local actions (a search
+  keystroke, opening a screen) are fired from the screen.
+- **Mind privacy.** Send shapes, not contents: a search is recorded as `query_length`,
+  not the query text.
+
 ## Riverpod: pick the right tier
 
 - **`Provider`** — dependency injection of stateless services:

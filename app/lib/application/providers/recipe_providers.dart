@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/ingredient.dart';
 import '../../domain/label.dart';
 import '../../domain/recipe.dart';
+import '../../infrastructure/analytics/analytics.dart';
 import '../../infrastructure/network/api_client.dart';
 import '../../infrastructure/recipe_repository.dart';
+import 'analytics_providers.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 
@@ -195,6 +197,10 @@ class RecipeListNotifier extends Notifier<AsyncValue<List<Recipe>>> {
       await _repository.deleteRecipe(uuid);
       // The recipe may have been on the meal plan — refresh that section too.
       ref.invalidate(mealPlanRecipesProvider);
+      ref.read(analyticsProvider).capture(
+        AnalyticsEvent.recipeArchived,
+        properties: {'recipe_uuid': uuid},
+      );
     } catch (e, stack) {
       dev.log('Failed to delete $uuid', name: 'RecipeListNotifier', error: e, stackTrace: stack);
       // Revert optimistic update on error
@@ -237,6 +243,10 @@ class RecipeListNotifier extends Notifier<AsyncValue<List<Recipe>>> {
 
       // Invalidate the meal plan list to refresh the meal plan section
       ref.invalidate(mealPlanRecipesProvider);
+      ref.read(analyticsProvider).capture(
+        AnalyticsEvent.mealPlanToggled,
+        properties: {'added': !wasInMealPlan, 'recipe_uuid': uuid},
+      );
     } catch (e, stack) {
       dev.log('Failed to toggle meal plan for $uuid', name: 'RecipeListNotifier', error: e, stackTrace: stack);
       // Revert optimistic update on error

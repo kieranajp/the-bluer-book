@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../domain/recipe.dart';
 import '../../domain/recipe_share.dart';
+import '../../infrastructure/analytics/analytics.dart';
+import '../providers/analytics_providers.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
 import '../widgets/add_to_plan_button.dart';
@@ -31,6 +33,20 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
   /// Freshly fetched copy from a pull-to-refresh. Used as the fallback when
   /// the recipe isn't part of the currently loaded list page.
   Recipe? _refreshed;
+
+  @override
+  void initState() {
+    super.initState();
+    final analytics = ref.read(analyticsProvider);
+    analytics.screen(
+      AnalyticsScreen.recipe,
+      properties: {'recipe_uuid': widget.recipe.uuid},
+    );
+    analytics.capture(
+      AnalyticsEvent.recipeOpened,
+      properties: {'recipe_uuid': widget.recipe.uuid},
+    );
+  }
 
   Future<void> _refresh() async {
     try {

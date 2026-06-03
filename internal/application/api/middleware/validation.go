@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe"
@@ -27,7 +28,7 @@ func (m *ValidationMiddleware) ValidateCreateRecipe(next http.Handler) http.Hand
 		var rec recipe.Recipe
 		if err := json.NewDecoder(r.Body).Decode(&rec); err != nil {
 			m.logger.Error().Err(err).Msg("JSON decode error")
-			m.writeValidationError(w, "invalid_json", "Invalid JSON format")
+			m.writeValidationError(w, "invalid_json", fmt.Sprintf("Invalid request body: %s", err))
 			return
 		}
 

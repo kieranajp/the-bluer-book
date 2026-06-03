@@ -20,6 +20,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
 	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/ai"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
@@ -159,6 +160,19 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to create chat handler: %w", err)
 	}
 
+	// Create the shopping-list photo scanner (shares the chat handler's Gemini
+	// key). Optional — without a key the scan endpoint reports unavailable.
+	var scanner *ai.ShoppingListScanner
+	if cfg.GoogleAPIKey != "" {
+		scanner, err = ai.NewShoppingListScanner(context.Background(), cfg.GoogleAPIKey, cfg.GeminiModel, log)
+		if err != nil {
+			return fmt.Errorf("failed to create shopping list scanner: %w", err)
+		}
+		log.Info().Msg("Shopping list photo scanning enabled")
+	} else {
+		log.Warn().Msg("GOOGLE_API_KEY not set — shopping list photo scanning disabled")
+	}
+
 	// Create photo handler if R2 is configured
 	var photoHandler *api.PhotoHandler
 	if c.String("r2-account-id") != "" && c.String("r2-bucket") != "" {
@@ -178,7 +192,7 @@ func run(c *cli.Context) error {
 	}
 
 	// Create API router
-	router := api.NewRouter(recipeService, pantryService, chatHandler, photoHandler, log)
+	router := api.NewRouter(recipeService, pantryService, scanner, chatHandler, photoHandler, log)
 
 	// Create HTTP server
 	httpServer := &http.Server{

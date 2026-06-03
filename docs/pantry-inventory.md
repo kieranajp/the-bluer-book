@@ -172,11 +172,19 @@ GET    /api/pantry                      → { "items": [...], "total": N }   # L
 PUT    /api/pantry/{ingredient}         → 204                              # AddToPantry
 DELETE /api/pantry/{ingredient}         → 204                              # RemoveFromPantry
 GET    /api/recipes/cookable            → { "recipes": [...] }             # Phase 2
-GET    /api/shopping-list               → { "items": [...] }               # Phase 3
+GET    /api/shopping-list               → { "items": [...], "total": N }   # Phase 3/4
+POST   /api/shopping-list               → 204   # Phase 4: { "name": "..." } add custom item
+DELETE /api/shopping-list/{name}        → 204   # Phase 4: remove a custom item
+POST   /api/shopping-list/scan          → { "added": [...], "total": N }   # Phase 4: photo → Gemini
 ```
 
 `{ingredient}` is the URL-encoded ingredient name. `PUT` (idempotent add) pairs
 with the `ON CONFLICT DO NOTHING` upsert — repeat taps are safe.
+
+As of Phase 4 each `shopping-list` item is an object `{ "name", "source" }` where
+`source` is `meal_plan` (a meal-plan ingredient not in the pantry — checking it off
+stocks the pantry) or `custom` (a free-text extra the user added or scanned — checking
+it off just deletes it).
 
 ### 6. MCP (optional, nice-to-have)
 
@@ -246,6 +254,20 @@ migration** (a deliberate simplification of the original sketch below):
 - Shopping-list screen, opened from a cart action on the Meal Plan screen. Checking an
   item off reuses `PUT /api/pantry/{ingredient}` — it lands in the pantry and drops off
   the list (optimistic; invalidates `pantryProvider`). Closes the loop.
+
+**Phase 4 — Custom items + photo scan** ✅ _shipped_
+- New `shopping_list_items` table (free text, deduped case-insensitively) holding extras
+  that aren't recipe ingredients — washing-up liquid, bin bags, … `PantryService` gains
+  `AddCustomShoppingItem` / `RemoveCustomShoppingItem`, and `ShoppingList` now merges the
+  meal-plan shortfall with these custom items, tagging each with a `source`.
+- `POST /api/shopping-list` (add by hand) and `DELETE /api/shopping-list/{name}` (remove).
+- `POST /api/shopping-list/scan`: upload a photo of a physical list, `internal/infrastructure/ai`
+  has Gemini parse it into item names (structured JSON output), and they're added as custom
+  items. Reuses the chat handler's `GOOGLE_API_KEY` / `GEMINI_MODEL`; the endpoint reports
+  unavailable when no key is configured.
+- Shopping-list screen gains an "add" action (text dialog) and a "scan" action
+  (camera/gallery → upload). Custom rows carry a pin marker; checking one off deletes it
+  instead of stocking the pantry.
 
 **Future — quantities & units (explicitly out of v1)**
 - The natural extension point is adding `quantity DOUBLE PRECISION` + `unit_id UUID` to

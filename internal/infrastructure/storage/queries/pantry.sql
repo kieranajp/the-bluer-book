@@ -15,6 +15,22 @@ FROM pantry_items p
 INNER JOIN ingredients i ON i.uuid = p.ingredient_id
 ORDER BY i.name ASC;
 
+-- name: AddCustomShoppingItem :exec
+-- Add a free-text item to the shopping list (e.g. "washing-up liquid"). These
+-- aren't recipe ingredients, so they live in their own table. Deduped
+-- case-insensitively so repeat adds — manual or from a scan — are no-ops.
+INSERT INTO shopping_list_items (name)
+SELECT @name::varchar
+WHERE NOT EXISTS (
+  SELECT 1 FROM shopping_list_items WHERE lower(name) = lower(@name::varchar)
+);
+
+-- name: RemoveCustomShoppingItem :exec
+DELETE FROM shopping_list_items WHERE lower(name) = lower(@name::varchar);
+
+-- name: ListCustomShoppingItems :many
+SELECT name FROM shopping_list_items ORDER BY name ASC;
+
 -- name: ListMealPlanShortfall :many
 -- Ingredients needed across the (non-archived) meal plan that are NOT already
 -- in the pantry. This is the shopping list.

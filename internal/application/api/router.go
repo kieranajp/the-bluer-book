@@ -9,11 +9,12 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
 	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/ai"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 )
 
-func NewRouter(recipeService service.RecipeService, pantryService pantryservice.PantryService, chatHandler *chat.Handler, photoHandler *PhotoHandler, logger logger.Logger) http.Handler {
+func NewRouter(recipeService service.RecipeService, pantryService pantryservice.PantryService, scanner *ai.ShoppingListScanner, chatHandler *chat.Handler, photoHandler *PhotoHandler, logger logger.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	// Prometheus metrics endpoint
@@ -21,7 +22,7 @@ func NewRouter(recipeService service.RecipeService, pantryService pantryservice.
 
 	// Create handlers
 	recipeHandler := NewRecipeHandler(recipeService, logger)
-	pantryHandler := NewPantryHandler(pantryService, logger)
+	pantryHandler := NewPantryHandler(pantryService, scanner, logger)
 	validationMiddleware := middleware.NewValidationMiddleware(logger)
 
 	mux.HandleFunc("GET /api/units", recipeHandler.ListUnits)
@@ -44,8 +45,11 @@ func NewRouter(recipeService service.RecipeService, pantryService pantryservice.
 	mux.HandleFunc("PUT /api/pantry/{ingredient}", pantryHandler.AddToPantry)
 	mux.HandleFunc("DELETE /api/pantry/{ingredient}", pantryHandler.RemoveFromPantry)
 
-	// Shopping list (meal plan minus pantry)
+	// Shopping list: meal-plan shortfall plus free-text custom items.
 	mux.HandleFunc("GET /api/shopping-list", pantryHandler.ShoppingList)
+	mux.HandleFunc("POST /api/shopping-list", pantryHandler.AddCustomShoppingItem)
+	mux.HandleFunc("POST /api/shopping-list/scan", pantryHandler.ScanShoppingList)
+	mux.HandleFunc("DELETE /api/shopping-list/{name}", pantryHandler.RemoveCustomShoppingItem)
 
 	mux.Handle("POST /api/recipes",
 		validationMiddleware.ValidateCreateRecipe(

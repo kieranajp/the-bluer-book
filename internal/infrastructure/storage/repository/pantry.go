@@ -13,6 +13,12 @@ type PantryRepository interface {
 	RemoveFromPantry(ctx context.Context, ingredient string) error
 	ListPantry(ctx context.Context) ([]pantry.PantryItem, error)
 	ShoppingList(ctx context.Context) ([]string, error)
+
+	// Custom (free-text) shopping list items, kept separate from the
+	// meal-plan-derived shortfall.
+	AddCustomShoppingItem(ctx context.Context, name string) error
+	RemoveCustomShoppingItem(ctx context.Context, name string) error
+	ListCustomShoppingItems(ctx context.Context) ([]string, error)
 }
 
 type pantryRepository struct {
@@ -50,4 +56,16 @@ func (r *pantryRepository) ListPantry(ctx context.Context) ([]pantry.PantryItem,
 
 func (r *pantryRepository) ShoppingList(ctx context.Context) ([]string, error) {
 	return r.db.ListMealPlanShortfall(ctx)
+}
+
+func (r *pantryRepository) AddCustomShoppingItem(ctx context.Context, name string) error {
+	return r.db.AddCustomShoppingItem(ctx, name)
+}
+
+func (r *pantryRepository) RemoveCustomShoppingItem(ctx context.Context, name string) error {
+	return r.db.RemoveCustomShoppingItem(ctx, name)
+}
+
+func (r *pantryRepository) ListCustomShoppingItems(ctx context.Context) ([]string, error) {
+	return r.db.ListCustomShoppingItems(ctx)
 }

@@ -250,67 +250,6 @@ final recipeListProvider =
     NotifierProvider<RecipeListNotifier, AsyncValue<List<Recipe>>>(
         RecipeListNotifier.new);
 
-// Provider for individual recipe detail with meal plan toggle support
-class RecipeDetailNotifier extends Notifier<AsyncValue<Recipe?>> {
-  RecipeDetailNotifier(this._uuid);
-
-  final String _uuid;
-
-  RecipeRepository get _repository => ref.read(recipeRepositoryProvider);
-
-  @override
-  AsyncValue<Recipe?> build() {
-    Future.microtask(_loadRecipe);
-    return const AsyncValue.loading();
-  }
-
-  Future<void> _loadRecipe() async {
-    state = const AsyncValue.loading();
-    try {
-      final recipe = await _repository.getRecipe(_uuid);
-      state = AsyncValue.data(recipe);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  Future<void> toggleMealPlan() async {
-    final currentState = state;
-    if (!currentState.hasValue) return;
-
-    final recipe = currentState.value;
-    if (recipe == null) return;
-
-    final wasInMealPlan = recipe.isInMealPlan;
-
-    // Optimistic update
-    final updatedRecipe = recipe.copyWith(isInMealPlan: !wasInMealPlan);
-    state = AsyncValue.data(updatedRecipe);
-
-    try {
-      // Make API call
-      if (wasInMealPlan) {
-        await _repository.removeFromMealPlan(recipe.uuid);
-      } else {
-        await _repository.addToMealPlan(recipe.uuid);
-      }
-
-      // Invalidate providers to refresh lists
-      ref.invalidate(mealPlanRecipesProvider);
-      ref.invalidate(recipeListProvider);
-    } catch (e, stack) {
-      dev.log('Failed to toggle meal plan', name: 'RecipeDetailNotifier', error: e, stackTrace: stack);
-      // Revert optimistic update on error
-      state = AsyncValue.data(recipe);
-      rethrow;
-    }
-  }
-}
-
-final recipeDetailProvider =
-    NotifierProvider.family<RecipeDetailNotifier, AsyncValue<Recipe?>, String>(
-        RecipeDetailNotifier.new);
-
 // Search query state
 class SearchQueryNotifier extends Notifier<String> {
   @override

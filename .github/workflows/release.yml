@@ -63,16 +63,22 @@ jobs:
           API_URL: ${{ secrets.API_URL }}
           OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
           OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          # POSTHOG_API_KEY is a write-only client key (safe to ship in the app);
+          # absent ⇒ the app falls back to NoopAnalytics. Host isn't secret —
+          # EU is hardcoded here, matching AnalyticsConfig's default.
           printf '%s\n' \
             "API_URL=${API_URL}" \
             "OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}" \
             "OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}" \
             "OAUTH_SCOPE=recipes:api" \
+            "POSTHOG_API_KEY=${POSTHOG_API_KEY}" \
+            "POSTHOG_HOST=https://eu.i.posthog.com" \
             > env/release.env
           flutter build apk --release \
             --dart-define-from-file=env/release.env \

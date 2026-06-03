@@ -80,3 +80,33 @@ folder they're `../../providers/…`, `../../styles/…`, `../../widgets/…`.
    importers (`grep -rl OldClassName lib`). Private `_` widgets have no external
    importers.
 5. `flutter analyze` (catches broken/unused imports), then `dart run widget_lint`.
+
+## Beyond widgets: one concept per file
+
+The widget rule ("one widget class per file") is the strict, lint-enforced case of a
+broader convention borrowed from PSR-1/PSR-4: **a file holds one concept, named after
+it.** Outside `widgets/`/`screens/`, "one concept" is broader than one class, and the
+codebase is consistent about it:
+
+| Layer | One file holds | Example |
+|-------|----------------|---------|
+| `widgets/`, `screens/` | one **widget class** (strict, lint-enforced) | `recipe_stat_cell.dart` → `RecipeStatCell` |
+| `domain/` | an aggregate **+ its value objects** | `ingredient.dart` → `Ingredient`, `IngredientDetail`, `IngredientUnit` |
+| `providers/` | a notifier **+ its state** | `chat_providers.dart` → `ChatNotifier`, `ChatMessage` |
+| `infrastructure/` | a client **+ its result/event type** | `recipe_repository.dart` → `RecipeRepository`, `PaginatedRecipes` |
+
+The test is **cohesion**: a value object that only describes its aggregate (or the state
+a notifier owns) belongs with it; an unrelated class gets its own file. The directory
+mirrors the layering (`domain` / `application` / `infrastructure`), and the file shares
+its name with the primary type. So don't split a `freezed` state class out of its
+notifier, or a value object out of its aggregate, just to chase "one class per file" —
+that rule is specifically for widgets.
+
+## File size
+
+Aim for small files — a couple hundred lines. Past **~300 lines** a Dart file is almost
+always doing too much; treat it as a prompt to find a seam: extract widgets (per the
+rule above), pull pure helpers into `utils/`, or move logic into a notifier. A few files
+legitimately run longer (design tokens, a cohesive notifier). This is a review
+guideline, **not** a CI gate — but it's usually how you discover an SRP violation before
+the widget lint does.

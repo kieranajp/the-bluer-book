@@ -115,6 +115,38 @@ deliberate exception, but don't grow it casually.) Run it locally with
 `cd app/tool/widget_lint && dart pub get && dart run widget_lint`. See
 `tool/widget_lint/README.md`.
 
+## One concept per file, and keep files small
+
+A single-responsibility rule borrowed from PSR-1/PSR-4: **a file holds one concept,
+named after it.** What "one concept" means is layer-specific, and the codebase is
+consistent about it:
+
+- **`widgets/`, `screens/` — one widget _class_ per file** (strict; `widget_lint`
+  fails the build otherwise). See "Keeping widgets small" above.
+- **`domain/` — an aggregate plus its value objects.** `ingredient.dart` holds
+  `Ingredient` + `IngredientDetail` + `IngredientUnit`; `label.dart` holds `Label` +
+  `LabelSummary`. This mirrors the Go backend's `recipe.go` ("aggregate root + value
+  objects").
+- **`providers/` — a notifier plus its state.** `chat_providers.dart` holds
+  `ChatNotifier` + `ChatMessage`; `edit_recipe_provider.dart` holds `EditRecipeNotifier`,
+  its `EditRecipeState`, and the editable value objects it owns.
+- **`infrastructure/` — a client plus its result/event type.** `recipe_repository.dart`
+  holds `RecipeRepository` + `PaginatedRecipes`; `chat_service.dart` holds `ChatService`
+  + `ChatEvent`.
+
+So "one class per file" is the *widget* rule; elsewhere the unit is the concept. The
+test is **cohesion**: a value object that only exists to describe its aggregate (or the
+state a notifier owns) belongs with it; an unrelated class gets its own file. The file
+and its primary type share a name, and the directory mirrors the layering
+(`domain` / `application` / `infrastructure`) — the PSR-4 instinct, applied to Dart.
+
+**Size is the canary for SRP.** Aim for small files — a couple hundred lines. Once a
+Dart file pushes past ~300 lines it's almost always doing too much; treat that as a
+prompt to find a seam and split (extract widgets per the rule above, pull pure helpers
+into `utils/`, move logic into a notifier). A few files legitimately run longer —
+`colours.dart` is design tokens, the big notifiers are cohesive state machines — so this
+is a guideline for review and judgement, **not** a CI gate.
+
 ## Domain models
 
 `@freezed` immutable classes with `fromJson`/`toJson`. Generated `*.freezed.dart` and

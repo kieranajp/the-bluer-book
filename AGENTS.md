@@ -54,6 +54,14 @@ the obvious stuff.
   advisory**: `app/tool/widget_lint` runs in CI and **fails the build** on any
   violation, so ignoring the skill breaks the PR. Its `baseline.txt` is empty — keep
   it that way. Deep dives: `docs/frontend.md`.
+- **One concept per file (Dart), sized for SRP.** A file holds one concept named after
+  it. That's strictly one *widget* class in `widgets/`/`screens/` (lint-enforced), but
+  elsewhere the concept is broader: `domain/` groups an aggregate + its value objects,
+  `providers/` a notifier + its state, `infrastructure/` a client + its result/event type
+  (e.g. `Ingredient`+`IngredientDetail`+`IngredientUnit`, `ChatNotifier`+`ChatMessage`) —
+  mirroring the backend's `recipe.go`. Keep files small (a couple hundred lines; past
+  ~300 is a split smell — a guideline, not a gate). Go follows its own idioms here.
+  See `docs/frontend.md`.
 
 ## Build & test
 

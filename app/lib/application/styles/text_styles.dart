@@ -103,7 +103,7 @@ class TextStyles {
       );
 
   // ── Serif moments (cookbook personality — Instrument Serif) ─────────
-  // Hero greeting on home: "What's cooking // tonight?" — display weight.
+  // Hero greeting on home, e.g. "What's cooking // tonight?" — display weight.
   static TextStyle heroDisplay(BuildContext context) =>
       GoogleFonts.instrumentSerif(
         fontSize: 48,

@@ -244,9 +244,10 @@ visible rather than blanking the list).
 **Never hardcode colours or spacing.** Tokens come from the theme:
 
 - **Colours** via the `Colours` `ThemeExtension`, reached with `context.colours`
-  (`context.colours.primary`, `.surfaceContainer`, …). The `ColorScheme` in `main.dart`
-  is **hand-built per role** — do not switch to `ColorScheme.fromSeed`; tonal values are
-  chosen to match the "Garden Plot" design.
+  (`context.colours.primary`, `.surfaceContainer`, …). The `ColorScheme` (built by
+  `buildAppTheme` in `application/styles/app_theme.dart`) is **hand-built per role** — do
+  not switch to `ColorScheme.fromSeed`; tonal values are chosen to match the "Garden
+  Plot" design.
 - **Spacing** — the `Spacing` constants (`Spacing.m`, `Spacing.horizontal`, …).
 - **Text** — `TextStyles.*(context)` (Work Sans body, Instrument Serif for the
   cookbook "serif moments").
@@ -254,6 +255,30 @@ visible rather than blanking the list).
 
 Light/dark are full sibling palettes (`Colours.light` / `Colours.dark`); anything you
 add to `Colours` must be filled in for both and threaded through `copyWith`/`lerp`.
+
+## Snapshot (golden) tests
+
+Widget rendering is pinned with [alchemist](https://pub.dev/packages/alchemist) goldens
+under `app/test/golden/`. They render a widget to a PNG and diff it against a committed
+reference image, catching unintended visual changes (layout, sizing, theme colours).
+
+- **Cross-machine determinism.** `test/flutter_test_config.dart` runs alchemist with
+  *only* CI goldens enabled (`PlatformGoldensConfig(enabled: false)`). CI goldens draw
+  text as Ahem blocks with shadows off, so the PNGs are byte-identical on any machine —
+  your dev box and the Ubuntu CI runner agree. Reference images live in
+  `test/golden/goldens/ci/`.
+- **Fonts are bundled, not fetched.** The `google_fonts` families are committed as
+  `.ttf`s under `app/fonts/` (declared in `pubspec.yaml` `assets:`), so they load offline
+  — `flutter test`'s binding blocks all HTTP, which would otherwise make google_fonts
+  throw. This also benefits production (no first-launch font flash).
+- **Render under the real theme.** Use `themedScenario(...)` from
+  `test/golden/golden_support.dart`; it wraps the widget in `buildAppTheme(...)` (the
+  shipping theme) for light or dark, so goldens reflect production theming, not a bare
+  `ThemeData.light`. Feed widgets deterministic inputs (fixed data, no `DateTime.now()`,
+  no network images — pass `imageUrl: null` for the striped placeholder).
+- **Workflow.** `flutter test` checks goldens; regenerate after an intended UI change
+  with `flutter test --update-goldens` and commit the new PNGs (review the diff!). Run
+  just these with `flutter test --tags golden`, or skip them with `flutter test -x golden`.
 
 ## Vocabulary
 

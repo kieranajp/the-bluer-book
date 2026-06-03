@@ -67,7 +67,13 @@ the obvious stuff.
 
 ```bash
 go build ./... && go test ./...          # backend (run sqlc generate first in a fresh clone)
-cd app && flutter test                   # frontend
+cd app && flutter test                   # frontend (includes alchemist goldens)
 ```
+
+Widget rendering is pinned with **alchemist golden tests** (`app/test/golden/`). They diff
+a rendered PNG against a committed reference image; after an intended UI change, regenerate
+with `cd app && flutter test --update-goldens` and commit the new images. Goldens are
+machine-independent (text is obscured, fonts are bundled under `app/fonts/`) — see
+`docs/frontend.md`.
 
 Develop on the branch you were given; commit with clear messages; never push to `main`.

@@ -74,6 +74,12 @@ dev_dependencies:
 
   flutter_lints: ^6.0.0
 
+  # Golden / snapshot testing. Renders widgets to PNGs and diffs them against
+  # committed reference images. Configured (see test/flutter_test_config.dart)
+  # to emit only platform-independent "CI" goldens, so images generated on any
+  # machine match Linux CI byte-for-byte — no font/anti-aliasing flake.
+  alchemist: ^0.14.0
+
   # Code generation
   build_runner: ^2.4.13
   freezed: ^2.5.7
@@ -93,6 +99,15 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Bundle the Work Sans / Instrument Serif / JetBrains Mono families used via
+  # google_fonts. With the .ttf files in the asset bundle, google_fonts loads
+  # them from assets instead of fetching over the network on first launch —
+  # offline-capable, no flash of fallback font, and (crucially) deterministic
+  # under `flutter test`, whose binding blocks all HTTP. The filenames follow
+  # google_fonts' "<Family>-<Variant>.ttf" convention so it finds them.
+  assets:
+    - fonts/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

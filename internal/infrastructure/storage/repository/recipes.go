@@ -478,6 +478,40 @@ func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec r
 		}
 	}()
 
+	// Resolve the main photo. We reuse the existing photo row when the URL is
+	// unchanged (the common case — editing a recipe must not drop or duplicate
+	// its photo) and only create a new row for a genuinely new URL. A nil
+	// MainPhoto clears the association.
+	var mainPhotoID *uuid.UUID
+	if rec.MainPhoto != nil && rec.MainPhoto.URL != "" {
+		var existing db.Photo
+		existing, err = q.GetPhotoByUrlAndEntity(ctx, db.GetPhotoByUrlAndEntityParams{
+			Url:        rec.MainPhoto.URL,
+			EntityType: "recipe",
+			EntityID:   id,
+		})
+		switch err {
+		case nil:
+			mainPhotoID = &existing.Uuid
+		case sql.ErrNoRows:
+			var photo db.Photo
+			photo, err = q.CreatePhoto(ctx, db.CreatePhotoParams{
+				Uuid:       uuid.New(),
+				Url:        rec.MainPhoto.URL,
+				EntityType: "recipe",
+				EntityID:   id,
+				CreatedAt:  now,
+				UpdatedAt:  now,
+			})
+			if err != nil {
+				return nil, err
+			}
+			mainPhotoID = &photo.Uuid
+		default:
+			return nil, err
+		}
+	}
+
 	// Update basic recipe fields
 	updatedRecipe, err := q.UpdateRecipe(ctx, db.UpdateRecipeParams{
 		Uuid:        id,
@@ -486,7 +520,7 @@ func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec r
 		CookTime:    sql.NullInt32{Int32: rec.CookTime, Valid: rec.CookTime > 0},
 		PrepTime:    sql.NullInt32{Int32: rec.PrepTime, Valid: rec.PrepTime > 0},
 		Servings:    sql.NullInt16{Int16: rec.Servings, Valid: rec.Servings > 0},
-		MainPhotoID: uuid.NullUUID{}, // TODO: Handle main photo update
+		MainPhotoID: uuidToNullUUID(mainPhotoID),
 		Url:         sql.NullString{String: rec.Url, Valid: rec.Url != ""},
 		UpdatedAt:   now,
 	})

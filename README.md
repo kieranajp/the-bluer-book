@@ -7,6 +7,21 @@ API the app talks to, it ships an **MCP server** so Claude (or any LLM assistant
 search, write, and tidy up recipes for you. There's also a built-in chat assistant that
 uses those same tools.
 
+## 📱 Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/home.png" alt="Home — recipe list and meal plan" width="240"></td>
+    <td align="center"><img src="docs/screenshots/recipe.png" alt="Recipe detail with ingredients and cooking mode" width="240"></td>
+    <td align="center"><img src="docs/screenshots/chat.png" alt="Chat assistant planning dinner" width="240"></td>
+  </tr>
+  <tr>
+    <td align="center">Home &amp; meal plan</td>
+    <td align="center">Recipe detail</td>
+    <td align="center">Chat assistant</td>
+  </tr>
+</table>
+
 ## 🍳 What you can do
 
 - Keep recipes — ingredients (with quantities, units, prep notes and components like

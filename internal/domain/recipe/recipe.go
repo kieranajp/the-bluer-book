@@ -118,3 +118,45 @@ func (r Recipe) MarshalJSON() ([]byte, error) {
 		Photos:       r.Photos,
 	})
 }
+
+// UnmarshalJSON mirrors MarshalJSON, which serialises mainPhoto as a bare URL
+// string. Without this, a recipe round-tripped through the API (read, edited,
+// saved) fails to decode because the default decoder expects mainPhoto to be a
+// Photo object — the exact reason imported recipes (which carry a photo) could
+// not be saved. We accept a string, a full Photo object, or null for safety.
+func (r *Recipe) UnmarshalJSON(data []byte) error {
+	type recipeAlias Recipe
+	aux := &struct {
+		MainPhoto json.RawMessage `json:"mainPhoto"`
+		*recipeAlias
+	}{
+		recipeAlias: (*recipeAlias)(r),
+	}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	r.MainPhoto = nil
+	if len(aux.MainPhoto) == 0 || string(aux.MainPhoto) == "null" {
+		return nil
+	}
+
+	// Preferred shape: a bare URL string, matching MarshalJSON's output.
+	var url string
+	if err := json.Unmarshal(aux.MainPhoto, &url); err == nil {
+		if url != "" {
+			r.MainPhoto = &Photo{URL: url}
+		}
+		return nil
+	}
+
+	// Tolerate a full Photo object too.
+	var photo Photo
+	if err := json.Unmarshal(aux.MainPhoto, &photo); err != nil {
+		return err
+	}
+	if photo.URL != "" {
+		r.MainPhoto = &photo
+	}
+	return nil
+}

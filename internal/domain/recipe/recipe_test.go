@@ -128,3 +128,63 @@ func TestRecipeJSON_MixedComponents(t *testing.T) {
 		t.Errorf("expected 1 uncategorised ingredient, got %d", components[""])
 	}
 }
+
+// TestRecipeMainPhotoRoundTrip guards against the asymmetry that previously
+// broke saving any recipe with a photo: MarshalJSON emits mainPhoto as a URL
+// string, so UnmarshalJSON must accept that same string back.
+func TestRecipeMainPhotoRoundTrip(t *testing.T) {
+	original := Recipe{
+		Name:        "Imported recipe",
+		Description: "has a photo",
+		MainPhoto:   &Photo{URL: "https://example.com/photo.jpg"},
+		Steps:       []Step{{Order: 1, Description: "do a thing"}},
+	}
+
+	data, err := json.Marshal(original)
+	if err != nil {
+		t.Fatalf("failed to marshal: %v", err)
+	}
+
+	var parsed Recipe
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("failed to unmarshal round-tripped recipe: %v", err)
+	}
+
+	if parsed.MainPhoto == nil {
+		t.Fatalf("expected MainPhoto to survive round-trip, got nil")
+	}
+	if parsed.MainPhoto.URL != original.MainPhoto.URL {
+		t.Errorf("expected URL %q, got %q", original.MainPhoto.URL, parsed.MainPhoto.URL)
+	}
+}
+
+func TestRecipeMainPhotoUnmarshalShapes(t *testing.T) {
+	cases := map[string]struct {
+		json    string
+		wantURL string // "" means MainPhoto should be nil
+	}{
+		"string":       {`{"name":"r","mainPhoto":"https://x/p.jpg"}`, "https://x/p.jpg"},
+		"empty string": {`{"name":"r","mainPhoto":""}`, ""},
+		"null":         {`{"name":"r","mainPhoto":null}`, ""},
+		"absent":       {`{"name":"r"}`, ""},
+		"object":       {`{"name":"r","mainPhoto":{"url":"https://x/o.jpg"}}`, "https://x/o.jpg"},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			var parsed Recipe
+			if err := json.Unmarshal([]byte(tc.json), &parsed); err != nil {
+				t.Fatalf("unmarshal failed: %v", err)
+			}
+			if tc.wantURL == "" {
+				if parsed.MainPhoto != nil {
+					t.Errorf("expected nil MainPhoto, got %+v", parsed.MainPhoto)
+				}
+				return
+			}
+			if parsed.MainPhoto == nil || parsed.MainPhoto.URL != tc.wantURL {
+				t.Errorf("expected URL %q, got %+v", tc.wantURL, parsed.MainPhoto)
+			}
+		})
+	}
+}

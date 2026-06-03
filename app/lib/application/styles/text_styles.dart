@@ -5,9 +5,13 @@ import 'colours.dart';
 /// Text style definitions (theme-aware)
 class TextStyles {
   // Headers
-  static TextStyle appBarTitle(BuildContext context) => GoogleFonts.workSans(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
+  // Page headers share the cookbook serif (Instrument Serif) with the home
+  // hero, so every screen's title reads in the same voice.
+  static TextStyle appBarTitle(BuildContext context) =>
+      GoogleFonts.instrumentSerif(
+        fontSize: 28,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.3,
         color: context.colours.textPrimary,
       );
 

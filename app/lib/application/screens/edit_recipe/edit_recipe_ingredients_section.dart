@@ -21,9 +21,9 @@ class EditRecipeIngredientsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final availableUnits =
-        ref.watch(unitsProvider).valueOrNull ?? <IngredientUnit>[];
+        ref.watch(unitsProvider).value ?? <IngredientUnit>[];
     final availableIngredients =
-        ref.watch(ingredientsProvider).valueOrNull ?? <IngredientDetail>[];
+        ref.watch(ingredientsProvider).value ?? <IngredientDetail>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -31,12 +31,13 @@ class ChatMessage {
   }
 }
 
-class ChatNotifier extends StateNotifier<List<ChatMessage>> {
-  final ChatService _chatService;
+class ChatNotifier extends Notifier<List<ChatMessage>> {
+  ChatService get _chatService => ref.read(chatServiceProvider);
   String? _sessionId;
   bool _isStreaming = false;
 
-  ChatNotifier(this._chatService) : super([]);
+  @override
+  List<ChatMessage> build() => [];
 
   bool get isStreaming => _isStreaming;
   String? get sessionId => _sessionId;
@@ -110,6 +111,4 @@ class ChatNotifier extends StateNotifier<List<ChatMessage>> {
 }
 
 final chatMessagesProvider =
-    StateNotifierProvider<ChatNotifier, List<ChatMessage>>((ref) {
-  return ChatNotifier(ref.watch(chatServiceProvider));
-});
+    NotifierProvider<ChatNotifier, List<ChatMessage>>(ChatNotifier.new);

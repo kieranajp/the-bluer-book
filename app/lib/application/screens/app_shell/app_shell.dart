@@ -16,7 +16,7 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   void _selectTab(int i) {
-    ref.read(selectedTabProvider.notifier).state = i;
+    ref.read(selectedTabProvider.notifier).select(i);
   }
 
   void _openChat() {

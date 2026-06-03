@@ -38,7 +38,7 @@ class MealPlanCarouselBody extends ConsumerWidget {
               title: 'On the meal plan',
               action: 'View meal plan →',
               onAction: () =>
-                  ref.read(selectedTabProvider.notifier).state = 1,
+                  ref.read(selectedTabProvider.notifier).select(1),
             ),
             SizedBox(
               height: 320,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../../providers/chat_providers.dart';
 import '../../styles/colours.dart';
 import '../../styles/text_styles.dart';

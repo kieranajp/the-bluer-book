@@ -32,7 +32,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
   Timer? _debounce;
 
   void _onSearchChanged(String query) {
-    ref.read(searchQueryProvider.notifier).state = query;
+    ref.read(searchQueryProvider.notifier).set(query);
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
       ref.read(recipeListProvider.notifier).loadRecipes(search: query);
@@ -93,7 +93,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     final notifier = ref.read(recipeListProvider.notifier);
     final activeLabels = ref.watch(recipeListProvider.notifier).activeLabels;
     // Watched so "Cook now" re-sorts live as the pantry changes.
-    final pantry = ref.watch(pantryProvider).valueOrNull ?? const <String>{};
+    final pantry = ref.watch(pantryProvider).value ?? const <String>{};
 
     ref.listen<AsyncValue<List<Recipe>>>(filteredRecipesProvider, (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {
@@ -118,7 +118,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
 
     final total = notifier.total;
     final filters = _buildFilterOptions(
-      labelsAsync.valueOrNull ?? const [],
+      labelsAsync.value ?? const [],
       total,
     );
     final chipActive = activeLabels.isEmpty ? {'__all__'} : activeLabels;

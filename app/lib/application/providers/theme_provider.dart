@@ -3,16 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Provider for managing app theme mode
-final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>(
-  (ref) => ThemeModeNotifier(),
-);
+final themeModeProvider =
+    NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
 
 /// Notifier for managing theme mode state with persistence
-class ThemeModeNotifier extends StateNotifier<ThemeMode> {
+class ThemeModeNotifier extends Notifier<ThemeMode> {
   static const String _themeModeKey = 'theme_mode';
 
-  ThemeModeNotifier() : super(ThemeMode.system) {
+  @override
+  ThemeMode build() {
     _loadThemeMode();
+    return ThemeMode.system;
   }
 
   /// Load theme mode from shared preferences

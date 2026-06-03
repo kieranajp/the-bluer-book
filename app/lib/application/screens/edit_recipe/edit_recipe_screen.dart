@@ -27,8 +27,7 @@ class EditRecipeScreen extends ConsumerStatefulWidget {
 class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  AutoDisposeStateNotifierProvider<EditRecipeNotifier, EditRecipeState>
-      get _provider {
+  NotifierProvider<EditRecipeNotifier, EditRecipeState> get _provider {
     final recipe = widget.recipe;
     return recipe == null ? newRecipeProvider : editRecipeProvider(recipe);
   }

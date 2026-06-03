@@ -4,7 +4,7 @@ part 'ingredient.freezed.dart';
 part 'ingredient.g.dart';
 
 @freezed
-class Ingredient with _$Ingredient {
+abstract class Ingredient with _$Ingredient {
   const factory Ingredient({
     required double quantity,
     @JsonKey(name: 'ingredient') required IngredientDetail detail,
@@ -17,7 +17,7 @@ class Ingredient with _$Ingredient {
 }
 
 @freezed
-class IngredientDetail with _$IngredientDetail {
+abstract class IngredientDetail with _$IngredientDetail {
   const factory IngredientDetail({
     required String name,
   }) = _IngredientDetail;
@@ -26,7 +26,7 @@ class IngredientDetail with _$IngredientDetail {
 }
 
 @freezed
-class IngredientUnit with _$IngredientUnit {
+abstract class IngredientUnit with _$IngredientUnit {
   const factory IngredientUnit({
     required String name,
     String? abbreviation,

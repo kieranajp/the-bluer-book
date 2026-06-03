@@ -15,8 +15,10 @@ the obvious stuff.
   `internal/infrastructure/storage/queries/*.sql`, run `sqlc generate`. Nothing
   compiles until you do.
 - **freezed/json_serializable**: after editing any `app/lib/domain/*.dart`, run
-  `dart run build_runner build --delete-conflicting-outputs`. The `*.freezed.dart` /
-  `*.g.dart` files are committed but are outputs, not sources.
+  `dart run build_runner build` (build_runner 2.15+ deletes conflicting outputs by
+  default — the old `--delete-conflicting-outputs` flag is now a no-op). The
+  `*.freezed.dart` / `*.g.dart` files are committed but are outputs, not sources.
+  Note freezed 3 requires `@freezed` classes to be `abstract`/`sealed`.
 
 ## Layering rules (enforced, not just suggested)
 

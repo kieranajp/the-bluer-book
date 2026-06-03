@@ -19,6 +19,7 @@ import '../widgets/meal_plan_carousel.dart';
 import '../widgets/pill_search.dart';
 import '../widgets/recipe_row_swipeable.dart';
 import '../widgets/section_label.dart';
+import '../utils/error_message.dart';
 
 /// Home — "My Kitchen", Garden Plot / M3 Expressive.
 class RecipeListScreen extends ConsumerStatefulWidget {
@@ -97,10 +98,8 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
 
     ref.listen<AsyncValue<List<Recipe>>>(filteredRecipesProvider, (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {
-        final err = next.error;
-        final message = err is Exception
-            ? err.toString().replaceFirst('Exception: ', '')
-            : 'Failed to load recipes';
+        final message =
+            errorMessage(next.error, fallback: 'Failed to load recipes');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),

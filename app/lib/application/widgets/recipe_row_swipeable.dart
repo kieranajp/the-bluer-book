@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
+import '../utils/error_message.dart';
 import 'delete_recipe_dialog.dart';
 import 'recipe_row.dart';
 import 'swipe_to_reveal.dart';
@@ -37,12 +38,13 @@ class RecipeRowSwipeable extends ConsumerWidget {
           ),
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to delete recipe'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content:
+                Text(errorMessage(e, fallback: 'Failed to delete recipe')),
+            duration: const Duration(seconds: 4),
           ),
         );
       }

@@ -9,6 +9,7 @@ import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
 import 'shopping_list/shopping_list_screen.dart';
+import '../utils/error_message.dart';
 
 class MealPlanScreen extends ConsumerWidget {
   const MealPlanScreen({super.key});
@@ -19,10 +20,8 @@ class MealPlanScreen extends ConsumerWidget {
 
     ref.listen<AsyncValue<List<Recipe>>>(mealPlanRecipesProvider, (previous, next) {
       if (next.hasError && !(previous?.hasError ?? false)) {
-        final error = next.error;
-        final message = error is Exception
-            ? error.toString().replaceFirst('Exception: ', '')
-            : 'Failed to load meal plan';
+        final message =
+            errorMessage(next.error, fallback: 'Failed to load meal plan');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),

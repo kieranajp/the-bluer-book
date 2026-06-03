@@ -4,6 +4,7 @@ import '../../../domain/shopping_list_item.dart';
 import '../../providers/pantry_providers.dart';
 import '../../styles/colours.dart';
 import '../../styles/shapes.dart';
+import '../../utils/error_message.dart';
 
 /// One buyable item in the [ShoppingListScreen]. Tapping checks it off: a
 /// meal-plan ingredient lands in the pantry (so it drops off the list), a
@@ -30,10 +31,11 @@ class ShoppingListRow extends ConsumerWidget {
             duration: const Duration(seconds: 2),
           ),
         );
-      } catch (_) {
+      } catch (e) {
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text("Couldn't update your shopping list"),
+          SnackBar(
+            content: Text(
+                errorMessage(e, fallback: "Couldn't update your shopping list")),
             behavior: SnackBarBehavior.floating,
           ),
         );

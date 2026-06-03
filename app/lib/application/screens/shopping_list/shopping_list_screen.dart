@@ -10,6 +10,7 @@ import '../../widgets/brand_loader.dart';
 import '../../widgets/empty_state.dart';
 import 'add_shopping_item_dialog.dart';
 import 'shopping_list_row.dart';
+import '../../utils/error_message.dart';
 
 /// What you still need to buy: every meal-plan ingredient your planned recipes
 /// call for that isn't already in the pantry, plus any extras you add by hand
@@ -34,10 +35,10 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     if (name == null) return;
     try {
       await ref.read(shoppingListProvider.notifier).addCustom(name);
-    } catch (_) {
+    } catch (e) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text("Couldn't add that item"),
+        SnackBar(
+          content: Text(errorMessage(e, fallback: "Couldn't add that item")),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -90,10 +91,11 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-    } catch (_) {
+    } catch (e) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text("Couldn't read that shopping list"),
+        SnackBar(
+          content: Text(
+              errorMessage(e, fallback: "Couldn't read that shopping list")),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -109,10 +111,8 @@ class _ShoppingListScreenState extends ConsumerState<ShoppingListScreen> {
     ref.listen<AsyncValue<List<ShoppingListItem>>>(shoppingListProvider,
         (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {
-        final error = next.error;
-        final message = error is Exception
-            ? error.toString().replaceFirst('Exception: ', '')
-            : 'Failed to load shopping list';
+        final message =
+            errorMessage(next.error, fallback: 'Failed to load shopping list');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),

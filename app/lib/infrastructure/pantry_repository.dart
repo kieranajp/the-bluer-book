@@ -6,18 +6,7 @@ import 'package:http_parser/http_parser.dart';
 import '../domain/pantry_item.dart';
 import '../domain/shopping_list_item.dart';
 import 'network/api_client.dart';
-
-String _formatDioError(String action, DioException e) {
-  final status = e.response?.statusCode;
-  if (status != null) {
-    return '$action ($status)';
-  }
-  final inner = e.error;
-  if (inner != null) {
-    return '$action ($inner)';
-  }
-  return '$action (${e.type.name}: ${e.message})';
-}
+import 'network/api_exception.dart';
 
 class PantryRepository {
   final ApiClient _apiClient;
@@ -36,7 +25,7 @@ class PantryRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to load pantry: ${e.message}',
           name: 'PantryRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to load pantry', e));
+      throw ApiException.fromDio('Failed to load pantry', e);
     }
   }
 
@@ -47,7 +36,7 @@ class PantryRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to add "$ingredient" to pantry: ${e.message}',
           name: 'PantryRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to add to pantry', e));
+      throw ApiException.fromDio('Failed to add to pantry', e);
     }
   }
 
@@ -58,7 +47,7 @@ class PantryRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to remove "$ingredient" from pantry: ${e.message}',
           name: 'PantryRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to remove from pantry', e));
+      throw ApiException.fromDio('Failed to remove from pantry', e);
     }
   }
 
@@ -76,7 +65,7 @@ class PantryRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to load shopping list: ${e.message}',
           name: 'PantryRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to load shopping list', e));
+      throw ApiException.fromDio('Failed to load shopping list', e);
     }
   }
 
@@ -88,7 +77,7 @@ class PantryRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to add custom shopping item "$name": ${e.message}',
           name: 'PantryRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to add item', e));
+      throw ApiException.fromDio('Failed to add item', e);
     }
   }
 
@@ -100,7 +89,7 @@ class PantryRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to remove custom shopping item "$name": ${e.message}',
           name: 'PantryRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to remove item', e));
+      throw ApiException.fromDio('Failed to remove item', e);
     }
   }
 
@@ -133,7 +122,7 @@ class PantryRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to scan shopping list: ${e.message}',
           name: 'PantryRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to scan shopping list', e));
+      throw ApiException.fromDio('Failed to scan shopping list', e);
     }
   }
 }

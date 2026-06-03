@@ -51,7 +51,7 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
       final success = await notifier.save();
       if (success) {
         messenger.showSnackBar(SnackBar(content: Text(successMessage)));
-        navigator.pop();
+        navigator.pop(true);
       }
     } catch (e) {
       messenger.showSnackBar(

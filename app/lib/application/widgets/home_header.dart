@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/settings_screen.dart';
+import '../screens/settings/settings_screen.dart';
 import '../styles/colours.dart';
 import 'brand_mark.dart';
 

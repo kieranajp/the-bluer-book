@@ -1,0 +1,7 @@
+# Self-contained analysis config so `dart analyze`/`dart format` in this tool
+# package don't walk up and inherit the app's Flutter analysis_options (which
+# includes package:flutter_lints, unavailable here).
+analyzer:
+  language:
+    strict-casts: true
+    strict-raw-types: true

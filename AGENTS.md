@@ -44,13 +44,24 @@ the obvious stuff.
   errors (`recipe.ErrRecipeNotFound`, …) with `errors.Is`, not string matching.
 - **REST path params**: use `r.PathValue("id")` (via the `recipeIDFromPath` helper),
   never manual `strings.TrimPrefix`/`Split`. Routes declare `{id}` in the mux pattern.
-- **Flutter styling**: never hardcode colours or sizes. Use `context.colours`
-  (the `Colours` ThemeExtension) plus `Spacing` / `TextStyles` / `Shapes`. The
-  `ColorScheme` is hand-built — do not switch to `ColorScheme.fromSeed`.
-- **Flutter widget size**: **one widget class per file** (a screen + its sub-widgets =
-  a folder of files, public classes prefixed for ownership). Extract widget *classes*,
-  never `Widget _buildX()` helper methods. Screens orchestrate; logic lives in notifiers;
-  dialogs are widgets. See `docs/frontend.md`.
+- **Flutter widgets — read the `flutter-widgets` skill before touching UI.** In short:
+  **one widget class per file** (file named for the class; a screen + its sub-widgets =
+  a folder; `widgets/` is flat with owner-prefixed siblings); extract widget *classes*,
+  never `Widget _buildX()` helpers; screens orchestrate, logic lives in Riverpod
+  notifiers, dialogs are widgets; never hardcode colours or sizes — use
+  `context.colours` / `Spacing` / `TextStyles` / `Shapes` (the `ColorScheme` is
+  hand-built — no `ColorScheme.fromSeed`). The first two rules are **enforced, not
+  advisory**: `app/tool/widget_lint` runs in CI and **fails the build** on any
+  violation, so ignoring the skill breaks the PR. Its `baseline.txt` is empty — keep
+  it that way. Deep dives: `docs/frontend.md`.
+- **One concept per file (Dart), sized for SRP.** A file holds one concept named after
+  it. That's strictly one *widget* class in `widgets/`/`screens/` (lint-enforced), but
+  elsewhere the concept is broader: `domain/` groups an aggregate + its value objects,
+  `providers/` a notifier + its state, `infrastructure/` a client + its result/event type
+  (e.g. `Ingredient`+`IngredientDetail`+`IngredientUnit`, `ChatNotifier`+`ChatMessage`) —
+  mirroring the backend's `recipe.go`. Keep files small (a couple hundred lines; past
+  ~300 is a split smell — a guideline, not a gate). Go follows its own idioms here.
+  See `docs/frontend.md`.
 
 ## Build & test
 

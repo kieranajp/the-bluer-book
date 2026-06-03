@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/pantry_providers.dart';
-import '../providers/recipe_providers.dart';
-import '../widgets/brand_mark.dart';
-import '../widgets/empty_state.dart';
-import '../styles/colours.dart';
-import '../styles/spacing.dart';
-import '../styles/text_styles.dart';
+import '../../providers/pantry_providers.dart';
+import '../../providers/recipe_providers.dart';
+import '../../styles/colours.dart';
+import '../../styles/spacing.dart';
+import '../../styles/text_styles.dart';
+import '../../widgets/brand_loader.dart';
+import '../../widgets/empty_state.dart';
+import 'pantry_add_ingredient_field.dart';
+import 'pantry_chip.dart';
 
 /// Your at-home inventory. Add the ingredients you have so the app can tell
 /// you what you can cook (and, later, what's missing for your meal plan).
@@ -49,7 +51,9 @@ class PantryScreen extends ConsumerWidget {
                 elevation: 0,
                 title: Text('Pantry', style: TextStyles.appBarTitle(context)),
               ),
-              SliverToBoxAdapter(child: _AddIngredientField(allNames: allNames)),
+              SliverToBoxAdapter(
+                child: PantryAddIngredientField(allNames: allNames),
+              ),
               pantryAsync.when(
                 data: (names) {
                   if (names.isEmpty) {
@@ -71,7 +75,7 @@ class PantryScreen extends ConsumerWidget {
                         spacing: Spacing.xs,
                         runSpacing: Spacing.xs,
                         children: [
-                          for (final name in sorted) _PantryChip(name: name),
+                          for (final name in sorted) PantryChip(name: name),
                         ],
                       ),
                     ),
@@ -100,79 +104,6 @@ class PantryScreen extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _PantryChip extends ConsumerWidget {
-  final String name;
-
-  const _PantryChip({required this.name});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colours;
-    return InputChip(
-      label: Text(name),
-      backgroundColor: c.surfaceContainer,
-      deleteIcon: const Icon(Icons.close_rounded, size: 16),
-      onDeleted: () => ref.read(pantryProvider.notifier).remove(name),
-    );
-  }
-}
-
-class _AddIngredientField extends ConsumerWidget {
-  final List<String> allNames;
-
-  const _AddIngredientField({required this.allNames});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Spacing.m, 0, Spacing.m, Spacing.s),
-      child: Autocomplete<String>(
-        optionsBuilder: (value) {
-          final query = value.text.trim().toLowerCase();
-          if (query.isEmpty) return const Iterable<String>.empty();
-          final pantry = ref.read(pantryProvider).valueOrNull ?? const <String>{};
-          return allNames
-              .where((n) =>
-                  n.toLowerCase().contains(query) && !pantry.contains(n))
-              .take(8);
-        },
-        onSelected: (selection) {
-          ref.read(pantryProvider.notifier).add(selection);
-        },
-        fieldViewBuilder:
-            (context, controller, focusNode, onFieldSubmitted) {
-          final c = context.colours;
-          return TextField(
-            controller: controller,
-            focusNode: focusNode,
-            decoration: InputDecoration(
-              hintText: 'Add an ingredient you have…',
-              prefixIcon: const Icon(Icons.add_rounded),
-              filled: true,
-              fillColor: c.surfaceContainer,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            onSubmitted: (value) {
-              final query = value.trim().toLowerCase();
-              final match = allNames.firstWhere(
-                (n) => n.toLowerCase() == query,
-                orElse: () => '',
-              );
-              if (match.isNotEmpty) {
-                ref.read(pantryProvider.notifier).add(match);
-                controller.clear();
-              }
-            },
-          );
-        },
       ),
     );
   }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/theme_provider.dart';
-import '../styles/colours.dart';
-import '../styles/text_styles.dart';
-import '../styles/spacing.dart';
+import '../../providers/theme_provider.dart';
+import '../../styles/colours.dart';
+import '../../styles/text_styles.dart';
+import '../../styles/spacing.dart';
+import 'settings_theme_option_tile.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -38,7 +39,7 @@ class SettingsScreen extends ConsumerWidget {
                       style: TextStyles.sectionHeading(context),
                     ),
                     const SizedBox(height: Spacing.s),
-                    _ThemeOptionTile(
+                    SettingsThemeOptionTile(
                       title: 'System',
                       subtitle: 'Follow device settings',
                       icon: Icons.brightness_auto,
@@ -47,7 +48,7 @@ class SettingsScreen extends ConsumerWidget {
                           .read(themeModeProvider.notifier)
                           .setThemeMode(ThemeMode.system),
                     ),
-                    _ThemeOptionTile(
+                    SettingsThemeOptionTile(
                       title: 'Light',
                       subtitle: 'Always use light theme',
                       icon: Icons.light_mode,
@@ -56,7 +57,7 @@ class SettingsScreen extends ConsumerWidget {
                           .read(themeModeProvider.notifier)
                           .setThemeMode(ThemeMode.light),
                     ),
-                    _ThemeOptionTile(
+                    SettingsThemeOptionTile(
                       title: 'Dark',
                       subtitle: 'Always use dark theme',
                       icon: Icons.dark_mode,
@@ -75,46 +76,6 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _ThemeOptionTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ThemeOptionTile({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: Spacing.xs),
-      leading: Icon(
-        icon,
-        color: isSelected
-            ? context.colours.primary
-            : context.colours.textSecondary,
-      ),
-      title: Text(
-        title,
-        style: TextStyles.body(context).copyWith(
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
-      subtitle: Text(subtitle, style: TextStyles.caption(context)),
-      trailing: isSelected
-          ? Icon(Icons.check, color: context.colours.primary)
-          : null,
-      onTap: onTap,
     );
   }
 }

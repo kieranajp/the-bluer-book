@@ -1,0 +1,7 @@
+# widget_lint baseline — grandfathered structural violations.
+#
+# Each line is `<relpath>|<rule>|<name>`. Entries here are KNOWN
+# pre-existing violations that do NOT fail CI. New violations do.
+# Burn this list down over time; do not add to it casually.
+# Regenerate with: dart run widget_lint --update-baseline
+#

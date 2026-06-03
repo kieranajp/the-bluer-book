@@ -13,6 +13,11 @@ analyzer:
   errors:
     # Suppress false positive warnings for @JsonKey in Freezed classes
     invalid_annotation_target: ignore
+  exclude:
+    # tool/widget_lint is a self-contained package with its own pubspec; it is
+    # analysed/run on its own (see tool/widget_lint/README.md), not as part of
+    # the app, so keep `flutter analyze` out of it.
+    - tool/**
 
 linter:
   # The lint rules applied to this project can be customized in the

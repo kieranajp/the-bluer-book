@@ -25,6 +25,17 @@ jobs:
 
       - run: flutter analyze
 
+      # Structural lint: enforces "one widget class per file" and bans
+      # Widget-returning helper methods (docs/frontend.md). Self-contained Dart
+      # package — runs on the Flutter-bundled Dart, no extra setup.
+      # The backlog has been cleared, so baseline.txt is empty and this is
+      # effectively strict; any new violation fails the build.
+      - name: Widget structure lint
+        working-directory: app/tool/widget_lint
+        run: |
+          dart pub get
+          dart run widget_lint
+
       - run: flutter test
 
   go-test:

@@ -5,7 +5,8 @@ import '../styles/colours.dart';
 import '../styles/shapes.dart';
 import '../styles/text_styles.dart';
 import '../utils/time_format.dart';
-import 'striped_placeholder.dart';
+import 'meal_plan_card_star.dart';
+import 'recipe_image.dart';
 
 /// A torn-corner meal-plan card for the two-column grid on the Meal Plan
 /// screen. Shares the cookbook-page shape DNA, full-bleed image and serif
@@ -58,7 +59,7 @@ class MealPlanCard extends StatelessWidget {
                   Positioned(
                     top: 10,
                     right: 10,
-                    child: _PlanStar(active: recipe.isInMealPlan),
+                    child: MealPlanCardStar(active: recipe.isInMealPlan),
                   ),
                 ],
               ),
@@ -95,31 +96,6 @@ class MealPlanCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Translucent membership star floating over the card image.
-class _PlanStar extends StatelessWidget {
-  final bool active;
-
-  const _PlanStar({required this.active});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 32,
-      height: 32,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.5),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        active ? Icons.star : Icons.star_border,
-        color: Colors.white,
-        size: 18,
       ),
     );
   }

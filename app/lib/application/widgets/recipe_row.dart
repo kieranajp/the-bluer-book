@@ -9,7 +9,8 @@ import '../styles/shapes.dart';
 import '../utils/cookability.dart';
 import '../utils/time_format.dart';
 import 'meal_plan_toggle_button.dart';
-import 'striped_placeholder.dart';
+import 'recipe_cook_badge.dart';
+import 'recipe_image.dart';
 
 /// Compact recipe row used in the home screen's "All recipes" list.
 /// 72×72 squircle thumb + two-line title + description + meta chips.
@@ -111,7 +112,7 @@ class RecipeRow extends ConsumerWidget {
                       ),
                       if (showCookBadge) ...[
                         const SizedBox(width: 8),
-                        _CookBadge(cook: cook),
+                        RecipeCookBadge(cook: cook),
                       ],
                       if (recipe.labels.isNotEmpty) const SizedBox(width: 8),
                       Expanded(
@@ -156,49 +157,6 @@ class RecipeRow extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Small pill showing how cookable a recipe is from the current pantry:
-/// "Ready" when you have every ingredient, otherwise "Missing N".
-class _CookBadge extends StatelessWidget {
-  final Cookability cook;
-
-  const _CookBadge({required this.cook});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colours;
-    final ready = cook.ready;
-    final bg = ready ? c.primaryContainer : c.surfaceContainer;
-    final fg = ready ? c.primary : c.textSecondary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            ready ? Icons.check_circle_rounded : Icons.shopping_basket_outlined,
-            size: 11,
-            color: fg,
-          ),
-          const SizedBox(width: 3),
-          Text(
-            ready ? 'Ready' : 'Missing ${cook.missing}',
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
-              color: fg,
-            ),
-          ),
-        ],
       ),
     );
   }

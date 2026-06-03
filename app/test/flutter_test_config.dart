@@ -41,6 +41,8 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   GoogleFonts.instrumentSerif();
   GoogleFonts.instrumentSerif(fontStyle: FontStyle.italic);
   GoogleFonts.jetBrainsMono();
+  GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w500);
+  GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w600);
   await GoogleFonts.pendingFonts();
 
   await AlchemistConfig.runWithConfig(

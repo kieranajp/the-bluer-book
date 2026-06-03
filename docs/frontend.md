@@ -262,15 +262,20 @@ Widget rendering is pinned with [alchemist](https://pub.dev/packages/alchemist) 
 under `app/test/golden/`. They render a widget to a PNG and diff it against a committed
 reference image, catching unintended visual changes (layout, sizing, theme colours).
 
-- **Cross-machine determinism.** `test/flutter_test_config.dart` runs alchemist with
-  *only* CI goldens enabled (`PlatformGoldensConfig(enabled: false)`). CI goldens draw
-  text as Ahem blocks with shadows off, so the PNGs are byte-identical on any machine —
-  your dev box and the Ubuntu CI runner agree. Reference images live in
-  `test/golden/goldens/ci/`.
+- **Readable, but still cross-machine deterministic.** `test/flutter_test_config.dart`
+  runs alchemist with a single golden set (`test/golden/goldens/ci/`), rendering **real
+  text** (`obscureText: false`). Flutter draws goldens through its own engine (Skia + the
+  bundled fonts), so given the same Flutter version the PNGs match across machines — your
+  dev box and the Ubuntu CI runner agree. Alchemist's separate per-OS "platform" goldens
+  are disabled so there's only one set to maintain.
 - **Fonts are bundled, not fetched.** The `google_fonts` families are committed as
   `.ttf`s under `app/fonts/` (declared in `pubspec.yaml` `assets:`), so they load offline
   — `flutter test`'s binding blocks all HTTP, which would otherwise make google_fonts
-  throw. This also benefits production (no first-launch font flash).
+  throw. This also benefits production (no first-launch font flash). Because google_fonts
+  loads asynchronously (a font caught mid-load renders as `.notdef` boxes), the test
+  config pre-warms every bundled family/variant and awaits `GoogleFonts.pendingFonts()`
+  before any test runs — **if you add a new font weight/family, bundle the `.ttf` and add
+  a matching warm-up line there**, or goldens for it may render as boxes.
 - **Render under the real theme.** Use `themedScenario(...)` from
   `test/golden/golden_support.dart`; it wraps the widget in `buildAppTheme(...)` (the
   shipping theme) for light or dark, so goldens reflect production theming, not a bare

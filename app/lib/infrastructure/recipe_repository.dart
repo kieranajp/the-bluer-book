@@ -11,6 +11,10 @@ import 'network/api_client.dart';
 String _formatDioError(String action, DioException e) {
   final status = e.response?.statusCode;
   if (status != null) {
+    final serverMessage = _extractServerMessage(e.response?.data);
+    if (serverMessage != null) {
+      return '$action ($status): $serverMessage';
+    }
     return '$action ($status)';
   }
   final inner = e.error;
@@ -18,6 +22,32 @@ String _formatDioError(String action, DioException e) {
     return '$action ($inner)';
   }
   return '$action (${e.type.name}: ${e.message})';
+}
+
+/// Pulls a human-readable message out of the API's error response body,
+/// which has the shape `{"error": {"code": "...", "message": "..."}}`.
+String? _extractServerMessage(dynamic data) {
+  if (data is Map) {
+    final error = data['error'];
+    if (error is Map) {
+      final message = error['message'];
+      if (message is String && message.isNotEmpty) {
+        final code = error['code'];
+        if (code is String && code.isNotEmpty) {
+          return '$message [$code]';
+        }
+        return message;
+      }
+    }
+    final message = data['message'];
+    if (message is String && message.isNotEmpty) {
+      return message;
+    }
+  }
+  if (data is String && data.isNotEmpty) {
+    return data;
+  }
+  return null;
 }
 
 class PaginatedRecipes {

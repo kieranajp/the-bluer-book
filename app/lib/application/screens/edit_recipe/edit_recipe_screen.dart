@@ -52,11 +52,25 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
         messenger.showSnackBar(SnackBar(content: Text(successMessage)));
         navigator.pop();
       }
-    } catch (_) {
+    } catch (e) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Failed to save recipe')),
+        SnackBar(
+          content: Text('Failed to save recipe: ${_describeError(e)}'),
+          duration: const Duration(seconds: 8),
+        ),
       );
     }
+  }
+
+  /// Turns a thrown error into a readable message, stripping the
+  /// `Exception:` prefix that `toString()` adds so the underlying reason
+  /// (e.g. a validation failure from the API) is shown to the user.
+  String _describeError(Object error) {
+    final message = error is Exception ? error.toString() : '$error';
+    const prefix = 'Exception: ';
+    return message.startsWith(prefix)
+        ? message.substring(prefix.length)
+        : message;
   }
 
   Future<bool> _onWillPop() async {

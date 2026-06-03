@@ -19,7 +19,7 @@ class PantryAddIngredientField extends ConsumerWidget {
         optionsBuilder: (value) {
           final query = value.text.trim().toLowerCase();
           if (query.isEmpty) return const Iterable<String>.empty();
-          final pantry = ref.read(pantryProvider).valueOrNull ?? const <String>{};
+          final pantry = ref.read(pantryProvider).value ?? const <String>{};
           return allNames
               .where((n) =>
                   n.toLowerCase().contains(query) && !pantry.contains(n))

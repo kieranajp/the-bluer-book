@@ -19,7 +19,7 @@ class PantryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pantryAsync = ref.watch(pantryProvider);
     final allNames =
-        ref.watch(ingredientsProvider).valueOrNull?.map((e) => e.name).toList() ??
+        ref.watch(ingredientsProvider).value?.map((e) => e.name).toList() ??
             const <String>[];
 
     ref.listen<AsyncValue<Set<String>>>(pantryProvider, (prev, next) {

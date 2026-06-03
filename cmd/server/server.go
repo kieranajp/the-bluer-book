@@ -111,8 +111,13 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	// Initialize dependencies
-	queries := db.New(sqlDB)
+	// Expose connection-pool stats (go_sql_*) alongside the per-query metrics
+	// recorded by the instrumented DBTX below.
+	metrics.RegisterDBStats(sqlDB)
+
+	// Initialize dependencies. Wrapping the pool in an instrumented DBTX times
+	// every sqlc query without the repository needing to know about metrics.
+	queries := db.New(metrics.NewInstrumentedDBTX(sqlDB))
 	repo := repository.NewRecipeRepository(queries, sqlDB, log)
 	pantryRepo := repository.NewPantryRepository(queries, log)
 

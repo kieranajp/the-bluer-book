@@ -17,7 +17,7 @@ class IngredientsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pantry = ref.watch(pantryProvider).valueOrNull ?? const <String>{};
+    final pantry = ref.watch(pantryProvider).value ?? const <String>{};
     final hasComponents = ingredients.any(
       (i) => i.component != null && i.component!.isNotEmpty,
     );

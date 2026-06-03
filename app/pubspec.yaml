@@ -34,18 +34,18 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # State management
-  flutter_riverpod: ^2.6.1
+  flutter_riverpod: ^3.3.1
 
   # HTTP client
   dio: ^5.7.0
   http_parser: ^4.1.0
 
   # JSON serialisation
-  freezed_annotation: ^2.4.4
-  json_annotation: ^4.9.0
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
 
   # Google Fonts for Work Sans
-  google_fonts: ^6.2.1
+  google_fonts: ^8.1.0
 
   # Persistent storage
   shared_preferences: ^2.5.5
@@ -56,8 +56,9 @@ dependencies:
   # Open recipe source links in the browser
   url_launcher: ^6.3.0
 
-  # Markdown rendering
-  flutter_markdown: ^0.7.7
+  # Markdown rendering (flutter_markdown_plus is the maintained successor to
+  # the discontinued google flutter_markdown — same MarkdownBody API)
+  flutter_markdown_plus: ^1.0.7
 
   # Image picker for recipe photos
   image_picker: ^1.1.2
@@ -81,10 +82,9 @@ dev_dependencies:
   alchemist: ^0.14.0
 
   # Code generation
-  build_runner: ^2.4.13
-  freezed: ^2.5.7
-  json_serializable: ^6.8.0
-  riverpod_generator: ^2.6.2
+  build_runner: ^2.15.0
+  freezed: ^3.2.5
+  json_serializable: ^6.14.0
 
   # Launcher icons
   flutter_launcher_icons: ^0.14.1

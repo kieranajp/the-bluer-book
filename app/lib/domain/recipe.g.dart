@@ -6,7 +6,7 @@ part of 'recipe.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$RecipeImpl _$$RecipeImplFromJson(Map<String, dynamic> json) => _$RecipeImpl(
+_Recipe _$RecipeFromJson(Map<String, dynamic> json) => _Recipe(
   uuid: json['uuid'] as String,
   name: json['name'] as String,
   description: json['description'] as String,
@@ -27,18 +27,17 @@ _$RecipeImpl _$$RecipeImplFromJson(Map<String, dynamic> json) => _$RecipeImpl(
       .toList(),
 );
 
-Map<String, dynamic> _$$RecipeImplToJson(_$RecipeImpl instance) =>
-    <String, dynamic>{
-      'uuid': instance.uuid,
-      'name': instance.name,
-      'description': instance.description,
-      'prepTime': instance.preparationTime,
-      'cookTime': instance.cookingTime,
-      'servings': instance.servings,
-      'mainPhoto': instance.imageUrl,
-      'url': instance.url,
-      'isInMealPlan': instance.isInMealPlan,
-      'ingredients': instance.ingredients,
-      'steps': instance.steps,
-      'labels': instance.labels,
-    };
+Map<String, dynamic> _$RecipeToJson(_Recipe instance) => <String, dynamic>{
+  'uuid': instance.uuid,
+  'name': instance.name,
+  'description': instance.description,
+  'prepTime': instance.preparationTime,
+  'cookTime': instance.cookingTime,
+  'servings': instance.servings,
+  'mainPhoto': instance.imageUrl,
+  'url': instance.url,
+  'isInMealPlan': instance.isInMealPlan,
+  'ingredients': instance.ingredients,
+  'steps': instance.steps,
+  'labels': instance.labels,
+};

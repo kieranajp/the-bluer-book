@@ -230,18 +230,27 @@ class EditRecipeState {
 
 // --- Notifier: all edit logic lives here ---
 
-class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
-  final RecipeRepository _repository;
-  final Ref _ref;
+class EditRecipeNotifier extends Notifier<EditRecipeState> {
+  EditRecipeNotifier(Recipe recipe)
+      : _initialRecipe = recipe,
+        _uuid = recipe.uuid;
+
+  EditRecipeNotifier.create()
+      : _initialRecipe = null,
+        _uuid = null;
+
+  final Recipe? _initialRecipe;
   final String? _uuid;
 
-  EditRecipeNotifier(this._repository, this._ref, Recipe recipe)
-      : _uuid = recipe.uuid,
-        super(EditRecipeState.fromRecipe(recipe));
+  RecipeRepository get _repository => ref.read(recipeRepositoryProvider);
 
-  EditRecipeNotifier.create(this._repository, this._ref)
-      : _uuid = null,
-        super(EditRecipeState.blank());
+  @override
+  EditRecipeState build() {
+    final recipe = _initialRecipe;
+    return recipe == null
+        ? EditRecipeState.blank()
+        : EditRecipeState.fromRecipe(recipe);
+  }
 
   bool get isCreating => _uuid == null;
 
@@ -413,8 +422,8 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
       }
 
       state = state.copyWith(isSaving: false);
-      _ref.invalidate(recipeListProvider);
-      _ref.invalidate(mealPlanRecipesProvider);
+      ref.invalidate(recipeListProvider);
+      ref.invalidate(mealPlanRecipesProvider);
       return true;
     } catch (e, stack) {
       dev.log('Failed to save recipe ${_uuid ?? "(new)"}',
@@ -427,20 +436,9 @@ class EditRecipeNotifier extends StateNotifier<EditRecipeState> {
 
 // Provider keyed on Recipe — autoDispose cleans up when edit screen pops
 
-final editRecipeProvider = StateNotifierProvider.autoDispose
-    .family<EditRecipeNotifier, EditRecipeState, Recipe>((ref, recipe) {
-  return EditRecipeNotifier(
-    ref.watch(recipeRepositoryProvider),
-    ref,
-    recipe,
-  );
-});
+final editRecipeProvider = NotifierProvider.autoDispose
+    .family<EditRecipeNotifier, EditRecipeState, Recipe>(EditRecipeNotifier.new);
 
 final newRecipeProvider =
-    StateNotifierProvider.autoDispose<EditRecipeNotifier, EditRecipeState>(
-        (ref) {
-  return EditRecipeNotifier.create(
-    ref.watch(recipeRepositoryProvider),
-    ref,
-  );
-});
+    NotifierProvider.autoDispose<EditRecipeNotifier, EditRecipeState>(
+        EditRecipeNotifier.create);

@@ -12,11 +12,13 @@ final pantryRepositoryProvider = Provider<PantryRepository>((ref) {
 /// names because that's the lingua franca of the rest of the app (recipe
 /// ingredients reference their ingredient by name) — membership is all the
 /// "have / don't-have" model needs.
-class PantryNotifier extends StateNotifier<AsyncValue<Set<String>>> {
-  final PantryRepository _repository;
+class PantryNotifier extends Notifier<AsyncValue<Set<String>>> {
+  PantryRepository get _repository => ref.read(pantryRepositoryProvider);
 
-  PantryNotifier(this._repository) : super(const AsyncValue.loading()) {
-    load();
+  @override
+  AsyncValue<Set<String>> build() {
+    Future.microtask(load);
+    return const AsyncValue.loading();
   }
 
   Future<void> load() async {
@@ -30,12 +32,12 @@ class PantryNotifier extends StateNotifier<AsyncValue<Set<String>>> {
     }
   }
 
-  bool has(String ingredient) => state.valueOrNull?.contains(ingredient) ?? false;
+  bool has(String ingredient) => state.value?.contains(ingredient) ?? false;
 
   /// Flip whether [ingredient] is in the pantry, optimistically updating local
   /// state and reverting if the API call fails.
   Future<void> toggle(String ingredient) async {
-    final current = state.valueOrNull ?? const <String>{};
+    final current = state.value ?? const <String>{};
     final wasIn = current.contains(ingredient);
 
     final next = {...current};
@@ -72,20 +74,19 @@ class PantryNotifier extends StateNotifier<AsyncValue<Set<String>>> {
 }
 
 final pantryProvider =
-    StateNotifierProvider<PantryNotifier, AsyncValue<Set<String>>>((ref) {
-  return PantryNotifier(ref.watch(pantryRepositoryProvider));
-});
+    NotifierProvider<PantryNotifier, AsyncValue<Set<String>>>(
+        PantryNotifier.new);
 
 /// The shopping list: ingredients needed for the meal plan that aren't in the
 /// pantry. autoDispose so it re-fetches each time the screen is opened (it
 /// depends on both the meal plan and the pantry, which change elsewhere).
-class ShoppingListNotifier extends StateNotifier<AsyncValue<List<String>>> {
-  final PantryRepository _repository;
-  final Ref _ref;
+class ShoppingListNotifier extends Notifier<AsyncValue<List<String>>> {
+  PantryRepository get _repository => ref.read(pantryRepositoryProvider);
 
-  ShoppingListNotifier(this._repository, this._ref)
-      : super(const AsyncValue.loading()) {
-    load();
+  @override
+  AsyncValue<List<String>> build() {
+    Future.microtask(load);
+    return const AsyncValue.loading();
   }
 
   Future<void> load() async {
@@ -102,11 +103,11 @@ class ShoppingListNotifier extends StateNotifier<AsyncValue<List<String>>> {
   /// Mark an item as bought: it goes into the pantry and leaves the list.
   /// Optimistic — reverts if the API call fails.
   Future<void> check(String ingredient) async {
-    final current = state.valueOrNull ?? const <String>[];
+    final current = state.value ?? const <String>[];
     state = AsyncValue.data(current.where((e) => e != ingredient).toList());
     try {
       await _repository.addToPantry(ingredient);
-      _ref.invalidate(pantryProvider);
+      ref.invalidate(pantryProvider);
     } catch (e, stack) {
       dev.log('Failed to check off "$ingredient"',
           name: 'ShoppingListNotifier', error: e, stackTrace: stack);
@@ -116,7 +117,6 @@ class ShoppingListNotifier extends StateNotifier<AsyncValue<List<String>>> {
   }
 }
 
-final shoppingListProvider = StateNotifierProvider.autoDispose<
-    ShoppingListNotifier, AsyncValue<List<String>>>((ref) {
-  return ShoppingListNotifier(ref.watch(pantryRepositoryProvider), ref);
-});
+final shoppingListProvider =
+    NotifierProvider.autoDispose<ShoppingListNotifier, AsyncValue<List<String>>>(
+        ShoppingListNotifier.new);

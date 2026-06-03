@@ -42,6 +42,13 @@ mcp:
   service:
     port: 8082
 
+monitoring:
+  dashboard:
+    # Ships the Grafana dashboard (charts/bluer-book/dashboards/dashboard.json)
+    # as a labelled ConfigMap. Grafana's sidecar auto-provisions it; no homelab
+    # change needed.
+    enabled: true
+
 gemini:
   # Gemini model used by the chat handler and the tag-recipes job.
   model: "gemini-3.5-flash"

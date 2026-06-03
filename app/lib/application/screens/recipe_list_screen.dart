@@ -10,7 +10,7 @@ import '../styles/colours.dart';
 import '../styles/label_colours.dart';
 import '../styles/spacing.dart';
 import '../utils/cookability.dart';
-import '../widgets/brand_mark.dart';
+import '../widgets/brand_loader.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/filter_chip_row.dart';
 import '../widgets/home_header.dart';

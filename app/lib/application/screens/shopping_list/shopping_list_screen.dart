@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/pantry_providers.dart';
-import '../styles/colours.dart';
-import '../styles/shapes.dart';
-import '../styles/spacing.dart';
-import '../styles/text_styles.dart';
-import '../widgets/brand_mark.dart';
-import '../widgets/empty_state.dart';
+import '../../providers/pantry_providers.dart';
+import '../../styles/colours.dart';
+import '../../styles/spacing.dart';
+import '../../styles/text_styles.dart';
+import '../../widgets/brand_loader.dart';
+import '../../widgets/empty_state.dart';
+import 'shopping_list_row.dart';
 
 /// What you still need to buy for your meal plan — every ingredient your
 /// planned recipes call for that isn't already in the pantry. Checking an item
@@ -60,7 +60,7 @@ class ShoppingListScreen extends ConsumerWidget {
                       )
                     : SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (context, i) => _ShoppingRow(ingredient: items[i]),
+                          (context, i) => ShoppingListRow(ingredient: items[i]),
                           childCount: items.length,
                         ),
                       ),
@@ -87,67 +87,6 @@ class ShoppingListScreen extends ConsumerWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ShoppingRow extends ConsumerWidget {
-  final String ingredient;
-
-  const _ShoppingRow({required this.ingredient});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colours;
-
-    Future<void> buy() async {
-      final messenger = ScaffoldMessenger.of(context);
-      try {
-        await ref.read(shoppingListProvider.notifier).check(ingredient);
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Added "$ingredient" to your pantry'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      } catch (_) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text("Couldn't update your pantry"),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-
-    return InkWell(
-      onTap: buy,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: Shapes.squircle(10),
-                border: Border.all(color: c.outlineVariant, width: 2),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                ingredient,
-                style: TextStyle(fontSize: 14.5, color: c.textPrimary),
-              ),
-            ),
-            Icon(Icons.add_rounded, size: 18, color: c.textSecondary),
-          ],
         ),
       ),
     );

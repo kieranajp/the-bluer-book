@@ -13,7 +13,7 @@ import '../widgets/recipe_header.dart';
 import '../widgets/recipe_hero_image.dart';
 import '../widgets/recipe_stats_card.dart';
 import '../widgets/recipe_tab_bar.dart';
-import 'edit_recipe_screen.dart';
+import 'edit_recipe/edit_recipe_screen.dart';
 
 class RecipeDetailsScreen extends ConsumerStatefulWidget {
   final Recipe recipe;

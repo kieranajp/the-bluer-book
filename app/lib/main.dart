@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'application/screens/app_shell.dart';
+import 'application/screens/app_shell/app_shell.dart';
 import 'application/styles/colours.dart';
 import 'application/providers/theme_provider.dart';
 

@@ -52,7 +52,7 @@ the obvious stuff.
   never `Widget _buildX()` helper methods. Screens orchestrate; logic lives in notifiers;
   dialogs are widgets. See `docs/frontend.md`. **Enforced in CI** by
   `app/tool/widget_lint` (one widget class per file + no `Widget`-returning helpers);
-  existing violations are grandfathered in its `baseline.txt` — shrink it, don't grow it.
+  the backlog is cleared so its `baseline.txt` is empty — keep it that way.
 
 ## Build & test
 

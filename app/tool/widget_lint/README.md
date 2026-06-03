@@ -23,14 +23,14 @@ dart run widget_lint            # check lib/, honouring the baseline (CI does th
 
 ## The baseline
 
-When this lint was introduced the app already had 32 pre-existing violations.
-Rather than block on refactoring them all at once, they are **grandfathered** in
-[`baseline.txt`](baseline.txt): they don't fail CI, but any *new* violation does.
+When this lint was introduced the app had 32 pre-existing violations. They have
+since all been refactored away, so [`baseline.txt`](baseline.txt) is now **empty**
+and the check is effectively strict — any violation fails CI.
 
-The baseline is a ratchet — burn it down over time, never grow it casually. When
-you extract a grandfathered widget into its own file, drop its line from
-`baseline.txt` (or regenerate). Each entry is a stable `path|rule|name`
-signature with no line number, so unrelated edits don't churn it.
+The baseline remains as a ratchet for grandfathering, if ever needed again: add a
+`path|rule|name` signature to keep a deliberate exception out of CI, but don't
+grow it casually. Each entry is a stable signature with no line number, so
+unrelated edits don't churn it.
 
 ```bash
 dart run widget_lint --no-baseline      # report every violation, ignore baseline

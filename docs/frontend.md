@@ -108,11 +108,12 @@ file — public sibling or private `_SubWidget` — fails the build, as does a
 `Widget _buildX()` helper. Non-widget helpers (returning `InputDecoration`, a
 `String`, `List<Widget>`, …) are fine.
 
-Pre-existing violations are grandfathered in `tool/widget_lint/baseline.txt` so
-the check could be switched on without a big-bang refactor; new violations fail.
-The baseline is a ratchet — shrink it as you split files, don't grow it. Run it
-locally with `cd app/tool/widget_lint && dart pub get && dart run widget_lint`.
-See `tool/widget_lint/README.md`.
+The backlog has been cleared, so `tool/widget_lint/baseline.txt` is empty and the
+check is effectively strict — any new violation fails the build. (The baseline is
+a ratchet for grandfathering, if ever needed again: add a signature to keep a
+deliberate exception, but don't grow it casually.) Run it locally with
+`cd app/tool/widget_lint && dart pub get && dart run widget_lint`. See
+`tool/widget_lint/README.md`.
 
 ## Domain models
 

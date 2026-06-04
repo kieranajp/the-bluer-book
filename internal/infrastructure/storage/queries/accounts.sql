@@ -88,3 +88,20 @@ WHERE uuid = $1;
 SELECT * FROM invitations
 WHERE home_id = $1 AND accepted_at IS NULL AND expires_at > now()
 ORDER BY created_at DESC;
+
+-- name: PurgeHome :exec
+-- Destructive delete of a home. Every tenant table FKs homes(uuid) ON DELETE
+-- CASCADE (see 00012 + 00013), plus home_members and invitations also CASCADE,
+-- so this single DELETE sweeps recipes/steps/recipe_ingredient/recipe_label/
+-- photos/meal_plan_recipes/ingredients/pantry_items/shopping_list_items along
+-- with the membership and invitation rows in one statement. Must run as the
+-- owner role — under FORCE RLS the app role would only see rows matching
+-- app.home_id and the cascade behaviour across roles is fiddly.
+DELETE FROM homes WHERE uuid = $1;
+
+-- name: DeleteUser :exec
+-- DELETE FROM users cascades home_members (ON DELETE CASCADE) and nulls
+-- invitations.invited_by (ON DELETE SET NULL) for any outstanding invites the
+-- user issued. Combine with PurgeHome for any home where the user was the
+-- sole owner to fully scrub their footprint.
+DELETE FROM users WHERE uuid = $1;

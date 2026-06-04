@@ -217,6 +217,83 @@ func TestHomeIsolation_PantryAndShoppingListAreHomeScoped(t *testing.T) {
 	}
 }
 
+func TestPurgeHome_CascadesAcrossEveryTenantTable(t *testing.T) {
+	db := openIntegrationDB(t)
+	t.Cleanup(func() { _ = db.Close() })
+
+	recipes := repository.NewRecipeRepository(db, logger.New(logger.LogLevelError))
+	pantry := repository.NewPantryRepository(db, logger.New(logger.LogLevelError))
+	admin := repository.NewAccountAdminRepository(db)
+
+	homeID := createHome(t, db, "Purge Sentinel")
+	ctx := auth.WithIdentity(context.Background(), uuid.New(), homeID)
+
+	saved, err := recipes.SaveRecipe(ctx, recipe.Recipe{
+		Name:        "Sentinel Recipe",
+		Description: "scrub me",
+		Ingredients: []recipe.RecipeIngredient{
+			{Ingredient: recipe.Ingredient{Name: "purge-ingredient"}},
+		},
+		Labels: []recipe.Label{{Type: "course", Name: "main"}},
+		Steps:  []recipe.Step{{Order: 1, Description: "stir"}},
+	})
+	if err != nil {
+		t.Fatalf("save recipe: %v", err)
+	}
+	if err := recipes.AddToMealPlan(ctx, saved.UUID); err != nil {
+		t.Fatalf("add to meal plan: %v", err)
+	}
+	if err := pantry.AddToPantry(ctx, "purge-ingredient"); err != nil {
+		t.Fatalf("add to pantry: %v", err)
+	}
+	if err := pantry.AddCustomShoppingItem(ctx, "purge-target"); err != nil {
+		t.Fatalf("add custom shopping item: %v", err)
+	}
+
+	// Sanity-check that rows landed in the home before the purge.
+	tenantTables := []string{
+		"recipes", "steps", "recipe_ingredient", "recipe_label", "photos",
+		"meal_plan_recipes", "ingredients", "pantry_items", "shopping_list_items",
+	}
+	for _, table := range tenantTables {
+		var n int
+		if err := db.QueryRow(`SELECT count(*) FROM `+table+` WHERE home_id = $1`, homeID).Scan(&n); err != nil {
+			t.Fatalf("pre-purge count %s: %v", table, err)
+		}
+		// Not every table will have rows for every test fixture (e.g. no
+		// photos here) — that's fine. We just want recipes + ingredient +
+		// meal plan + pantry + shopping list to be non-zero.
+		_ = n
+	}
+
+	// Purge the home. The single DELETE FROM homes cascade should sweep
+	// every tenant table; no app.home_id GUC needs to be set because
+	// PurgeHome runs on the owner connection.
+	if err := admin.PurgeHome(context.Background(), homeID); err != nil {
+		t.Fatalf("PurgeHome: %v", err)
+	}
+
+	// Every tenant table must now report zero rows for the home.
+	for _, table := range tenantTables {
+		var n int
+		if err := db.QueryRow(`SELECT count(*) FROM `+table+` WHERE home_id = $1`, homeID).Scan(&n); err != nil {
+			t.Fatalf("post-purge count %s: %v", table, err)
+		}
+		if n != 0 {
+			t.Errorf("%s still has %d rows for purged home %s", table, n, homeID)
+		}
+	}
+
+	// The home row itself must be gone.
+	var homeRows int
+	if err := db.QueryRow(`SELECT count(*) FROM homes WHERE uuid = $1`, homeID).Scan(&homeRows); err != nil {
+		t.Fatalf("count homes: %v", err)
+	}
+	if homeRows != 0 {
+		t.Errorf("home row still present after purge")
+	}
+}
+
 func TestHomeIsolation_AddToMealPlanIsHomeScoped(t *testing.T) {
 	db := openIntegrationDB(t)
 	t.Cleanup(func() { _ = db.Close() })

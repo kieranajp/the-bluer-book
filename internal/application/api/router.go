@@ -19,6 +19,8 @@ func NewRouter(
 	recipeService service.RecipeService,
 	pantryService pantryservice.PantryService,
 	accountHandler *AccountHandler,
+	complianceHandler *ComplianceHandler,
+	accountDeleteWeb *AccountDeleteWebHandler,
 	chatHandler *chat.Handler,
 	photoHandler *PhotoHandler,
 	scanner *ai.ShoppingListScanner,
@@ -94,8 +96,22 @@ func NewRouter(
 	apiMux.HandleFunc("GET /api/homes/{id}/members", accountHandler.ListMembers)
 	apiMux.HandleFunc("DELETE /api/homes/{id}/members/{userID}", accountHandler.RemoveMember)
 
+	// Google Play compliance: account deletion + data export.
+	apiMux.HandleFunc("DELETE /api/account", complianceHandler.DeleteAccount)
+	apiMux.HandleFunc("GET /api/account/export", complianceHandler.ExportData)
+
 	authedAPI := auth.Middleware(resolver, logger)(apiMux)
 	mux.Handle("/api/", authedAPI)
+
+	// Public web URL for account deletion (Google Play requires a URL
+	// reachable without installing the app). Sits behind the same auth
+	// middleware as /api/* — the homelab Oathkeeper "ory-auth" rule sets
+	// X-User from the Kratos session cookie. Two routes share the same
+	// path: GET shows the form, POST processes the confirmation.
+	accountMux := http.NewServeMux()
+	accountMux.HandleFunc("GET /account/delete", accountDeleteWeb.Show)
+	accountMux.HandleFunc("POST /account/delete", accountDeleteWeb.Submit)
+	mux.Handle("/account/", auth.Middleware(resolver, logger)(accountMux))
 
 	return metrics.HTTPMetrics(middleware.AccessLog(logger, mux))
 }

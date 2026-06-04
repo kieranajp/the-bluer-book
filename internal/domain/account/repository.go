@@ -13,6 +13,23 @@ type MemberWithUser struct {
 	Role Role
 }
 
+// AdminRepository is the destructive subset of account persistence,
+// kept separate because its impl must run on an owner-role connection
+// (RLS and FORCE bites the app role when cascading across homes).
+// Compliance flows — account deletion in particular — depend on it.
+type AdminRepository interface {
+	PurgeHome(ctx context.Context, homeID uuid.UUID) error
+	DeleteUser(ctx context.Context, userID uuid.UUID) error
+}
+
+// IdentityDeleter is the port for the upstream IdP's "delete this
+// identity" admin call (Kratos in our case). The Phase 0 Terraform
+// stack provides the admin URL; until that lands, the wired impl is a
+// no-op so the deletion flow doesn't 500 in dev.
+type IdentityDeleter interface {
+	Delete(ctx context.Context, subject string) error
+}
+
 // Repository is the persistence port for the account domain. The
 // concrete adapter lives in internal/infrastructure/storage/repository;
 // this interface lets the service depend on the domain layer alone, so

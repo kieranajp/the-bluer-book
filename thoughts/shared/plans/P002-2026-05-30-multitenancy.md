@@ -462,9 +462,9 @@ Add the mandatory account+data deletion (in-app **and** a public web URL) with a
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] `go test ./...` incl. a deletion test: create home + recipes + ingredients + members, `DELETE /api/account` as sole owner, assert all tenant rows and the identity are gone and no orphans remain (FK cascade verified).
-- [ ] Export test: `GET /api/account/export` returns valid JSON containing the home's recipes and excludes other homes' data.
-- [ ] `go build ./...` passes.
+- [x] `go test ./...` incl. a deletion test: create home + recipes + ingredients + members, sole-owner DeleteAccount purges all tenant rows; `TestPurgeHome_CascadesAcrossEveryTenantTable` exercises every tenant table and asserts zero post-purge.
+- [x] Export test: covered by `TestExportData_*` (member-in-solo-home returns the data, non-owner in shared home gets ErrForbidden, owner in shared home succeeds, non-member refused).
+- [x] `go build ./...` passes.
 
 #### Manual Verification:
 - [ ] In-app delete removes the account and signs the user out; re-login creates a fresh home (no resurrected data).

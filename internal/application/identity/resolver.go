@@ -1,4 +1,10 @@
-package auth
+// Package identity bridges the auth middleware's UserResolver port to
+// the account-domain service. It lives outside the auth package so
+// that downstream consumers of auth (the repository layer's InHomeTx,
+// the chat handler, the MCP bridge) don't pull in the account service
+// transitively — which would loop right back through the recipe and
+// pantry services the account service needs for the data-export path.
+package identity
 
 import (
 	"context"
@@ -8,6 +14,7 @@ import (
 
 	"github.com/kieranajp/the-bluer-book/internal/domain/account"
 	"github.com/kieranajp/the-bluer-book/internal/domain/account/service"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
 )
 
@@ -21,7 +28,7 @@ type provisioningResolver struct {
 
 // NewResolver builds the production UserResolver — provision-on-first-
 // login backed by the account service.
-func NewResolver(svc service.Service) UserResolver {
+func NewResolver(svc service.Service) auth.UserResolver {
 	return &provisioningResolver{svc: svc}
 }
 
@@ -37,7 +44,7 @@ func (r *provisioningResolver) Resolve(ctx context.Context, subject string, requ
 		switched, err := r.svc.ResolveActiveHome(ctx, user.UUID, requestedHomeID)
 		if err != nil {
 			if errors.Is(err, account.ErrHomeNotFound) {
-				return db.User{}, db.Home{}, ErrNoMembership
+				return db.User{}, db.Home{}, auth.ErrNoMembership
 			}
 			return db.User{}, db.Home{}, err
 		}

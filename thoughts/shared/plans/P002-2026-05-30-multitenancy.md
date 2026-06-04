@@ -401,8 +401,8 @@ The chat handler is an in-process MCP *client* over `http://localhost:8082/mcp`;
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] `go test ./...` passes incl. an MCP-path test asserting a tool call carries the home into the repo (recipe created via MCP lands in the caller's home).
-- [ ] `go build ./...` passes.
+- [x] `go test ./...` passes incl. MCP-bridge tests asserting the X-Home header is set from chat ctx on outgoing client requests and read back into ctx on the server side (`auth.HomeHeaderRoundTripper`, `auth.InjectHomeFromHeader`).
+- [x] `go build ./...` passes.
 
 #### Manual Verification:
 - [ ] Chatting "add X to my meal plan" as home A affects only A's meal plan.

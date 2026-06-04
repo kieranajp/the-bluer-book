@@ -48,6 +48,13 @@ func WithIdentity(ctx context.Context, userID, homeID uuid.UUID) context.Context
 	return ctx
 }
 
+// WithHome stamps just the home id into the context — used by the MCP
+// server when it has a trusted X-Home header but no user id (tool
+// handlers don't read UserID; only HomeID flows into inHomeTx).
+func WithHome(ctx context.Context, homeID uuid.UUID) context.Context {
+	return context.WithValue(ctx, homeIDKey, homeID)
+}
+
 // HomeID returns the active home id from context. The bool reports whether
 // it was set — a false return means an unauthenticated request, and the
 // caller (typically a repo helper) should fail closed.

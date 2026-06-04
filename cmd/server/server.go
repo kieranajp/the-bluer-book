@@ -42,9 +42,9 @@ var (
 			},
 			&cli.StringFlag{
 				Name:    "mcp-addr",
-				Usage:   "MCP server listen address",
+				Usage:   "MCP server listen address (default 127.0.0.1:8082 — must not be publicly reachable; tenant scoping uses an internal X-Home header)",
 				EnvVars: []string{"MCP_ADDR"},
-				Value:   ":8082",
+				Value:   "127.0.0.1:8082",
 			},
 			&cli.StringFlag{
 				Name:    "db-user",
@@ -164,7 +164,14 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on MCP address %s: %w", mcpAddr, err)
 	}
-	httpMCPServer := server.NewStreamableHTTPServer(mcpServer)
+	// The MCP listener trusts X-Home from its incoming requests — only
+	// safe because mcpAddr defaults to 127.0.0.1, so cross-tenant traffic
+	// cannot reach this port. The chat handler (in-process) sends X-Home
+	// derived from the caller's authenticated home; tool handlers read it
+	// back out of ctx via auth.HomeID inside InHomeTx.
+	httpMCPServer := server.NewStreamableHTTPServer(mcpServer,
+		server.WithHTTPContextFunc(auth.InjectHomeFromHeader(log)),
+	)
 	go func() {
 		log.Info().Str("address", mcpAddr).Msg("Starting MCP server")
 		if err := http.Serve(mcpListener, httpMCPServer); err != nil && err != http.ErrServerClosed {

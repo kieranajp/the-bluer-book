@@ -13,6 +13,7 @@ sql:
       - "migrations/00010_shopping_list_items.sql"
       - "migrations/00011_identity.sql"
       - "migrations/00012_tenancy.sql"
+      - "migrations/00013_pantry_tenancy.sql"
     queries: "internal/infrastructure/storage/queries"
     gen:
       go:

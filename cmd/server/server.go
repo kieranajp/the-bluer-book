@@ -142,10 +142,11 @@ func run(c *cli.Context) error {
 	// through this wrapper; they show up in go_sql_* pool stats instead.
 	queries := db.New(metrics.NewInstrumentedDBTX(sqlDB))
 
-	// Recipe repo owns its own *sql.DB to open per-request transactions
-	// inside InHomeTx, which sets the app.home_id GUC that RLS reads.
+	// Recipe + pantry repos own their own *sql.DB to open per-request
+	// transactions inside InHomeTx, which sets the app.home_id GUC that
+	// RLS reads.
 	repo := repository.NewRecipeRepository(sqlDB, log)
-	pantryRepo := repository.NewPantryRepository(queries, log)
+	pantryRepo := repository.NewPantryRepository(sqlDB, log)
 
 	// Account/identity queries run on the pool — these tables are not
 	// under RLS (they're the resolution layer that runs *before* the home

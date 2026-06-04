@@ -143,6 +143,80 @@ func TestHomeIsolation_NoHomeInCtxReturnsErrNoHome(t *testing.T) {
 	}
 }
 
+func TestHomeIsolation_PantryAndShoppingListAreHomeScoped(t *testing.T) {
+	db := openIntegrationDB(t)
+	t.Cleanup(func() { _ = db.Close() })
+
+	recipes := repository.NewRecipeRepository(db, logger.New(logger.LogLevelError))
+	pantry := repository.NewPantryRepository(db, logger.New(logger.LogLevelError))
+
+	homeA := createHome(t, db, "Pantry A")
+	homeB := createHome(t, db, "Pantry B")
+	ctxA := auth.WithIdentity(context.Background(), uuid.New(), homeA)
+	ctxB := auth.WithIdentity(context.Background(), uuid.New(), homeB)
+
+	// Seed an ingredient in each home (per-home unique on (home_id, name))
+	// via a recipe save — easiest path.
+	const ingName = "pantry sentinel"
+	if _, err := recipes.SaveRecipe(ctxA, recipe.Recipe{
+		Name: "PA recipe",
+		Ingredients: []recipe.RecipeIngredient{
+			{Ingredient: recipe.Ingredient{Name: ingName}},
+		},
+	}); err != nil {
+		t.Fatalf("seed home A recipe: %v", err)
+	}
+	if _, err := recipes.SaveRecipe(ctxB, recipe.Recipe{
+		Name: "PB recipe",
+		Ingredients: []recipe.RecipeIngredient{
+			{Ingredient: recipe.Ingredient{Name: ingName}},
+		},
+	}); err != nil {
+		t.Fatalf("seed home B recipe: %v", err)
+	}
+
+	// Add to home A's pantry only.
+	if err := pantry.AddToPantry(ctxA, ingName); err != nil {
+		t.Fatalf("AddToPantry A: %v", err)
+	}
+
+	listA, err := pantry.ListPantry(ctxA)
+	if err != nil {
+		t.Fatalf("ListPantry A: %v", err)
+	}
+	if len(listA) != 1 || listA[0].Ingredient != ingName {
+		t.Fatalf("home A pantry = %v, want one %q", listA, ingName)
+	}
+
+	listB, err := pantry.ListPantry(ctxB)
+	if err != nil {
+		t.Fatalf("ListPantry B: %v", err)
+	}
+	if len(listB) != 0 {
+		t.Fatalf("home B pantry leaked: %v", listB)
+	}
+
+	// Custom shopping list items must be home-scoped too.
+	if err := pantry.AddCustomShoppingItem(ctxA, "milk"); err != nil {
+		t.Fatalf("AddCustomShoppingItem A: %v", err)
+	}
+	itemsB, err := pantry.ListCustomShoppingItems(ctxB)
+	if err != nil {
+		t.Fatalf("ListCustomShoppingItems B: %v", err)
+	}
+	for _, it := range itemsB {
+		if it == "milk" {
+			t.Fatalf("home B saw home A's custom shopping item")
+		}
+	}
+
+	// Both homes can add their own "milk" — case-insensitive uniqueness is
+	// now per-home (DB-level test for the new partial index).
+	if err := pantry.AddCustomShoppingItem(ctxB, "milk"); err != nil {
+		t.Fatalf("AddCustomShoppingItem B: %v", err)
+	}
+}
+
 func TestHomeIsolation_AddToMealPlanIsHomeScoped(t *testing.T) {
 	db := openIntegrationDB(t)
 	t.Cleanup(func() { _ = db.Close() })

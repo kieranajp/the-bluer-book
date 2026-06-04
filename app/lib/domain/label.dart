@@ -8,7 +8,7 @@ part 'label.g.dart';
 const List<String> kLabelTypes = ['course', 'cuisine', 'diet', 'method'];
 
 @freezed
-class Label with _$Label {
+abstract class Label with _$Label {
   const factory Label({
     required String type,
     required String name,
@@ -18,7 +18,7 @@ class Label with _$Label {
 }
 
 @freezed
-class LabelSummary with _$LabelSummary {
+abstract class LabelSummary with _$LabelSummary {
   const factory LabelSummary({
     required String type,
     required String name,

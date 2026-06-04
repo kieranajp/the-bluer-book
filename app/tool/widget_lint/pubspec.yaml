@@ -1,0 +1,13 @@
+name: widget_lint
+description: >-
+  Structural lint for the Flutter app — enforces the "one widget class per file"
+  rule and bans Widget-returning helper methods (see docs/frontend.md). Self
+  contained: depends only on the analyzer package, so it runs with a plain Dart
+  SDK without the Flutter toolchain.
+publish_to: 'none'
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  analyzer: ^7.0.0

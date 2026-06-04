@@ -57,9 +57,18 @@ Locally there is no auth in front of the binary; it talks to a local Postgres.
 ## Observability
 
 - **Metrics**: Prometheus at `/metrics`. HTTP middleware records request
-  duration/count (with `{id}` path normalisation); the `recipe.Probe` /
+  duration/count (with `{id}` path normalisation); the `recipe.Probe` / `pantry.Probe` /
   `chat.Probe` implementations emit domain counters (`bluerbook_recipe_operations_total`,
-  `bluerbook_meal_plan_changes_total`, …).
+  `bluerbook_meal_plan_changes_total`, `bluerbook_pantry_changes_total`, …). The storage
+  layer is timed by an instrumented `db.DBTX` wrapper (`bluerbook_db_query_duration_seconds`,
+  labelled by sqlc query name) plus `go_sql_*` connection-pool stats — see "Storage" in
+  `backend.md`.
+- **Dashboard**: a Grafana dashboard lives at
+  `charts/bluer-book/dashboards/dashboard.json` (overview, HTTP, recipes, pantry,
+  chat, database, Go runtime). It is auto-provisioned — the Helm chart ships it as
+  a ConfigMap labelled `grafana_dashboard: "1"`, which Grafana's sidecar discovers
+  across all namespaces. Its datasource variable resolves to the cluster's default
+  Prometheus datasource, so no manual import or datasource selection is needed.
 - **Logs**: structured zerolog throughout, including an access-log middleware.
 
 ## Deployment

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../styles/colours.dart';
-import 'striped_placeholder.dart';
+import 'recipe_hero_glass_button.dart';
+import 'recipe_image.dart';
 
 /// Full-bleed 320px hero with a top-edge dim gradient, glass action chrome
 /// (back / share / edit) and a tertiary bookmark FAB anchored bottom-right.
@@ -59,11 +60,20 @@ class RecipeHeroImage extends StatelessWidget {
             right: 12,
             child: Row(
               children: [
-                _GlassButton(icon: Icons.arrow_back_rounded, onTap: onBack),
+                RecipeHeroGlassButton(
+                  icon: Icons.arrow_back_rounded,
+                  onTap: onBack,
+                ),
                 const Spacer(),
-                _GlassButton(icon: Icons.ios_share_rounded, onTap: onShare),
+                RecipeHeroGlassButton(
+                  icon: Icons.ios_share_rounded,
+                  onTap: onShare,
+                ),
                 const SizedBox(width: 8),
-                _GlassButton(icon: Icons.edit_outlined, onTap: onEdit),
+                RecipeHeroGlassButton(
+                  icon: Icons.edit_outlined,
+                  onTap: onEdit,
+                ),
               ],
             ),
           ),
@@ -97,30 +107,6 @@ class RecipeHeroImage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _GlassButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _GlassButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 42,
-        height: 42,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Icon(icon, size: 20, color: Colors.white),
       ),
     );
   }

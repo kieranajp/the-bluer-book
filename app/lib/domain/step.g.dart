@@ -6,13 +6,12 @@ part of 'step.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$StepImpl _$$StepImplFromJson(Map<String, dynamic> json) => _$StepImpl(
+_Step _$StepFromJson(Map<String, dynamic> json) => _Step(
   order: (json['order'] as num).toInt(),
   description: json['description'] as String,
 );
 
-Map<String, dynamic> _$$StepImplToJson(_$StepImpl instance) =>
-    <String, dynamic>{
-      'order': instance.order,
-      'description': instance.description,
-    };
+Map<String, dynamic> _$StepToJson(_Step instance) => <String, dynamic>{
+  'order': instance.order,
+  'description': instance.description,
+};

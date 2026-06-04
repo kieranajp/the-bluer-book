@@ -1,0 +1,5 @@
+# Declares the `golden` tag that alchemist attaches to its golden tests, so
+# `flutter test` doesn't warn about an unknown tag. Run only goldens with
+# `flutter test --tags golden`, or skip them with `flutter test -x golden`.
+tags:
+  golden:

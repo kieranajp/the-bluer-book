@@ -13,7 +13,8 @@ import '../widgets/recipe_header.dart';
 import '../widgets/recipe_hero_image.dart';
 import '../widgets/recipe_stats_card.dart';
 import '../widgets/recipe_tab_bar.dart';
-import 'edit_recipe_screen.dart';
+import 'edit_recipe/edit_recipe_screen.dart';
+import '../utils/error_message.dart';
 
 class RecipeDetailsScreen extends ConsumerStatefulWidget {
   final Recipe recipe;
@@ -31,6 +32,18 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
   /// the recipe isn't part of the currently loaded list page.
   Recipe? _refreshed;
 
+  /// Opens the editor and, if a save happened, pulls the freshly saved recipe
+  /// back in — the list provider only reloads its first page, so editing a
+  /// recipe further down would otherwise leave this screen showing stale data
+  /// until a manual pull-to-refresh.
+  Future<void> _openEditor(Recipe recipe) async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => EditRecipeScreen(recipe: recipe)),
+    );
+    if (saved == true) await _refresh();
+  }
+
   Future<void> _refresh() async {
     try {
       final fresh =
@@ -42,9 +55,7 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
       ref.invalidate(mealPlanRecipesProvider);
     } catch (e) {
       if (!mounted) return;
-      final message = e is Exception
-          ? e.toString().replaceFirst('Exception: ', '')
-          : 'Failed to refresh recipe';
+      final message = errorMessage(e, fallback: 'Failed to refresh recipe');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -79,12 +90,7 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
               imageUrl: recipe.imageUrl,
               onBack: () => Navigator.pop(context),
               onShare: () => _shareRecipe(context, recipe),
-              onEdit: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EditRecipeScreen(recipe: recipe),
-                ),
-              ),
+              onEdit: () => _openEditor(recipe),
               onBookmark: () => ref
                   .read(recipeListProvider.notifier)
                   .toggleMealPlan(recipe.uuid),

@@ -19,7 +19,9 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
 	accountservice "github.com/kieranajp/the-bluer-book/internal/domain/account/service"
+	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/ai"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
@@ -130,13 +132,25 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	// Initialize dependencies
+	// Expose connection-pool stats (go_sql_*) alongside the per-query metrics
+	// recorded by the instrumented DBTX below.
+	metrics.RegisterDBStats(sqlDB)
+
+	// Pool-level queries wrapped in the instrumented DBTX — picks up
+	// account-resolution + pantry pool reads. Recipe queries run inside a
+	// per-request transaction (see repository.InHomeTx) so they don't go
+	// through this wrapper; they show up in go_sql_* pool stats instead.
+	queries := db.New(metrics.NewInstrumentedDBTX(sqlDB))
+
+	// Recipe repo owns its own *sql.DB to open per-request transactions
+	// inside InHomeTx, which sets the app.home_id GUC that RLS reads.
 	repo := repository.NewRecipeRepository(sqlDB, log)
+	pantryRepo := repository.NewPantryRepository(queries, log)
 
 	// Account/identity queries run on the pool — these tables are not
 	// under RLS (they're the resolution layer that runs *before* the home
 	// GUC is set). The service wraps the repo and owns provisioning logic.
-	accountRepo := repository.NewAccountRepository(db.New(sqlDB))
+	accountRepo := repository.NewAccountRepository(queries)
 	accountSvc := accountservice.New(accountRepo, accountservice.Config{
 		FounderSubject: cfg.FounderSubject,
 	}, nil)
@@ -145,10 +159,12 @@ func run(c *cli.Context) error {
 
 	// Create probes
 	recipeProbe := metrics.NewRecipeProbe(log)
+	pantryProbe := metrics.NewPantryProbe(log)
 	chatProbe := metrics.NewChatProbe(log)
 
 	// Initialize services
 	recipeService := service.NewRecipeService(repo, recipeProbe)
+	pantryService := pantryservice.NewPantryService(pantryRepo, pantryProbe)
 
 	// Create MCP handler
 	mcpHandler := mcp.NewRecipeMCPHandler(recipeService, log)
@@ -186,6 +202,19 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to create chat handler: %w", err)
 	}
 
+	// Create the shopping-list photo scanner (shares the chat handler's Gemini
+	// key). Optional — without a key the scan endpoint reports unavailable.
+	var scanner *ai.ShoppingListScanner
+	if cfg.GoogleAPIKey != "" {
+		scanner, err = ai.NewShoppingListScanner(context.Background(), cfg.GoogleAPIKey, cfg.GeminiModel, log)
+		if err != nil {
+			return fmt.Errorf("failed to create shopping list scanner: %w", err)
+		}
+		log.Info().Msg("Shopping list photo scanning enabled")
+	} else {
+		log.Warn().Msg("GOOGLE_API_KEY not set — shopping list photo scanning disabled")
+	}
+
 	// Create photo handler if R2 is configured
 	var photoHandler *api.PhotoHandler
 	if c.String("r2-account-id") != "" && c.String("r2-bucket") != "" {
@@ -205,7 +234,7 @@ func run(c *cli.Context) error {
 	}
 
 	// Create API router
-	router := api.NewRouter(recipeService, accountHandler, chatHandler, photoHandler, userResolver, log)
+	router := api.NewRouter(recipeService, pantryService, accountHandler, chatHandler, photoHandler, scanner, userResolver, log)
 
 	// Create HTTP server
 	httpServer := &http.Server{

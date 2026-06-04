@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
+import '../utils/error_message.dart';
 
 /// A small star icon for toggling meal plan status (used in list items).
 class MealPlanStarIcon extends ConsumerWidget {
@@ -28,12 +29,13 @@ class MealPlanStarIcon extends ConsumerWidget {
           ),
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update meal plan'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content:
+                Text(errorMessage(e, fallback: 'Failed to update meal plan')),
+            duration: const Duration(seconds: 4),
           ),
         );
       }

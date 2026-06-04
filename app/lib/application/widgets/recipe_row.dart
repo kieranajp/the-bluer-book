@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/recipe.dart';
+import '../providers/pantry_providers.dart';
 import '../screens/recipe_details_screen.dart';
 import '../styles/colours.dart';
 import '../styles/label_colours.dart';
 import '../styles/shapes.dart';
+import '../utils/cookability.dart';
 import '../utils/time_format.dart';
 import 'meal_plan_toggle_button.dart';
-import 'striped_placeholder.dart';
+import 'recipe_cook_seal.dart';
+import 'recipe_image.dart';
 
 /// Compact recipe row used in the home screen's "All recipes" list.
 /// 72×72 squircle thumb + two-line title + description + meta chips.
@@ -21,6 +24,10 @@ class RecipeRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colours;
     final totalTime = recipe.preparationTime + recipe.cookingTime;
+    final pantry = ref.watch(pantryProvider).value ?? const <String>{};
+    final cook = cookabilityOf(recipe, pantry);
+    // Only meaningful once the pantry has something in it.
+    final showCookSeal = pantry.isNotEmpty && cook.total > 0;
 
     return InkWell(
       onTap: () => Navigator.push(
@@ -45,9 +52,23 @@ class RecipeRow extends ConsumerWidget {
             SizedBox(
               width: 72,
               height: 72,
-              child: RecipeImage(
-                imageUrl: recipe.imageUrl,
-                borderRadius: Shapes.squircle(22),
+              // Clip.none lets the cookability seal sit over the corner edge.
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: RecipeImage(
+                      imageUrl: recipe.imageUrl,
+                      borderRadius: Shapes.squircle(22),
+                    ),
+                  ),
+                  if (showCookSeal)
+                    Positioned(
+                      right: -4,
+                      bottom: -4,
+                      child: RecipeCookSeal(cook: cook),
+                    ),
+                ],
               ),
             ),
             const SizedBox(width: 14),

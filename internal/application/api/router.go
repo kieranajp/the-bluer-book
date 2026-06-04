@@ -7,16 +7,27 @@ import (
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api/middleware"
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
+	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/ai"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 )
 
-func NewRouter(recipeService service.RecipeService, accountHandler *AccountHandler, chatHandler *chat.Handler, photoHandler *PhotoHandler, resolver auth.UserResolver, logger logger.Logger) http.Handler {
+func NewRouter(
+	recipeService service.RecipeService,
+	pantryService pantryservice.PantryService,
+	accountHandler *AccountHandler,
+	chatHandler *chat.Handler,
+	photoHandler *PhotoHandler,
+	scanner *ai.ShoppingListScanner,
+	resolver auth.UserResolver,
+	logger logger.Logger,
+) http.Handler {
 	mux := http.NewServeMux()
 
-	// Health/metrics are not authenticated and not workspace-scoped.
+	// Health/metrics are not authenticated and not home-scoped.
 	mux.Handle("GET /metrics", promhttp.Handler())
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -30,6 +41,7 @@ func NewRouter(recipeService service.RecipeService, accountHandler *AccountHandl
 	apiMux := http.NewServeMux()
 
 	recipeHandler := NewRecipeHandler(recipeService, logger)
+	pantryHandler := NewPantryHandler(pantryService, scanner, logger)
 	validationMiddleware := middleware.NewValidationMiddleware(logger)
 
 	apiMux.HandleFunc("GET /api/units", recipeHandler.ListUnits)
@@ -45,6 +57,17 @@ func NewRouter(recipeService service.RecipeService, accountHandler *AccountHandl
 
 	apiMux.HandleFunc("POST /api/recipes/{id}/meal-plan", recipeHandler.AddToMealPlan)
 	apiMux.HandleFunc("DELETE /api/recipes/{id}/meal-plan", recipeHandler.RemoveFromMealPlan)
+
+	// Pantry routes
+	apiMux.HandleFunc("GET /api/pantry", pantryHandler.ListPantry)
+	apiMux.HandleFunc("PUT /api/pantry/{ingredient}", pantryHandler.AddToPantry)
+	apiMux.HandleFunc("DELETE /api/pantry/{ingredient}", pantryHandler.RemoveFromPantry)
+
+	// Shopping list: meal-plan shortfall plus free-text custom items.
+	apiMux.HandleFunc("GET /api/shopping-list", pantryHandler.ShoppingList)
+	apiMux.HandleFunc("POST /api/shopping-list", pantryHandler.AddCustomShoppingItem)
+	apiMux.HandleFunc("POST /api/shopping-list/scan", pantryHandler.ScanShoppingList)
+	apiMux.HandleFunc("DELETE /api/shopping-list/{name}", pantryHandler.RemoveCustomShoppingItem)
 
 	apiMux.Handle("POST /api/recipes",
 		validationMiddleware.ValidateCreateRecipe(

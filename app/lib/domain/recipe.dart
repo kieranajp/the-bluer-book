@@ -7,7 +7,7 @@ part 'recipe.freezed.dart';
 part 'recipe.g.dart';
 
 @freezed
-class Recipe with _$Recipe {
+abstract class Recipe with _$Recipe {
   const factory Recipe({
     required String uuid,
     required String name,

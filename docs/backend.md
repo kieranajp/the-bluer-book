@@ -124,6 +124,13 @@ if errors.Is(err, recipe.ErrRecipeNotFound) {
   ```
 
   (The named `err` return is what makes that defer work — keep assigning to it.)
+- **Query metrics** come for free: `cmd/server` wraps the pool in
+  `metrics.NewInstrumentedDBTX(sqlDB)` before `db.New`, so every sqlc query records
+  `bluerbook_db_query_duration_seconds` / `_errors_total` (labelled by the sqlc query
+  name parsed from its `-- name:` header) without the repository touching Prometheus —
+  the same infra-owned, cross-cutting split as `metrics.HTTPMetrics`. `metrics.RegisterDBStats`
+  adds `go_sql_*` connection-pool gauges. (Queries inside an explicit `db.New(tx)`
+  transaction use the raw `*sql.Tx` and aren't per-query timed, but still show in pool stats.)
 
 ## CLI & config
 

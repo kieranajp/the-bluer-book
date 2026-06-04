@@ -33,32 +33,37 @@ final labelsProvider = FutureProvider<List<LabelSummary>>((ref) async {
   return ref.watch(recipeRepositoryProvider).getLabels();
 });
 
-enum RecipeSort { newest, name, time }
+enum RecipeSort { newest, name, time, cookable }
 
 extension RecipeSortApi on RecipeSort {
+  /// Server-side sort key. `cookable` has none — the server returns its default
+  /// order and the list is re-sorted client-side from the pantry (the client
+  /// already has each recipe's ingredients and the pantry set).
   String get apiValue => switch (this) {
         RecipeSort.newest => '',
         RecipeSort.name => 'name',
         RecipeSort.time => 'time',
+        RecipeSort.cookable => '',
       };
 
   String get label => switch (this) {
         RecipeSort.newest => 'Newest',
         RecipeSort.name => 'A–Z',
         RecipeSort.time => 'Quickest',
+        RecipeSort.cookable => 'Cook now',
       };
 
   RecipeSort get next => switch (this) {
         RecipeSort.newest => RecipeSort.name,
         RecipeSort.name => RecipeSort.time,
-        RecipeSort.time => RecipeSort.newest,
+        RecipeSort.time => RecipeSort.cookable,
+        RecipeSort.cookable => RecipeSort.newest,
       };
 }
 
-// State notifier for managing paginated recipe list with meal plan toggles
-class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
-  final RecipeRepository _repository;
-  final Ref _ref;
+// Notifier for managing paginated recipe list with meal plan toggles
+class RecipeListNotifier extends Notifier<AsyncValue<List<Recipe>>> {
+  RecipeRepository get _repository => ref.read(recipeRepositoryProvider);
 
   static const int _pageSize = 20;
   int _total = 0;
@@ -67,12 +72,14 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
   RecipeSort _currentSort = RecipeSort.newest;
   Set<String> _currentLabels = const {};
 
-  RecipeListNotifier(this._repository, this._ref) : super(const AsyncValue.loading()) {
-    loadRecipes();
+  @override
+  AsyncValue<List<Recipe>> build() {
+    Future.microtask(() => loadRecipes());
+    return const AsyncValue.loading();
   }
 
   int get total => _total;
-  bool get hasMore => (state.valueOrNull?.length ?? 0) < _total;
+  bool get hasMore => (state.value?.length ?? 0) < _total;
   bool get isLoadingMore => _isLoadingMore;
   RecipeSort get sort => _currentSort;
   Set<String> get activeLabels => _currentLabels;
@@ -168,6 +175,35 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
     }
   }
 
+  /// Delete (archive) a recipe. Optimistically removes it from the loaded
+  /// list — and shrinks the total count — then reverts if the API call fails.
+  Future<void> deleteRecipe(String uuid) async {
+    final currentState = state;
+    if (!currentState.hasValue) return;
+
+    final recipes = currentState.value!;
+    final recipeIndex = recipes.indexWhere((r) => r.uuid == uuid);
+    if (recipeIndex == -1) return;
+
+    // Optimistic removal
+    final updatedRecipes = [...recipes]..removeAt(recipeIndex);
+    final previousTotal = _total;
+    if (_total > 0) _total -= 1;
+    state = AsyncValue.data(updatedRecipes);
+
+    try {
+      await _repository.deleteRecipe(uuid);
+      // The recipe may have been on the meal plan — refresh that section too.
+      ref.invalidate(mealPlanRecipesProvider);
+    } catch (e, stack) {
+      dev.log('Failed to delete $uuid', name: 'RecipeListNotifier', error: e, stackTrace: stack);
+      // Revert optimistic update on error
+      _total = previousTotal;
+      state = AsyncValue.data(recipes);
+      rethrow;
+    }
+  }
+
   Future<void> toggleMealPlan(String uuid) async {
     final currentState = state;
     if (!currentState.hasValue) {
@@ -200,7 +236,7 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
       }
 
       // Invalidate the meal plan list to refresh the meal plan section
-      _ref.invalidate(mealPlanRecipesProvider);
+      ref.invalidate(mealPlanRecipesProvider);
     } catch (e, stack) {
       dev.log('Failed to toggle meal plan for $uuid', name: 'RecipeListNotifier', error: e, stackTrace: stack);
       // Revert optimistic update on error
@@ -210,68 +246,20 @@ class RecipeListNotifier extends StateNotifier<AsyncValue<List<Recipe>>> {
   }
 }
 
-final recipeListProvider = StateNotifierProvider<RecipeListNotifier, AsyncValue<List<Recipe>>>((ref) {
-  return RecipeListNotifier(ref.watch(recipeRepositoryProvider), ref);
-});
-
-// Provider for individual recipe detail with meal plan toggle support
-class RecipeDetailNotifier extends StateNotifier<AsyncValue<Recipe?>> {
-  final RecipeRepository _repository;
-  final Ref _ref;
-
-  RecipeDetailNotifier(this._repository, this._ref) : super(const AsyncValue.data(null));
-
-  Future<void> loadRecipe(String uuid) async {
-    state = const AsyncValue.loading();
-    try {
-      final recipe = await _repository.getRecipe(uuid);
-      state = AsyncValue.data(recipe);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  Future<void> toggleMealPlan() async {
-    final currentState = state;
-    if (!currentState.hasValue) return;
-
-    final recipe = currentState.value;
-    if (recipe == null) return;
-
-    final wasInMealPlan = recipe.isInMealPlan;
-
-    // Optimistic update
-    final updatedRecipe = recipe.copyWith(isInMealPlan: !wasInMealPlan);
-    state = AsyncValue.data(updatedRecipe);
-
-    try {
-      // Make API call
-      if (wasInMealPlan) {
-        await _repository.removeFromMealPlan(recipe.uuid);
-      } else {
-        await _repository.addToMealPlan(recipe.uuid);
-      }
-
-      // Invalidate providers to refresh lists
-      _ref.invalidate(mealPlanRecipesProvider);
-      _ref.invalidate(recipeListProvider);
-    } catch (e, stack) {
-      dev.log('Failed to toggle meal plan', name: 'RecipeDetailNotifier', error: e, stackTrace: stack);
-      // Revert optimistic update on error
-      state = AsyncValue.data(recipe);
-      rethrow;
-    }
-  }
-}
-
-final recipeDetailProvider = StateNotifierProvider.family<RecipeDetailNotifier, AsyncValue<Recipe?>, String>((ref, uuid) {
-  final notifier = RecipeDetailNotifier(ref.watch(recipeRepositoryProvider), ref);
-  notifier.loadRecipe(uuid);
-  return notifier;
-});
+final recipeListProvider =
+    NotifierProvider<RecipeListNotifier, AsyncValue<List<Recipe>>>(
+        RecipeListNotifier.new);
 
 // Search query state
-final searchQueryProvider = StateProvider<String>((ref) => '');
+class SearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void set(String query) => state = query;
+}
+
+final searchQueryProvider =
+    NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
 
 // Recipes provider — search is handled server-side via loadRecipes()
 final filteredRecipesProvider = Provider<AsyncValue<List<Recipe>>>((ref) {

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/recipe.dart';
 import '../providers/recipe_providers.dart';
+import '../widgets/brand_loader.dart';
 import '../widgets/meal_plan_card.dart';
 import '../widgets/empty_state.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
+import 'shopping_list/shopping_list_screen.dart';
+import '../utils/error_message.dart';
 
 class MealPlanScreen extends ConsumerWidget {
   const MealPlanScreen({super.key});
@@ -17,10 +20,8 @@ class MealPlanScreen extends ConsumerWidget {
 
     ref.listen<AsyncValue<List<Recipe>>>(mealPlanRecipesProvider, (previous, next) {
       if (next.hasError && !(previous?.hasError ?? false)) {
-        final error = next.error;
-        final message = error is Exception
-            ? error.toString().replaceFirst('Exception: ', '')
-            : 'Failed to load meal plan';
+        final message =
+            errorMessage(next.error, fallback: 'Failed to load meal plan');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
@@ -53,6 +54,17 @@ class MealPlanScreen extends ConsumerWidget {
                 'Meal Plan',
                 style: TextStyles.appBarTitle(context),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  tooltip: 'Shopping list',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ShoppingListScreen(),
+                    ),
+                  ),
+                ),
+              ],
             ),
             mealPlanRecipesAsync.when(
               data: (recipes) => recipes.isEmpty
@@ -69,19 +81,22 @@ class MealPlanScreen extends ConsumerWidget {
                       sliver: SliverGrid(
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          mainAxisSpacing: Spacing.m,
+                          mainAxisSpacing: Spacing.l,
                           crossAxisSpacing: Spacing.m,
-                          childAspectRatio: 0.78,
+                          childAspectRatio: 0.72,
                         ),
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) => MealPlanCard(recipe: recipes[index]),
+                          (context, index) => MealPlanCard(
+                            recipe: recipes[index],
+                            mirror: index.isOdd,
+                          ),
                           childCount: recipes.length,
                         ),
                       ),
                     ),
               loading: () => const SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: BrandLoader()),
               ),
               error: (error, stack) => SliverFillRemaining(
                 hasScrollBody: false,

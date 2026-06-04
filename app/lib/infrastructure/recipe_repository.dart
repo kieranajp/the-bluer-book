@@ -7,18 +7,7 @@ import '../domain/ingredient.dart';
 import '../domain/label.dart';
 import '../domain/recipe.dart';
 import 'network/api_client.dart';
-
-String _formatDioError(String action, DioException e) {
-  final status = e.response?.statusCode;
-  if (status != null) {
-    return '$action ($status)';
-  }
-  final inner = e.error;
-  if (inner != null) {
-    return '$action ($inner)';
-  }
-  return '$action (${e.type.name}: ${e.message})';
-}
+import 'network/api_exception.dart';
 
 class PaginatedRecipes {
   final List<Recipe> recipes;
@@ -59,7 +48,7 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to load recipes: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to load recipes', e));
+      throw ApiException.fromDio('Failed to load recipes', e);
     }
   }
 
@@ -79,7 +68,7 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to load meal plan recipes: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to load meal plan', e));
+      throw ApiException.fromDio('Failed to load meal plan', e);
     }
   }
 
@@ -91,7 +80,18 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to load recipe $uuid: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to load recipe', e));
+      throw ApiException.fromDio('Failed to load recipe', e);
+    }
+  }
+
+  Future<void> deleteRecipe(String uuid) async {
+    try {
+      dev.log('Deleting recipe $uuid', name: 'RecipeRepository');
+      await _apiClient.dio.delete('/recipes/$uuid');
+    } on DioException catch (e, stack) {
+      dev.log('Failed to delete recipe $uuid: ${e.message}',
+          name: 'RecipeRepository', error: e, stackTrace: stack);
+      throw ApiException.fromDio('Failed to delete recipe', e);
     }
   }
 
@@ -102,7 +102,7 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to add $uuid to meal plan: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to add to meal plan', e));
+      throw ApiException.fromDio('Failed to add to meal plan', e);
     }
   }
 
@@ -119,7 +119,7 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to load ingredients: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to load ingredients', e));
+      throw ApiException.fromDio('Failed to load ingredients', e);
     }
   }
 
@@ -136,7 +136,7 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to load units: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to load units', e));
+      throw ApiException.fromDio('Failed to load units', e);
     }
   }
 
@@ -152,7 +152,7 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to load labels: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to load labels', e));
+      throw ApiException.fromDio('Failed to load labels', e);
     }
   }
 
@@ -165,7 +165,7 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to create recipe: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to create recipe', e));
+      throw ApiException.fromDio('Failed to create recipe', e);
     }
   }
 
@@ -180,7 +180,7 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to update recipe $uuid: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to update recipe', e));
+      throw ApiException.fromDio('Failed to update recipe', e);
     }
   }
 
@@ -191,7 +191,7 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to remove $uuid from meal plan: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to remove from meal plan', e));
+      throw ApiException.fromDio('Failed to remove from meal plan', e);
     }
   }
 
@@ -224,7 +224,7 @@ class RecipeRepository {
     } on DioException catch (e, stack) {
       dev.log('Failed to upload photo for recipe $uuid: ${e.message}',
           name: 'RecipeRepository', error: e, stackTrace: stack);
-      throw Exception(_formatDioError('Failed to upload photo', e));
+      throw ApiException.fromDio('Failed to upload photo', e);
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/recipe_providers.dart';
 import '../styles/colours.dart';
 import '../styles/shapes.dart';
+import '../utils/error_message.dart';
 
 /// Extended FAB-style "Add to meal plan" / "Remove from meal plan" action.
 /// Torn-corner radii + a blob-shaped leading icon — two of the Shape DNA
@@ -31,12 +32,13 @@ class AddToPlanButton extends ConsumerWidget {
           ),
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update meal plan'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content:
+                Text(errorMessage(e, fallback: 'Failed to update meal plan')),
+            duration: const Duration(seconds: 4),
           ),
         );
       }

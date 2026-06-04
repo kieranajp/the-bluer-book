@@ -4,6 +4,7 @@ import '../providers/theme_provider.dart';
 import '../styles/colours.dart';
 import '../styles/text_styles.dart';
 import '../styles/spacing.dart';
+import 'theme_selector_option.dart';
 
 /// Dialog for selecting app theme mode (System/Light/Dark)
 class ThemeSelectorDialog extends ConsumerWidget {
@@ -23,7 +24,7 @@ class ThemeSelectorDialog extends ConsumerWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _ThemeOption(
+          ThemeSelectorOption(
             title: 'System',
             subtitle: 'Follow device settings',
             icon: Icons.brightness_auto,
@@ -34,7 +35,7 @@ class ThemeSelectorDialog extends ConsumerWidget {
               Navigator.of(context).pop();
             },
           ),
-          _ThemeOption(
+          ThemeSelectorOption(
             title: 'Light',
             subtitle: 'Always use light theme',
             icon: Icons.light_mode,
@@ -45,7 +46,7 @@ class ThemeSelectorDialog extends ConsumerWidget {
               Navigator.of(context).pop();
             },
           ),
-          _ThemeOption(
+          ThemeSelectorOption(
             title: 'Dark',
             subtitle: 'Always use dark theme',
             icon: Icons.dark_mode,
@@ -58,51 +59,6 @@ class ThemeSelectorDialog extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ThemeOption extends ConsumerWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final ThemeMode mode;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ThemeOption({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.mode,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isSelected ? context.colours.primary : context.colours.textSecondary,
-      ),
-      title: Text(
-        title,
-        style: TextStyles.body(context).copyWith(
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyles.caption(context),
-      ),
-      trailing: isSelected
-          ? Icon(
-              Icons.check,
-              color: context.colours.primary,
-            )
-          : null,
-      onTap: onTap,
     );
   }
 }

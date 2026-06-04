@@ -99,6 +99,54 @@ Pure helpers (string highlighting, time formatting, the camera/gesture controlle
 It's a **single `build` (or `_buildX`) method longer than a screenful**, or a file with
 more than one widget class in it. When you hit either, split into classes and files.
 
+### Enforced in CI
+
+Rules 1 and 2 are mechanically checked by `app/tool/widget_lint` (run on every
+PR): **one widget class per file**, and **no `Widget`-returning helpers** (only
+the framework `build` override may return a `Widget`). A second widget class in a
+file — public sibling or private `_SubWidget` — fails the build, as does a
+`Widget _buildX()` helper. Non-widget helpers (returning `InputDecoration`, a
+`String`, `List<Widget>`, …) are fine.
+
+The backlog has been cleared, so `tool/widget_lint/baseline.txt` is empty and the
+check is effectively strict — any new violation fails the build. (The baseline is
+a ratchet for grandfathering, if ever needed again: add a signature to keep a
+deliberate exception, but don't grow it casually.) Run it locally with
+`cd app/tool/widget_lint && dart pub get && dart run widget_lint`. See
+`tool/widget_lint/README.md`.
+
+## One concept per file, and keep files small
+
+A single-responsibility rule borrowed from PSR-1/PSR-4: **a file holds one concept,
+named after it.** What "one concept" means is layer-specific, and the codebase is
+consistent about it:
+
+- **`widgets/`, `screens/` — one widget _class_ per file** (strict; `widget_lint`
+  fails the build otherwise). See "Keeping widgets small" above.
+- **`domain/` — an aggregate plus its value objects.** `ingredient.dart` holds
+  `Ingredient` + `IngredientDetail` + `IngredientUnit`; `label.dart` holds `Label` +
+  `LabelSummary`. This mirrors the Go backend's `recipe.go` ("aggregate root + value
+  objects").
+- **`providers/` — a notifier plus its state.** `chat_providers.dart` holds
+  `ChatNotifier` + `ChatMessage`; `edit_recipe_provider.dart` holds `EditRecipeNotifier`,
+  its `EditRecipeState`, and the editable value objects it owns.
+- **`infrastructure/` — a client plus its result/event type.** `recipe_repository.dart`
+  holds `RecipeRepository` + `PaginatedRecipes`; `chat_service.dart` holds `ChatService`
+  + `ChatEvent`.
+
+So "one class per file" is the *widget* rule; elsewhere the unit is the concept. The
+test is **cohesion**: a value object that only exists to describe its aggregate (or the
+state a notifier owns) belongs with it; an unrelated class gets its own file. The file
+and its primary type share a name, and the directory mirrors the layering
+(`domain` / `application` / `infrastructure`) — the PSR-4 instinct, applied to Dart.
+
+**Size is the canary for SRP.** Aim for small files — a couple hundred lines. Once a
+Dart file pushes past ~300 lines it's almost always doing too much; treat that as a
+prompt to find a seam and split (extract widgets per the rule above, pull pure helpers
+into `utils/`, move logic into a notifier). A few files legitimately run longer —
+`colours.dart` is design tokens, the big notifiers are cohesive state machines — so this
+is a guideline for review and judgement, **not** a CI gate.
+
 ## Domain models
 
 `@freezed` immutable classes with `fromJson`/`toJson`. Generated `*.freezed.dart` and
@@ -196,9 +244,10 @@ visible rather than blanking the list).
 **Never hardcode colours or spacing.** Tokens come from the theme:
 
 - **Colours** via the `Colours` `ThemeExtension`, reached with `context.colours`
-  (`context.colours.primary`, `.surfaceContainer`, …). The `ColorScheme` in `main.dart`
-  is **hand-built per role** — do not switch to `ColorScheme.fromSeed`; tonal values are
-  chosen to match the "Garden Plot" design.
+  (`context.colours.primary`, `.surfaceContainer`, …). The `ColorScheme` (built by
+  `buildAppTheme` in `application/styles/app_theme.dart`) is **hand-built per role** — do
+  not switch to `ColorScheme.fromSeed`; tonal values are chosen to match the "Garden
+  Plot" design.
 - **Spacing** — the `Spacing` constants (`Spacing.m`, `Spacing.horizontal`, …).
 - **Text** — `TextStyles.*(context)` (Work Sans body, Instrument Serif for the
   cookbook "serif moments").
@@ -206,6 +255,35 @@ visible rather than blanking the list).
 
 Light/dark are full sibling palettes (`Colours.light` / `Colours.dark`); anything you
 add to `Colours` must be filled in for both and threaded through `copyWith`/`lerp`.
+
+## Snapshot (golden) tests
+
+Widget rendering is pinned with [alchemist](https://pub.dev/packages/alchemist) goldens
+under `app/test/golden/`. They render a widget to a PNG and diff it against a committed
+reference image, catching unintended visual changes (layout, sizing, theme colours).
+
+- **Readable, but still cross-machine deterministic.** `test/flutter_test_config.dart`
+  runs alchemist with a single golden set (`test/golden/goldens/ci/`), rendering **real
+  text** (`obscureText: false`). Flutter draws goldens through its own engine (Skia + the
+  bundled fonts), so given the same Flutter version the PNGs match across machines — your
+  dev box and the Ubuntu CI runner agree. Alchemist's separate per-OS "platform" goldens
+  are disabled so there's only one set to maintain.
+- **Fonts are bundled, not fetched.** The `google_fonts` families are committed as
+  `.ttf`s under `app/fonts/` (declared in `pubspec.yaml` `assets:`), so they load offline
+  — `flutter test`'s binding blocks all HTTP, which would otherwise make google_fonts
+  throw. This also benefits production (no first-launch font flash). Because google_fonts
+  loads asynchronously (a font caught mid-load renders as `.notdef` boxes), the test
+  config pre-warms every bundled family/variant and awaits `GoogleFonts.pendingFonts()`
+  before any test runs — **if you add a new font weight/family, bundle the `.ttf` and add
+  a matching warm-up line there**, or goldens for it may render as boxes.
+- **Render under the real theme.** Use `themedScenario(...)` from
+  `test/golden/golden_support.dart`; it wraps the widget in `buildAppTheme(...)` (the
+  shipping theme) for light or dark, so goldens reflect production theming, not a bare
+  `ThemeData.light`. Feed widgets deterministic inputs (fixed data, no `DateTime.now()`,
+  no network images — pass `imageUrl: null` for the striped placeholder).
+- **Workflow.** `flutter test` checks goldens; regenerate after an intended UI change
+  with `flutter test --update-goldens` and commit the new PNGs (review the diff!). Run
+  just these with `flutter test --tags golden`, or skip them with `flutter test -x golden`.
 
 ## Vocabulary
 

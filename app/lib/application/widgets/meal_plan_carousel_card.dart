@@ -5,7 +5,9 @@ import '../styles/colours.dart';
 import '../styles/shapes.dart';
 import '../styles/text_styles.dart';
 import '../utils/time_format.dart';
-import 'striped_placeholder.dart';
+import 'meal_plan_carousel_badge.dart';
+import 'meal_plan_carousel_kebab.dart';
+import 'recipe_image.dart';
 
 /// A single torn-corner meal-plan card used in the home screen carousel.
 class MealPlanCarouselCard extends StatelessWidget {
@@ -51,8 +53,16 @@ class MealPlanCarouselCard extends StatelessWidget {
                     imageUrl: recipe.imageUrl,
                     borderRadius: BorderRadius.zero,
                   ),
-                  Positioned(top: 14, left: 14, child: _PlanBadge(label: firstLabel?.name)),
-                  const Positioned(top: 12, right: 12, child: _Kebab()),
+                  Positioned(
+                    top: 14,
+                    left: 14,
+                    child: MealPlanCarouselBadge(label: firstLabel?.name),
+                  ),
+                  const Positioned(
+                    top: 12,
+                    right: 12,
+                    child: MealPlanCarouselKebab(),
+                  ),
                 ],
               ),
             ),
@@ -119,74 +129,6 @@ class MealPlanCarouselCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _PlanBadge extends StatelessWidget {
-  final String? label;
-
-  const _PlanBadge({this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colours;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'PLAN',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-            ),
-          ),
-          if (label != null) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-              decoration: BoxDecoration(
-                color: c.tertiaryContainer,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                label!,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: c.onTertiaryContainer,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _Kebab extends StatelessWidget {
-  const _Kebab();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Icon(Icons.more_horiz_rounded, color: Colors.white, size: 18),
     );
   }
 }

@@ -5,9 +5,13 @@ import 'colours.dart';
 /// Text style definitions (theme-aware)
 class TextStyles {
   // Headers
-  static TextStyle appBarTitle(BuildContext context) => GoogleFonts.workSans(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
+  // Page headers share the cookbook serif (Instrument Serif) with the home
+  // hero, so every screen's title reads in the same voice.
+  static TextStyle appBarTitle(BuildContext context) =>
+      GoogleFonts.instrumentSerif(
+        fontSize: 28,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.3,
         color: context.colours.textPrimary,
       );
 
@@ -99,7 +103,7 @@ class TextStyles {
       );
 
   // ── Serif moments (cookbook personality — Instrument Serif) ─────────
-  // Hero greeting on home: "What's cooking // tonight?" — display weight.
+  // Hero greeting on home, e.g. "What's cooking // tonight?" — display weight.
   static TextStyle heroDisplay(BuildContext context) =>
       GoogleFonts.instrumentSerif(
         fontSize: 48,
@@ -124,6 +128,16 @@ class TextStyles {
   static TextStyle serifCardTitle(BuildContext context) =>
       GoogleFonts.instrumentSerif(
         fontSize: 24,
+        height: 1.1,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.2,
+        color: context.colours.textPrimary,
+      );
+
+  // Compact serif title for the tighter meal-plan grid cards.
+  static TextStyle serifCardTitleSmall(BuildContext context) =>
+      GoogleFonts.instrumentSerif(
+        fontSize: 20,
         height: 1.1,
         fontWeight: FontWeight.w400,
         letterSpacing: -0.2,

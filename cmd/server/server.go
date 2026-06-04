@@ -18,6 +18,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/application/api"
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
+	accountservice "github.com/kieranajp/the-bluer-book/internal/domain/account/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
@@ -91,6 +92,11 @@ var (
 				EnvVars: []string{"GEMINI_MODEL"},
 				Value:   "gemini-3.5-flash",
 			},
+			&cli.StringFlag{
+				Name:    "founder-subject",
+				Usage:   "Kratos identity id that should be linked to the founder home on first login",
+				EnvVars: []string{"FOUNDER_SUBJECT"},
+			},
 			&cli.StringFlag{Name: "r2-account-id", EnvVars: []string{"R2_ACCOUNT_ID"}},
 			&cli.StringFlag{Name: "r2-jurisdiction", EnvVars: []string{"R2_JURISDICTION"}},
 			&cli.StringFlag{Name: "r2-access-key-id", EnvVars: []string{"R2_ACCESS_KEY_ID"}},
@@ -127,9 +133,15 @@ func run(c *cli.Context) error {
 	// Initialize dependencies
 	repo := repository.NewRecipeRepository(sqlDB, log)
 
-	// Account/identity queries run on the pool — these tables are not under
-	// RLS (they're the resolution layer that runs *before* the home GUC is set).
-	userResolver := auth.NewResolver(db.New(sqlDB))
+	// Account/identity queries run on the pool — these tables are not
+	// under RLS (they're the resolution layer that runs *before* the home
+	// GUC is set). The service wraps the repo and owns provisioning logic.
+	accountRepo := repository.NewAccountRepository(db.New(sqlDB))
+	accountSvc := accountservice.New(accountRepo, accountservice.Config{
+		FounderSubject: cfg.FounderSubject,
+	}, nil)
+	userResolver := auth.NewResolver(accountSvc)
+	accountHandler := api.NewAccountHandler(accountSvc, log)
 
 	// Create probes
 	recipeProbe := metrics.NewRecipeProbe(log)
@@ -186,7 +198,7 @@ func run(c *cli.Context) error {
 	}
 
 	// Create API router
-	router := api.NewRouter(recipeService, chatHandler, photoHandler, userResolver, log)
+	router := api.NewRouter(recipeService, accountHandler, chatHandler, photoHandler, userResolver, log)
 
 	// Create HTTP server
 	httpServer := &http.Server{

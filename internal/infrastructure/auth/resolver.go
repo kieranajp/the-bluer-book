@@ -2,58 +2,74 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
 	"github.com/google/uuid"
 
+	"github.com/kieranajp/the-bluer-book/internal/domain/account"
+	"github.com/kieranajp/the-bluer-book/internal/domain/account/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
 )
 
-// dbResolver is the Phase 2 implementation of UserResolver: it errors on
-// miss rather than provisioning. Phase 3 replaces it with one that
-// auto-creates a user + home on first login.
-type dbResolver struct {
-	q *db.Queries
+// provisioningResolver bridges the auth middleware to the account
+// service. On miss it provisions a user + home rather than 401-ing, so
+// every authenticated request from a known IdP lands the caller in some
+// home of theirs.
+type provisioningResolver struct {
+	svc service.Service
 }
 
-// NewResolver builds a UserResolver backed by the accounts queries.
-// Reads run on the pool (no per-request tx needed — these tables aren't
-// under RLS).
-func NewResolver(q *db.Queries) UserResolver {
-	return &dbResolver{q: q}
+// NewResolver builds the production UserResolver — provision-on-first-
+// login backed by the account service.
+func NewResolver(svc service.Service) UserResolver {
+	return &provisioningResolver{svc: svc}
 }
 
-func (r *dbResolver) Resolve(ctx context.Context, subject string, requestedHomeID *uuid.UUID) (db.User, db.Home, error) {
-	user, err := r.q.GetUserBySubject(ctx, subject)
+func (r *provisioningResolver) Resolve(ctx context.Context, subject string, requestedHomeID *uuid.UUID) (db.User, db.Home, error) {
+	user, home, err := r.svc.ProvisionFromSubject(ctx, subject)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return db.User{}, db.Home{}, ErrUnknownSubject
-		}
 		return db.User{}, db.Home{}, err
 	}
 
-	var home db.Home
-	if requestedHomeID != nil {
-		home, err = r.q.GetHomeForUserByID(ctx, db.GetHomeForUserByIDParams{
-			UserID: user.Uuid,
-			Uuid:   *requestedHomeID,
-		})
+	// If the client requested a specific home, switch to it (must be a
+	// home they belong to).
+	if requestedHomeID != nil && *requestedHomeID != home.UUID {
+		switched, err := r.svc.ResolveActiveHome(ctx, user.UUID, requestedHomeID)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
+			if errors.Is(err, account.ErrHomeNotFound) {
 				return db.User{}, db.Home{}, ErrNoMembership
 			}
 			return db.User{}, db.Home{}, err
 		}
-		return user, home, nil
+		home = switched
 	}
 
-	home, err = r.q.GetMostRecentHomeForUser(ctx, user.Uuid)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return db.User{}, db.Home{}, ErrNoMembership
-		}
-		return db.User{}, db.Home{}, err
+	return toDBUser(user), toDBHome(home), nil
+}
+
+func toDBUser(u *account.User) db.User {
+	out := db.User{
+		Uuid:      u.UUID,
+		Subject:   u.Subject,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
 	}
-	return user, home, nil
+	if u.Email != "" {
+		out.Email.String = u.Email
+		out.Email.Valid = true
+	}
+	if u.DisplayName != "" {
+		out.DisplayName.String = u.DisplayName
+		out.DisplayName.Valid = true
+	}
+	return out
+}
+
+func toDBHome(h *account.Home) db.Home {
+	return db.Home{
+		Uuid:      h.UUID,
+		Name:      h.Name,
+		CreatedAt: h.CreatedAt,
+		UpdatedAt: h.UpdatedAt,
+	}
 }

@@ -31,6 +31,13 @@ type Config struct {
 
 	GoogleAPIKey string
 	GeminiModel  string
+
+	// FounderSubject is the Kratos identity id (X-User value) that should
+	// be linked to the pre-existing founder home on first login. Set this
+	// to the operator's own Kratos id before they first authenticate, so
+	// the 160-recipe backfill ends up under their account rather than a
+	// stranger's. Empty disables founder linkage entirely.
+	FounderSubject string
 }
 
 // New builds a Config from the CLI context.
@@ -45,8 +52,9 @@ func New(c *cli.Context) Config {
 		DBName:       c.String("db-name"),
 		DBHost:       c.String("db-host"),
 		DBPort:       c.String("db-port"),
-		GoogleAPIKey: c.String("google-api-key"),
-		GeminiModel:  c.String("gemini-model"),
+		GoogleAPIKey:   c.String("google-api-key"),
+		GeminiModel:    c.String("gemini-model"),
+		FounderSubject: c.String("founder-subject"),
 	}
 }
 

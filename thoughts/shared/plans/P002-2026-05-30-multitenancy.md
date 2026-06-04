@@ -373,8 +373,8 @@ Build the users/homes/members domain and service, make the middleware's `Resolve
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] `go test ./...` incl. new account service tests (provision-on-miss creates home+owner membership; second login for same subject reuses it; invite accept adds membership).
-- [ ] `go build ./...` passes.
+- [x] `go test ./...` incl. new account service tests (provision-on-miss creates home+owner membership; second login for same subject reuses it; invite accept adds membership).
+- [x] `go build ./...` passes.
 
 #### Manual Verification (needs Phase 0):
 - [ ] First Google login as Kieran lands in the founder home with all existing recipes.

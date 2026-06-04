@@ -13,7 +13,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 )
 
-func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, photoHandler *PhotoHandler, resolver auth.UserResolver, logger logger.Logger) http.Handler {
+func NewRouter(recipeService service.RecipeService, accountHandler *AccountHandler, chatHandler *chat.Handler, photoHandler *PhotoHandler, resolver auth.UserResolver, logger logger.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	// Health/metrics are not authenticated and not workspace-scoped.
@@ -63,6 +63,13 @@ func NewRouter(recipeService service.RecipeService, chatHandler *chat.Handler, p
 	}
 
 	apiMux.HandleFunc("POST /api/chat", chatHandler.HandleChat)
+
+	// Account / identity routes.
+	apiMux.HandleFunc("GET /api/me", accountHandler.Me)
+	apiMux.HandleFunc("POST /api/homes/{id}/invitations", accountHandler.CreateInvitation)
+	apiMux.HandleFunc("POST /api/invitations/{token}/accept", accountHandler.AcceptInvitation)
+	apiMux.HandleFunc("GET /api/homes/{id}/members", accountHandler.ListMembers)
+	apiMux.HandleFunc("DELETE /api/homes/{id}/members/{userID}", accountHandler.RemoveMember)
 
 	authedAPI := auth.Middleware(resolver, logger)(apiMux)
 	mux.Handle("/api/", authedAPI)

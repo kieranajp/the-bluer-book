@@ -50,3 +50,41 @@ FROM homes h
 INNER JOIN home_members m ON m.home_id = h.uuid
 WHERE m.user_id = $1
 ORDER BY m.created_at DESC;
+
+-- name: GetMembership :one
+-- Returns the role the user holds in the given home, or sql.ErrNoRows if
+-- they are not a member. Used for the owner-only authorisation checks.
+SELECT role FROM home_members
+WHERE home_id = $1 AND user_id = $2;
+
+-- name: ListMembersForHome :many
+SELECT u.uuid, u.subject, u.email, u.display_name, u.created_at, u.updated_at, m.role
+FROM home_members m
+INNER JOIN users u ON u.uuid = m.user_id
+WHERE m.home_id = $1
+ORDER BY m.created_at ASC;
+
+-- name: CountOwnersOfHome :one
+SELECT COUNT(*)::int FROM home_members
+WHERE home_id = $1 AND role = 'owner';
+
+-- name: RemoveHomeMember :exec
+DELETE FROM home_members
+WHERE home_id = $1 AND user_id = $2;
+
+-- name: CreateInvitation :one
+INSERT INTO invitations (home_id, email, token, role, invited_by, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING *;
+
+-- name: GetInvitationByToken :one
+SELECT * FROM invitations WHERE token = $1;
+
+-- name: MarkInvitationAccepted :exec
+UPDATE invitations SET accepted_at = now()
+WHERE uuid = $1;
+
+-- name: ListInvitationsForHome :many
+SELECT * FROM invitations
+WHERE home_id = $1 AND accepted_at IS NULL AND expires_at > now()
+ORDER BY created_at DESC;

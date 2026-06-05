@@ -9,7 +9,11 @@ class SessionStorage {
   static const _options = IOSOptions(
     accessibility: KeychainAccessibility.first_unlock,
   );
-  static const _androidOptions = AndroidOptions(encryptedSharedPreferences: true);
+  // flutter_secure_storage 10 dropped the encryptedSharedPreferences flag:
+  // it now always uses custom ciphers (the Jetpack Security lib it relied on
+  // was deprecated by Google) and migrates existing data automatically. The
+  // defaults give us that behaviour.
+  static const _androidOptions = AndroidOptions();
 
   final FlutterSecureStorage _storage;
 

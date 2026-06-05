@@ -432,8 +432,8 @@ Replace the app-as-client `client_credentials` flow with per-user Google login v
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] `flutter analyze` and `flutter test` pass (CI `flutter` job).
-- [ ] No secret remains: `grep -r OAUTH_CLIENT_SECRET app/` returns nothing in source/env, and `release.yml` no longer references it.
+- [ ] `flutter analyze` and `flutter test` pass (CI `flutter` job) — verified in CI on push.
+- [x] No secret remains: `grep -r OAUTH_CLIENT_SECRET app/` returns nothing in source/env, and `release.yml` no longer references it.
 
 #### Manual Verification (needs Phase 0):
 - [ ] Cold start shows Google login; after login the app lands in the user's home.
@@ -509,6 +509,101 @@ Add the mandatory account+data deletion (in-app **and** a public web URL) with a
 - `00009`/`00010` are forward migrations with Down sections; the backfill assumes a single existing tenant (true today). Run against a **copy** of prod first (the dump is in-tree).
 - The non-owner role and RLS `FORCE` mean the app **cannot** function until Phase 2 wires the GUC — sequence Phase 1 and Phase 2 together in the same deploy, or the app (on the app role) sees zero rows. Until Phase 2 ships, the server keeps connecting as the owner role.
 - Founder *user* row is created lazily on Kieran's first real login (Phase 3), linked to the pre-created founder home via `FOUNDER_SUBJECT`.
+
+## Addendum 2026-06-04 — Kratos-only auth (Hydra dropped)
+
+Decision taken after the backend work was already done, while the
+homelab infra was being prepared. The original plan assumed
+Flutter → Hydra (PKCE) → Kratos (Google IdP) → Hydra-issued tokens.
+That assumes the operator has — or will build — a login-consent app
+to mediate between users and Hydra. We don't have one and won't be
+writing one for a single first-party Flutter client. So Hydra is
+dropped; Kratos sessions become the only authentication primitive.
+
+### What this changes
+
+**Phase 0 (homelab Terraform):**
+- **No Hydra public client.** Skip the entire Hydra registration
+  step. No DCR, no authorisation-code/PKCE on our side.
+- **No `OAUTH_CLIENT_ID`/`OAUTH_CLIENT_SECRET`** in Flutter env. The
+  app carries no pre-shared credential; users authenticate fresh per
+  session.
+- **Oathkeeper rule change.** The `jwt-auth` rule (which validates
+  Hydra-issued JWTs) is replaced by `cookie_session` /
+  `bearer_token` rules that call Kratos `/sessions/whoami` to
+  validate a session and forward `X-User`. Built-in Ory authenticator
+  — config tweak, no custom code. Apply to both `/api/*` and
+  `/account/*`.
+- The GCP OAuth client config is unchanged. Its redirect URI is
+  still `https://kratos.kieranajp.uk/self-service/methods/oidc/callback/google`
+  — Kratos still uses Google as its OIDC IdP, that part of the
+  Phase 0 plan was always between Kratos and Google, not Hydra.
+
+**Phase 5 (Flutter):**
+- `flutter_appauth` (PKCE) is **not added**. Use `flutter_web_auth_2`
+  instead — lighter, just opens an external browser and waits for the
+  custom-scheme callback.
+- App flow: open
+  `https://kratos.kieranajp.uk/self-service/login/browser?return_to=com.thebluerbook.app://oauth/callback`,
+  user does Google in browser, Kratos sets a session cookie, redirects
+  back to the deep link with the session token (or sets the
+  `ory_kratos_session` cookie which the app reads).
+- Store the session token in `flutter_secure_storage`; send it as
+  `X-Session-Token` on every API request. No refresh-token machinery
+  — when the session expires the user logs in again. Set session TTL
+  in Kratos config to whatever feels right (30d default is fine).
+- The deep-link redirect URI `com.thebluerbook.app://oauth/callback`
+  is still correct; just plays a different role (Kratos `return_to`
+  rather than Hydra redirect).
+
+**Phase 6 (compliance):**
+- The `account.IdentityDeleter` port is unchanged. Its production
+  impl calls **only** Kratos admin
+  (`DELETE /admin/identities/{id}` on the Kratos admin URL) — no
+  Hydra-side token revocation to also do. Cleaner than the original
+  plan's two-step IdP cleanup.
+- The `/account/delete` web URL is unchanged; the same
+  `cookie_session` Oathkeeper rule covers it.
+
+**Backend code:**
+- **Zero changes.** `auth.Middleware` reads `X-User` and doesn't care
+  what verified it upstream. Oathkeeper does the work either way.
+  This is what made the switch trivial — the multitenancy backend is
+  agnostic about whether the edge validates a Hydra JWT or a Kratos
+  session.
+
+### Trade-off we're accepting
+
+We give up OAuth2/OIDC compliance on the app↔API leg. The only
+practical consequence is **third-party API access** — Zapier-style
+integrations, the deferred Claude.ai remote-MCP "Connect" flow,
+anything where a non-first-party client wants tokens on a user's
+behalf. None of that is in scope today.
+
+If it ever is, Hydra (and a login-consent UI by then) can be bolted
+on alongside Kratos — they coexist by design in the Ory stack — and
+the app↔API leg can keep using Kratos sessions while the third-party
+leg uses OAuth. Not a one-way door.
+
+Kratos session tokens are longer-lived bearers than typical OAuth
+access tokens. Practically irrelevant for a single first-party app
+where the device already holds a long-lived refresh credential, but
+worth flagging if the threat model ever shifts.
+
+### Net effect on the plan
+
+| Item | Original plan | Revised |
+|---|---|---|
+| Hydra public client + DCR | Required (Phase 0) | Dropped |
+| Login-consent app | Implied (Phase 0 prereq) | Not needed |
+| `OAUTH_CLIENT_ID/SECRET` in Flutter | Replaced by PKCE client id | Removed entirely |
+| `flutter_appauth` dep | Added in Phase 5 | Not added; use `flutter_web_auth_2` |
+| Refresh-token handling in Flutter | Phase 5 work | Removed — Kratos session re-issued on next login |
+| Oathkeeper rule | `jwt-auth` | `cookie_session` / bearer-token against Kratos |
+| GCP OAuth client | Same | Same |
+| Backend `auth.Middleware` | Same | Same |
+| `account.IdentityDeleter` impl | Kratos + Hydra | Kratos only |
+| Third-party API access | Out of scope | Still out of scope; deferred Hydra bolt-on path remains open |
 
 ## References
 - Research: `thoughts/shared/research/R1-2026-05-29-multitenancy-for-app-store.md` (decisions section, 2026-05-29/30)

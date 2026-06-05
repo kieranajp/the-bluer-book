@@ -50,6 +50,14 @@ dependencies:
   # Persistent storage
   shared_preferences: ^2.5.5
 
+  # Secure storage for the Kratos session token (keychain on iOS,
+  # EncryptedSharedPreferences on Android).
+  flutter_secure_storage: ^9.2.4
+
+  # Opens an external browser tab for the Kratos OIDC login flow and
+  # waits for the deep-link callback (com.thebluerbook.app://oauth/callback).
+  flutter_web_auth_2: ^4.1.0
+
   # Native share sheet
   share_plus: ^13.1.0
 

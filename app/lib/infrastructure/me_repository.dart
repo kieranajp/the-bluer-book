@@ -1,5 +1,3 @@
-import 'package:dio/dio.dart';
-
 import '../domain/me.dart';
 import 'network/api_client.dart';
 

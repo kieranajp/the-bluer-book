@@ -11,20 +11,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/upload"
 )
 
 type PhotoHandler struct {
 	uploader *upload.R2Uploader
-	queries  *db.Queries
 	sqlDB    *sql.DB
 	logger   logger.Logger
 }
 
-func NewPhotoHandler(uploader *upload.R2Uploader, queries *db.Queries, sqlDB *sql.DB, logger logger.Logger) *PhotoHandler {
+func NewPhotoHandler(uploader *upload.R2Uploader, sqlDB *sql.DB, logger logger.Logger) *PhotoHandler {
 	return &PhotoHandler{
 		uploader: uploader,
-		queries:  queries,
 		sqlDB:    sqlDB,
 		logger:   logger,
 	}
@@ -83,40 +82,26 @@ func (h *PhotoHandler) UploadRecipePhoto(w http.ResponseWriter, r *http.Request)
 	now := time.Now()
 	photoUUID := uuid.New()
 
-	tx, err := h.sqlDB.BeginTx(r.Context(), nil)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "database error"})
-		return
-	}
-	q := db.New(tx)
-
-	_, err = q.CreatePhoto(r.Context(), db.CreatePhotoParams{
-		Uuid:       photoUUID,
-		Url:        photoURL,
-		EntityType: "recipe",
-		EntityID:   recipeID,
-		CreatedAt:  now,
-		UpdatedAt:  now,
+	err = repository.InHomeTx(r.Context(), h.sqlDB, func(q *db.Queries) error {
+		if _, err := q.CreatePhoto(r.Context(), db.CreatePhotoParams{
+			Uuid:       photoUUID,
+			Url:        photoURL,
+			EntityType: "recipe",
+			EntityID:   recipeID,
+			CreatedAt:  now,
+			UpdatedAt:  now,
+		}); err != nil {
+			return err
+		}
+		return q.SetRecipeMainPhoto(r.Context(), db.SetRecipeMainPhotoParams{
+			Uuid:        recipeID,
+			MainPhotoID: uuid.NullUUID{UUID: photoUUID, Valid: true},
+			UpdatedAt:   now,
+		})
 	})
 	if err != nil {
-		tx.Rollback()
+		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to record uploaded photo")
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed to save photo record"})
-		return
-	}
-
-	_, err = tx.ExecContext(r.Context(),
-		`UPDATE recipes SET main_photo_id = $1, updated_at = $2 WHERE uuid = $3`,
-		photoUUID, now, recipeID,
-	)
-	if err != nil {
-		tx.Rollback()
-		h.logger.Error().Err(err).Msg("Failed to update recipe main_photo_id")
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "failed to set main photo"})
-		return
-	}
-
-	if err := tx.Commit(); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "database commit failed"})
 		return
 	}
 

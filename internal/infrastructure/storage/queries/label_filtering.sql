@@ -6,9 +6,14 @@ SELECT
     p.uuid as main_photo_uuid,
     p.url as main_photo_url
 FROM recipes r
-LEFT JOIN meal_plan_recipes mp ON r.uuid = mp.recipe_id
-LEFT JOIN photos p ON r.main_photo_id = p.uuid
+LEFT JOIN meal_plan_recipes mp
+  ON r.uuid = mp.recipe_id
+ AND mp.home_id = current_setting('app.home_id', true)::uuid
+LEFT JOIN photos p
+  ON r.main_photo_id = p.uuid
+ AND p.home_id = current_setting('app.home_id', true)::uuid
 WHERE r.archived_at IS NULL
+    AND r.home_id = current_setting('app.home_id', true)::uuid
     AND (sqlc.narg('search')::text IS NULL OR r.name ILIKE '%' || sqlc.narg('search')::text || '%')
     AND (
         sqlc.arg('label_keys')::text[] IS NULL
@@ -16,7 +21,8 @@ WHERE r.archived_at IS NULL
             SELECT rl2.recipe_id
             FROM recipe_label rl2
             JOIN labels l2 ON rl2.label_id = l2.uuid
-            WHERE l2.type || ':' || l2.name = ANY(sqlc.arg('label_keys')::text[])
+            WHERE rl2.home_id = current_setting('app.home_id', true)::uuid
+              AND l2.type || ':' || l2.name = ANY(sqlc.arg('label_keys')::text[])
             GROUP BY rl2.recipe_id
             HAVING COUNT(DISTINCT l2.type || ':' || l2.name) = array_length(sqlc.arg('label_keys')::text[], 1)
         )
@@ -29,6 +35,7 @@ OFFSET sqlc.arg('recipe_offset');
 SELECT COUNT(DISTINCT r.uuid)::int as count
 FROM recipes r
 WHERE r.archived_at IS NULL
+    AND r.home_id = current_setting('app.home_id', true)::uuid
     AND (sqlc.narg('search')::text IS NULL OR r.name ILIKE '%' || sqlc.narg('search')::text || '%')
     AND (
         sqlc.arg('label_keys')::text[] IS NULL
@@ -36,7 +43,8 @@ WHERE r.archived_at IS NULL
             SELECT rl2.recipe_id
             FROM recipe_label rl2
             JOIN labels l2 ON rl2.label_id = l2.uuid
-            WHERE l2.type || ':' || l2.name = ANY(sqlc.arg('label_keys')::text[])
+            WHERE rl2.home_id = current_setting('app.home_id', true)::uuid
+              AND l2.type || ':' || l2.name = ANY(sqlc.arg('label_keys')::text[])
             GROUP BY rl2.recipe_id
             HAVING COUNT(DISTINCT l2.type || ':' || l2.name) = array_length(sqlc.arg('label_keys')::text[], 1)
         )

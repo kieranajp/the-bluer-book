@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/shopping_list_item.dart';
 import '../../infrastructure/pantry_repository.dart';
-import 'recipe_providers.dart';
+import 'auth_providers.dart';
 
 final pantryRepositoryProvider = Provider<PantryRepository>((ref) {
   return PantryRepository(ref.watch(apiClientProvider));

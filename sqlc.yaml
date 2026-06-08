@@ -11,6 +11,10 @@ sql:
       - "migrations/00008_consolidate_units.sql"
       - "migrations/00009_pantry.sql"
       - "migrations/00010_shopping_list_items.sql"
+      - "migrations/00011_identity.sql"
+      - "migrations/00012_tenancy.sql"
+      - "migrations/00013_pantry_tenancy.sql"
+      - "migrations/00014_rls_policy_nullif.sql"
     queries: "internal/infrastructure/storage/queries"
     gen:
       go:

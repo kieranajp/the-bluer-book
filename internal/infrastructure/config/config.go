@@ -14,14 +14,30 @@ type Config struct {
 	ListenAddr string
 	MCPAddr    string
 
+	// Owner-role credentials. The `migrate` command uses these to apply
+	// DDL; in dev they also back the server when APP_DB_USER is unset.
 	DBUser string
 	DBPass string
+
+	// Application-role credentials. The server uses these so it connects
+	// as a non-owner role that FORCE ROW LEVEL SECURITY actually applies
+	// to. Falls back to the owner credentials when unset (single-role dev).
+	AppDBUser string
+	AppDBPass string
+
 	DBName string
 	DBHost string
 	DBPort string
 
 	GoogleAPIKey string
 	GeminiModel  string
+
+	// FounderSubject is the Kratos identity id (X-User value) that should
+	// be linked to the pre-existing founder home on first login. Set this
+	// to the operator's own Kratos id before they first authenticate, so
+	// the 160-recipe backfill ends up under their account rather than a
+	// stranger's. Empty disables founder linkage entirely.
+	FounderSubject string
 }
 
 // New builds a Config from the CLI context.
@@ -31,18 +47,39 @@ func New(c *cli.Context) Config {
 		MCPAddr:      c.String("mcp-addr"),
 		DBUser:       c.String("db-user"),
 		DBPass:       c.String("db-pass"),
+		AppDBUser:    c.String("app-db-user"),
+		AppDBPass:    c.String("app-db-pass"),
 		DBName:       c.String("db-name"),
 		DBHost:       c.String("db-host"),
 		DBPort:       c.String("db-port"),
-		GoogleAPIKey: c.String("google-api-key"),
-		GeminiModel:  c.String("gemini-model"),
+		GoogleAPIKey:   c.String("google-api-key"),
+		GeminiModel:    c.String("gemini-model"),
+		FounderSubject: c.String("founder-subject"),
 	}
 }
 
-// DBDSN returns the Postgres connection string.
+// DBDSN returns the Postgres connection string for the owner role
+// (used by migrations).
 func (c Config) DBDSN() string {
+	return c.dsnFor(c.DBUser, c.DBPass)
+}
+
+// AppDBDSN returns the Postgres connection string for the application
+// role. Falls back to the owner role if APP_DB_USER/APP_DB_PASS are
+// unset — useful in dev, dangerous in prod (RLS would not apply).
+func (c Config) AppDBDSN() string {
+	user := c.AppDBUser
+	pass := c.AppDBPass
+	if user == "" {
+		user = c.DBUser
+		pass = c.DBPass
+	}
+	return c.dsnFor(user, pass)
+}
+
+func (c Config) dsnFor(user, pass string) string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		url.QueryEscape(c.DBUser), url.QueryEscape(c.DBPass), c.DBHost, c.DBPort, c.DBName,
+		url.QueryEscape(user), url.QueryEscape(pass), c.DBHost, c.DBPort, c.DBName,
 	)
 }

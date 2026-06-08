@@ -38,6 +38,41 @@ ingress:
     - name: ory-auth
       namespace: auth
 
+# NetworkPolicy restricting inbound traffic to the app pods so the only route to
+# the API/MCP ports is via the Traefik edge (which authenticates and sets X-User
+# from a verified credential). The backend trusts X-User without verifying any
+# token, so this "no in-cluster bypass" guarantee is load-bearing — without it
+# any pod can curl the Service directly with a forged X-User and impersonate a user.
+#
+# SHIPS DISABLED. The selectors below are cluster-specific; a wrong one silently
+# drops all ingress (or all metric scrapes), and deploy.yml auto-deploys main.
+# Confirm the real labels before enabling, e.g.:
+#   kubectl get ns --show-labels
+#   kubectl -n <traefik-ns> get pod --show-labels
+#   kubectl -n <monitoring-ns> get pod --show-labels
+# then set networkPolicy.enabled: true.
+networkPolicy:
+  enabled: false
+  ingress:
+    traefik:
+      # Traefik ingress controller location. `kubernetes.io/metadata.name` is the
+      # automatic per-namespace label (k8s >= 1.21). Defaults are common, not certain.
+      namespaceSelector:
+        kubernetes.io/metadata.name: traefik
+      podSelector:
+        app.kubernetes.io/name: traefik
+    monitoring:
+      # Allow Prometheus to scrape /metrics on the app port. Set enabled: false if
+      # you don't scrape, or scrape node-locally.
+      enabled: true
+      namespaceSelector:
+        kubernetes.io/metadata.name: monitoring
+      # Narrow to the Prometheus pods if you like; {} = the whole namespace.
+      podSelector: {}
+    # Raw extra ingress rules (a NetworkPolicyIngressRule list), e.g. to allow the
+    # kubelet probe source on CNIs that enforce policy against health checks.
+    extra: []
+
 mcp:
   service:
     port: 8082

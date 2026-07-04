@@ -14,9 +14,9 @@ class KratosAuthException implements Exception {
 
 /// KratosAuthClient runs the native-mobile OIDC dance:
 ///
-///   1. POST /self-service/login/api with return_session_token_exchange_code
+///   1. GET /self-service/login/api with return_session_token_exchange_code
 ///      → Kratos returns a login flow whose `session_token_exchange_code`
-///        carries the half-secret `init_code` the app keeps locally.
+///        string is the `init_code` half the app keeps locally.
 ///   2. Open the OIDC provider's "auth" URL for the same flow in an
 ///      external browser via flutter_web_auth_2 (Google completes the
 ///      identity check there).
@@ -46,10 +46,9 @@ class KratosAuthClient {
   /// upstream failure.
   Future<String> signInWithGoogle() async {
     final flow = await _initLoginFlow();
-    final flowId = flow['id'] as String;
     final initCode = _extractInitCode(flow);
 
-    final providerUrl = _buildProviderAuthUrl(flowId);
+    final providerUrl = await _startBrowserFlow(_extractAction(flow));
 
     final String callbackUri;
     try {
@@ -93,25 +92,55 @@ class KratosAuthClient {
   }
 
   String _extractInitCode(Map<String, dynamic> flow) {
-    final exchange = flow['session_token_exchange_code'];
-    if (exchange is Map<String, dynamic>) {
-      final code = exchange['init_code'];
-      if (code is String && code.isNotEmpty) return code;
-    }
+    // Kratos returns session_token_exchange_code as a top-level string (the
+    // init half of the exchange), not a nested object — this is the value the
+    // /sessions/token-exchange call wants as `init_code`.
+    final code = flow['session_token_exchange_code'];
+    if (code is String && code.isNotEmpty) return code;
     throw const KratosAuthException(
-      'Login flow is missing session_token_exchange_code.init_code — '
-      'the Kratos config probably has token exchange disabled.',
+      'Login flow is missing session_token_exchange_code — the flow was not '
+      'initialised with return_session_token_exchange_code=true.',
     );
   }
 
-  /// Per the Kratos OIDC strategy: opening
-  ///   {publicUrl}/self-service/methods/oidc/auth/{flow_id}?provider={id}
-  /// kicks off the redirect to the IdP for an existing flow. Kratos
-  /// honours the `return_to` we set at flow init when it redirects back.
-  String _buildProviderAuthUrl(String flowId) {
-    return Uri.parse('${KratosConfig.publicUrl}/self-service/methods/oidc/auth/$flowId')
-        .replace(queryParameters: {'provider': KratosConfig.googleProviderId})
-        .toString();
+  String _extractAction(Map<String, dynamic> flow) {
+    final ui = flow['ui'];
+    if (ui is Map<String, dynamic>) {
+      final action = ui['action'];
+      if (action is String && action.isNotEmpty) return action;
+    }
+    throw const KratosAuthException('Login flow response has no ui.action.');
+  }
+
+  /// Kratos has no GET "start OIDC" endpoint for API flows. Submitting the
+  /// oidc method to the flow's action returns HTTP 422
+  /// `browser_location_change_required` with a `redirect_browser_to` — the
+  /// IdP URL to open in the external browser. Kratos honours the `return_to`
+  /// set at flow init when it redirects back to the custom-scheme callback.
+  Future<String> _startBrowserFlow(String action) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        action,
+        data: {
+          'method': 'oidc',
+          'provider': KratosConfig.googleProviderId,
+        },
+        // The expected outcome IS a 422 carrying the redirect; let it through
+        // rather than have Dio throw on the non-2xx.
+        options: Options(
+          validateStatus: (s) => s != null && (s == 422 || (s >= 200 && s < 300)),
+        ),
+      );
+      final url = res.data?['redirect_browser_to'];
+      if (url is String && url.isNotEmpty) return url;
+      throw const KratosAuthException(
+        'Kratos did not return a browser redirect URL for the OIDC provider.',
+      );
+    } on DioException catch (e) {
+      throw KratosAuthException(
+        'Kratos OIDC start failed: ${e.response?.statusCode} ${e.response?.data}',
+      );
+    }
   }
 
   Future<String> _exchangeForSessionToken({

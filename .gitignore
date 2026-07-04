@@ -7,3 +7,8 @@ output.txt
 .env
 
 __debug_bin*
+
+# Android release signing keystore — CI injects it from a secret; never commit.
+*.jks
+# Local prod DB dumps used for migration testing.
+dump-postgres-*.sql

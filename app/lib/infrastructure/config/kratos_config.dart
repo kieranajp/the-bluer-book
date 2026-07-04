@@ -1,12 +1,13 @@
 /// Kratos public-facing config. Overrideable from `--dart-define` so the
 /// release.env in CI can point at the homelab while dev defaults to the
-/// production host (same as the API). The deep-link scheme matches the
+/// dedicated Bluer Book auth host (the isolated Kratos, separate from the
+/// domain-locked homelab Kratos). The deep-link scheme matches the
 /// CFBundleURLScheme on iOS and the CallbackActivity intent filter on
 /// Android — keep all three in lock-step if it ever changes.
 class KratosConfig {
   static const String publicUrl = String.fromEnvironment(
     'KRATOS_URL',
-    defaultValue: 'https://kratos.kieranajp.uk',
+    defaultValue: 'https://auth.recipes.kieranajp.uk',
   );
 
   /// Stable Kratos-internal id of the Google OIDC provider, matching the

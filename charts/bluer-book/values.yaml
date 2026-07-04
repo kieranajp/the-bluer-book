@@ -36,7 +36,7 @@ ingress:
   host: "recipes.kieranajp.uk"
   middlewares:
     - name: ory-auth
-      namespace: auth
+      namespace: bluer-book-auth
 
 # NetworkPolicy restricting inbound traffic to the app pods so the only route to
 # the API/MCP ports is via the Traefik edge (which authenticates and sets X-User

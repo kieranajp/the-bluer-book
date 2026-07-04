@@ -18,6 +18,7 @@ import (
 	"google.golang.org/adk/tool/mcptoolset"
 	"google.golang.org/genai"
 
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 )
@@ -55,10 +56,17 @@ func NewHandler(cfg config.Config, log logger.Logger, probe Probe) (*Handler, er
 		return nil, fmt.Errorf("creating gemini model: %w", err)
 	}
 
-	// Connect to the existing mark3labs MCP server as a client
+	// Connect to the existing mark3labs MCP server as a client. The
+	// HTTPClient is wrapped so per-request X-Home is forwarded from the
+	// chat handler's ctx into the MCP transport — the only path by which
+	// home identity reaches the tool handlers running on the other side
+	// of the loopback boundary.
 	mcpURL := fmt.Sprintf("http://localhost%s/mcp", cfg.MCPAddr)
 	transport := &gomcp.StreamableClientTransport{
 		Endpoint: mcpURL,
+		HTTPClient: &http.Client{
+			Transport: &auth.HomeHeaderRoundTripper{Base: http.DefaultTransport},
+		},
 	}
 
 	mcpTools, err := mcptoolset.New(mcptoolset.Config{
@@ -115,7 +123,21 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	userID := "default_user"
+
+	// ADK sessions are per-user — using the real user id as the key
+	// keeps one chat history per signed-in account rather than the old
+	// shared "default_user". The auth middleware on /api/* guarantees
+	// these are present on every request that lands here.
+	userUUID, hasUser := auth.UserID(ctx)
+	if !hasUser {
+		http.Error(w, `{"error":"unauthenticated"}`, http.StatusUnauthorized)
+		return
+	}
+	if _, hasHome := auth.HomeID(ctx); !hasHome {
+		http.Error(w, `{"error":"no active home"}`, http.StatusBadRequest)
+		return
+	}
+	userID := userUUID.String()
 
 	// Create or reuse session
 	sessionID := req.SessionID

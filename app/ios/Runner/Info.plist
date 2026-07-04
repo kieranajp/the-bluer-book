@@ -47,5 +47,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Custom URL scheme so the Kratos OIDC return_to deep link
+	     (com.thebluerbook.app://oauth/callback) routes back into the
+	     app after a browser-based login. Consumed by flutter_web_auth_2. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.thebluerbook.app.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.thebluerbook.app</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

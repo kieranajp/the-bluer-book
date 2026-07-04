@@ -2,7 +2,7 @@ import 'dart:developer' as dev;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../infrastructure/chat_service.dart';
-import 'recipe_providers.dart';
+import 'auth_providers.dart';
 
 final chatServiceProvider = Provider<ChatService>((ref) {
   return ChatService(ref.watch(apiClientProvider));

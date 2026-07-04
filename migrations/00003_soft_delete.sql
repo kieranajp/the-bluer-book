@@ -1,3 +1,4 @@
+-- +goose Up
 -- Add archived_at column to recipes table for soft delete functionality
 ALTER TABLE recipes ADD COLUMN archived_at TIMESTAMP NULL;
 

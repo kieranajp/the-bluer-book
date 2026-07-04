@@ -1,0 +1,58 @@
+{{- if .Values.networkPolicy.enabled }}
+# Locks inbound traffic to the app pods so the ONLY path to the API/MCP ports
+# is through the Traefik edge — which runs Oathkeeper auth and sets X-User from
+# a verified credential. The Go backend trusts X-User blindly
+# (internal/infrastructure/auth/middleware.go), so without this any pod in the
+# cluster could hit the Service directly and forge X-User to impersonate any
+# user. This policy is the "no bypass" half of that trust model.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-app
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  # App pods only — Postgres has its own (selector app: <release>-postgresql).
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  policyTypes:
+    - Ingress
+  ingress:
+    # 1. Traefik ingress controller → API (8080) + MCP (8082). The edge auth path.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicy.ingress.traefik.namespaceSelector | nindent 14 }}
+          podSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicy.ingress.traefik.podSelector | nindent 14 }}
+      ports:
+        - port: {{ .Values.app.service.port }}
+          protocol: TCP
+        - port: {{ .Values.mcp.service.port }}
+          protocol: TCP
+    {{- if .Values.networkPolicy.ingress.monitoring.enabled }}
+    # 2. Prometheus scrape of /metrics, which is served on the app port.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicy.ingress.monitoring.namespaceSelector | nindent 14 }}
+          {{- with .Values.networkPolicy.ingress.monitoring.podSelector }}
+          podSelector:
+            matchLabels:
+              {{- toYaml . | nindent 14 }}
+          {{- end }}
+      ports:
+        - port: {{ .Values.app.service.port }}
+          protocol: TCP
+    {{- end }}
+    {{- with .Values.networkPolicy.ingress.extra }}
+    # 3. Cluster-specific extras (e.g. kubelet probe source on some CNIs).
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

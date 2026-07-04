@@ -61,18 +61,17 @@ jobs:
       - name: Build release APK and AAB
         env:
           API_URL: ${{ secrets.API_URL }}
-          OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
-          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
+          KRATOS_URL: ${{ secrets.KRATOS_URL }}
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          # Per-user Kratos session tokens replace the old shared
+          # OAuth client_credentials flow — no client secret to ship.
           printf '%s\n' \
             "API_URL=${API_URL}" \
-            "OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}" \
-            "OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}" \
-            "OAUTH_SCOPE=recipes:api" \
+            "KRATOS_URL=${KRATOS_URL}" \
             > env/release.env
           flutter build apk --release \
             --dart-define-from-file=env/release.env \

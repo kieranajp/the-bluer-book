@@ -1,3 +1,4 @@
+-- +goose Up
 -- Create lookup tables
 CREATE TABLE ingredients (
   uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

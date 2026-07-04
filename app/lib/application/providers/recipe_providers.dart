@@ -4,10 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/ingredient.dart';
 import '../../domain/label.dart';
 import '../../domain/recipe.dart';
-import '../../infrastructure/network/api_client.dart';
 import '../../infrastructure/recipe_repository.dart';
-
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+import 'auth_providers.dart';
 
 final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
   return RecipeRepository(ref.watch(apiClientProvider));

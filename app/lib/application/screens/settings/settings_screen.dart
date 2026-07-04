@@ -4,6 +4,7 @@ import '../../providers/theme_provider.dart';
 import '../../styles/colours.dart';
 import '../../styles/text_styles.dart';
 import '../../styles/spacing.dart';
+import 'settings_account_section.dart';
 import 'settings_theme_option_tile.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -66,6 +67,8 @@ class SettingsScreen extends ConsumerWidget {
                           .read(themeModeProvider.notifier)
                           .setThemeMode(ThemeMode.dark),
                     ),
+                    const SizedBox(height: Spacing.l),
+                    const SettingsAccountSection(),
                   ],
                 ),
               ),

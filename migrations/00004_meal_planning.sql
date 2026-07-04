@@ -1,3 +1,4 @@
+-- +goose Up
 -- Add meal planning functionality
 -- This migration adds a table to track which recipes are in the user's meal plan
 

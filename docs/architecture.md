@@ -47,7 +47,7 @@ entry point reaches the repository or `db` package directly. See `docs/backend.m
 ## Authentication
 
 In production the backend sits behind Traefik → Ory Oathkeeper, which validates a JWT
-(issued by Ory Hydra via the OAuth2 `client_credentials` grant) and forwards an
+(issued by Authentik via the OAuth2 `client_credentials` grant) and forwards an
 `X-User` header. The Flutter app obtains and caches a token in `AuthInterceptor`
 (`app/lib/infrastructure/network/auth_interceptor.dart`). The full homelab auth model
 is documented in the `oauth-api-auth` skill (`.claude/skills/oauth-api-auth.md`).

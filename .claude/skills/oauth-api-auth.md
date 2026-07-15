@@ -3,10 +3,15 @@
 This skill describes how OAuth2 API authentication works in this homelab so agents can authenticate against protected services.
 
 > **Provider: Authentik.** Tokens are now issued by Authentik (`https://auth.kieranajp.uk`),
-> which replaced Ory Hydra. Oathkeeper still fronts the services and validates JWTs. The
-> concrete endpoints below are current; the infra-side provisioning details (Terraform
-> resources, in-cluster service addresses, Oathkeeper wiring) are maintained in the infra
-> repository, which owns the Authentik provider/application definitions.
+> which replaced Ory Hydra — tokens are RS256-signed and validatable against Authentik's
+> per-application JWKS. The infra-side provisioning (Terraform, the Authentik
+> provider/application definitions) is maintained in the infra repository.
+>
+> **The Ory stack (Oathkeeper/Kratos) is being retired** as part of this migration.
+> The token-fetching sections below are current, but anything describing Oathkeeper's
+> `forwardAuth` / access rules / `X-User` header (the "Architecture", "Traefik Setup",
+> "Access Rule Priority" and "Headers" sections) is historical and does **not** reflect
+> the replacement validation path — that is being reworked in the infra repo.
 
 ## Quick Start: Get a Token and Call an API
 

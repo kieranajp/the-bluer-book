@@ -46,11 +46,13 @@ entry point reaches the repository or `db` package directly. See `docs/backend.m
 
 ## Authentication
 
-In production the backend sits behind Traefik → Ory Oathkeeper, which validates a JWT
-(issued by Authentik via the OAuth2 `client_credentials` grant) and forwards an
-`X-User` header. The Flutter app obtains and caches a token in `AuthInterceptor`
-(`app/lib/infrastructure/network/auth_interceptor.dart`). The full homelab auth model
-is documented in the `oauth-api-auth` skill (`.claude/skills/oauth-api-auth.md`).
+In production the API requires a valid Authentik-issued JWT (RS256) as a bearer token.
+The Flutter app obtains and caches one via the OAuth2 `client_credentials` grant in
+`AuthInterceptor` (`app/lib/infrastructure/network/auth_interceptor.dart`). How that token
+is validated in front of the API is an infra concern, and is in flux: the Ory stack
+(Oathkeeper) that previously did this is being retired in favour of JWKS-based validation
+against Authentik. See the `oauth-api-auth` skill (`.claude/skills/oauth-api-auth.md`) and
+the infra repo.
 
 Locally there is no auth in front of the binary; it talks to a local Postgres.
 

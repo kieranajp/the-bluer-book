@@ -46,13 +46,13 @@ entry point reaches the repository or `db` package directly. See `docs/backend.m
 
 ## Authentication
 
-In production the API requires a valid Authentik-issued JWT (RS256) as a bearer token.
-The Flutter app obtains and caches one via the OAuth2 `client_credentials` grant in
-`AuthInterceptor` (`app/lib/infrastructure/network/auth_interceptor.dart`). How that token
-is validated in front of the API is an infra concern, and is in flux: the Ory stack
-(Oathkeeper) that previously did this is being retired in favour of JWKS-based validation
-against Authentik. See the `oauth-api-auth` skill (`.claude/skills/oauth-api-auth.md`) and
-the infra repo.
+In production the backend sits behind Traefik, whose `auth-token` middleware
+(traefik-jwt-plugin) validates the bearer token's RS256 signature against the-bluer-book's
+Authentik JWKS and injects an `X-User` header (the JWT `sub`). The Flutter app obtains and
+caches a token via the OAuth2 `client_credentials` grant in `AuthInterceptor`
+(`app/lib/infrastructure/network/auth_interceptor.dart`). This replaced the Ory stack
+(Hydra issued the tokens; Oathkeeper validated them). The full auth model is documented in
+the `oauth-api-auth` skill (`.claude/skills/oauth-api-auth.md`).
 
 Locally there is no auth in front of the binary; it talks to a local Postgres.
 

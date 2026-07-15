@@ -43,7 +43,7 @@ uses those same tools.
 | Database     | PostgreSQL, with [sqlc](https://sqlc.dev) for type-safe queries |
 | LLM chat     | Google ADK + Gemini, streamed over SSE                          |
 | Mobile/web   | Flutter (Riverpod, Dio, freezed) in `app/`                      |
-| Infra        | Docker, Helm charts, Prometheus metrics, Ory (Hydra/Oathkeeper) |
+| Infra        | Docker, Helm charts, Prometheus metrics, Authentik + Ory Oathkeeper |
 
 ## 🚀 Running it locally
 

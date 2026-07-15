@@ -14,25 +14,14 @@ spec:
       services:
         - name: {{ .Release.Name }}-mcp
           port: {{ .Values.mcp.service.port }}
-    # API routes — JWT bearer auth (for mobile/programmatic clients)
+    # API routes — JWT bearer auth (for mobile/programmatic clients).
+    # auth-token = traefik-jwt-plugin, validating the Authentik RS256 token
+    # against the-bluer-book's JWKS and injecting X-User (the JWT sub).
     - kind: Rule
       match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/api`)
       middlewares:
-        - name: jwt-auth
+        - name: auth-token
           namespace: auth
-      services:
-        - name: {{ .Release.Name }}
-          port: {{ .Values.app.service.port }}
-    # Everything else — browser session auth (Google login via Kratos)
-    - kind: Rule
-      match: Host(`{{ .Values.ingress.host }}`)
-      {{- if .Values.ingress.middlewares }}
-      middlewares:
-        {{- range .Values.ingress.middlewares }}
-        - name: {{ .name }}
-          namespace: {{ .namespace }}
-        {{- end }}
-      {{- end }}
       services:
         - name: {{ .Release.Name }}
           port: {{ .Values.app.service.port }}

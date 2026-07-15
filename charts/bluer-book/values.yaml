@@ -34,9 +34,6 @@ postgresql:
 ingress:
   enabled: true
   host: "recipes.kieranajp.uk"
-  middlewares:
-    - name: ory-auth
-      namespace: auth
 
 mcp:
   service:

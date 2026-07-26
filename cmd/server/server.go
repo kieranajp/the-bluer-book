@@ -132,7 +132,7 @@ func run(c *cli.Context) error {
 	pantryService := pantryservice.NewPantryService(pantryRepo, pantryProbe)
 
 	// Create MCP handler
-	mcpHandler := mcp.NewRecipeMCPHandler(recipeService, log)
+	mcpHandler := mcp.NewRecipeMCPHandler(recipeService, pantryService, log)
 
 	// Create MCP server
 	mcpServer := server.NewMCPServer("Recipe Management Server", "1.0.0",

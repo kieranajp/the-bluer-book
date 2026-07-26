@@ -1,20 +1,23 @@
 package mcp
 
 import (
-	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
+	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
+	recipeservice "github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
 type RecipeMCPHandler struct {
-	recipeService service.RecipeService
+	recipeService recipeservice.RecipeService
+	pantryService pantryservice.PantryService
 	logger        logger.Logger
 }
 
-func NewRecipeMCPHandler(recipeService service.RecipeService, logger logger.Logger) *RecipeMCPHandler {
+func NewRecipeMCPHandler(recipeService recipeservice.RecipeService, pantryService pantryservice.PantryService, logger logger.Logger) *RecipeMCPHandler {
 	return &RecipeMCPHandler{
 		recipeService: recipeService,
+		pantryService: pantryService,
 		logger:        logger,
 	}
 }
@@ -155,5 +158,51 @@ func (h *RecipeMCPHandler) RegisterTools(s *server.MCPServer) {
 			mcp.WithDescription("List all recipes currently in the meal plan"),
 		),
 		h.ListMealPlan,
+	)
+
+	s.AddTool(
+		mcp.NewTool("list_pantry",
+			mcp.WithDescription("List all ingredients currently in the pantry"),
+		),
+		h.ListPantry,
+	)
+
+	s.AddTool(
+		mcp.NewTool("add_to_pantry",
+			mcp.WithDescription("Mark an ingredient as currently available in the pantry"),
+			mcp.WithString("ingredient", mcp.Required(), mcp.Description("Ingredient name")),
+		),
+		h.AddToPantry,
+	)
+
+	s.AddTool(
+		mcp.NewTool("remove_from_pantry",
+			mcp.WithDescription("Remove an ingredient from the pantry"),
+			mcp.WithString("ingredient", mcp.Required(), mcp.Description("Ingredient name")),
+		),
+		h.RemoveFromPantry,
+	)
+
+	s.AddTool(
+		mcp.NewTool("list_shopping_list",
+			mcp.WithDescription("List missing meal-plan ingredients and custom shopping-list items"),
+		),
+		h.ListShoppingList,
+	)
+
+	s.AddTool(
+		mcp.NewTool("add_to_shopping_list",
+			mcp.WithDescription("Add a custom free-text item to the shopping list"),
+			mcp.WithString("name", mcp.Required(), mcp.Description("Shopping-list item name")),
+		),
+		h.AddToShoppingList,
+	)
+
+	s.AddTool(
+		mcp.NewTool("remove_from_shopping_list",
+			mcp.WithDescription("Remove a custom free-text item from the shopping list"),
+			mcp.WithString("name", mcp.Required(), mcp.Description("Shopping-list item name")),
+		),
+		h.RemoveFromShoppingList,
 	)
 }

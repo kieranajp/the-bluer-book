@@ -27,21 +27,24 @@ INSERT INTO steps (
 ) RETURNING *;
 
 -- name: CreateIngredient :one
+-- canonical_name is derived here rather than passed in, so there is exactly one
+-- definition of what "the same ingredient" means and no call site can skip it.
+-- The conflict target is canonical_name, not name: "Salt" must find the
+-- existing "salt" rather than mint a second row.
 INSERT INTO ingredients (
     uuid,
     name,
+    canonical_name,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4
-) ON CONFLICT (name) DO UPDATE SET updated_at = EXCLUDED.updated_at
+    @uuid, btrim(@name::varchar), lower(btrim(@name::varchar)), @created_at, @updated_at
+) ON CONFLICT (canonical_name) DO UPDATE SET updated_at = EXCLUDED.updated_at
 RETURNING *;
 
--- name: GetIngredientByName :one
-SELECT * FROM ingredients WHERE name = $1;
-
 -- name: ListIngredients :many
-SELECT * FROM ingredients ORDER BY name ASC;
+-- Ordered case-insensitively so "Onion" and "apple" sort sensibly together.
+SELECT * FROM ingredients ORDER BY canonical_name ASC;
 
 -- name: CreateUnit :one
 INSERT INTO units (
@@ -168,6 +171,8 @@ ORDER BY s.step_order ASC;
 SELECT
     ri.*,
     i.name as ingredient_name,
+    i.canonical_name as ingredient_canonical_name,
+    i.is_staple as ingredient_is_staple,
     u.name as unit_name,
     u.abbreviation as unit_abbreviation
 FROM recipe_ingredient ri
@@ -175,7 +180,7 @@ JOIN ingredients i ON ri.ingredient_id = i.uuid
 LEFT JOIN units u ON ri.unit_id = u.uuid
 INNER JOIN recipes r ON ri.recipe_id = r.uuid
 WHERE ri.recipe_id = $1 AND r.archived_at IS NULL
-ORDER BY ri.component NULLS FIRST, ri.created_at ASC;
+ORDER BY ri.component ASC, ri.created_at ASC;
 
 -- name: GetLabelsByRecipeID :many
 SELECT l.*

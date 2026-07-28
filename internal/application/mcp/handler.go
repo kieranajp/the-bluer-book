@@ -184,6 +184,15 @@ func (h *RecipeMCPHandler) RegisterTools(s *server.MCPServer) {
 	)
 
 	s.AddTool(
+		mcp.NewTool("set_ingredient_staple",
+			mcp.WithDescription("Mark an ingredient as a staple you always have in (salt, oil, water). Staples never appear on the shopping list and count as available when working out what you can cook."),
+			mcp.WithString("ingredient", mcp.Required(), mcp.Description("Ingredient name, as spelled in a recipe's ingredient list (case-insensitive)")),
+			mcp.WithBoolean("staple", mcp.DefaultBool(true), mcp.Description("True to mark as a staple, false to unmark")),
+		),
+		h.SetIngredientStaple,
+	)
+
+	s.AddTool(
 		mcp.NewTool("list_shopping_list",
 			mcp.WithDescription("List missing meal-plan ingredients and custom shopping-list items"),
 		),

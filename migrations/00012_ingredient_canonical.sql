@@ -21,7 +21,12 @@
 ALTER TABLE ingredients ADD COLUMN canonical_name VARCHAR;
 ALTER TABLE ingredients ADD COLUMN is_staple BOOLEAN NOT NULL DEFAULT false;
 
-UPDATE ingredients SET canonical_name = lower(btrim(name));
+-- Trim the display name as well as deriving the canonical one: a name stored as
+-- "  Turmeric  " would otherwise keep rendering with its stray whitespace long
+-- after the row it collided with had been merged away.
+UPDATE ingredients
+SET name = btrim(name),
+    canonical_name = lower(btrim(name));
 
 -- Winner per canonical name: the oldest row, uuid breaking ties so the choice
 -- doesn't depend on collation or physical row order.

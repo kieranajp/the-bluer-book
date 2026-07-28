@@ -139,3 +139,44 @@ func TestParseIngredients_MissingName(t *testing.T) {
 		t.Fatal("expected error for missing name, got nil")
 	}
 }
+
+// component is part of recipe_ingredient's primary key since 00011, so untrimmed
+// values would split one section of a recipe into two.
+func TestParseIngredients_TrimsEveryField(t *testing.T) {
+	h := newTestHandler()
+
+	ingredients, err := h.parseIngredients([]any{
+		map[string]any{
+			"name":        "  soy sauce ",
+			"quantity":    3.0,
+			"unit":        " tbsp ",
+			"preparation": " warmed ",
+			"component":   " sauce ",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := ingredients[0]
+	if got.Ingredient.Name != "soy sauce" {
+		t.Errorf("name = %q, want %q", got.Ingredient.Name, "soy sauce")
+	}
+	if got.Unit.Name != "tbsp" {
+		t.Errorf("unit = %q, want %q", got.Unit.Name, "tbsp")
+	}
+	if got.Preparation != "warmed" {
+		t.Errorf("preparation = %q, want %q", got.Preparation, "warmed")
+	}
+	if got.Component != "sauce" {
+		t.Errorf("component = %q, want %q", got.Component, "sauce")
+	}
+}
+
+func TestParseIngredients_BlankNameIsRejected(t *testing.T) {
+	h := newTestHandler()
+
+	if _, err := h.parseIngredients([]any{map[string]any{"name": "   ", "quantity": 1.0}}); err == nil {
+		t.Fatal("expected an error for a whitespace-only name, got nil")
+	}
+}

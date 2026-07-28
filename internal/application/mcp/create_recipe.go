@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -98,8 +99,9 @@ func (h *RecipeMCPHandler) parseIngredients(data []any) ([]recipe.RecipeIngredie
 			return nil, fmt.Errorf("ingredient %d must be an object", i)
 		}
 
-		name, ok := ingredientMap["name"].(string)
-		if !ok || name == "" {
+		rawName, _ := ingredientMap["name"].(string)
+		name := strings.TrimSpace(rawName)
+		if name == "" {
 			return nil, fmt.Errorf("ingredient %d must have a name", i)
 		}
 
@@ -108,16 +110,21 @@ func (h *RecipeMCPHandler) parseIngredients(data []any) ([]recipe.RecipeIngredie
 		preparation, _ := ingredientMap["preparation"].(string)
 		component, _ := ingredientMap["component"].(string)
 
+		// component is part of recipe_ingredient's primary key since 00011, so
+		// stray whitespace would split one section of a recipe into two. The
+		// ingredient name itself is resolved against the book's existing
+		// ingredients in the repository, which is the only layer that should be
+		// asking the database what already exists.
 		ingredients = append(ingredients, recipe.RecipeIngredient{
 			Ingredient: recipe.Ingredient{
 				Name: name,
 			},
 			Unit: recipe.Unit{
-				Name: unit,
+				Name: strings.TrimSpace(unit),
 			},
 			Quantity:    quantity,
-			Preparation: preparation,
-			Component:   component,
+			Preparation: strings.TrimSpace(preparation),
+			Component:   strings.TrimSpace(component),
 		})
 	}
 

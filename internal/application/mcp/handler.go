@@ -169,16 +169,16 @@ func (h *RecipeMCPHandler) RegisterTools(s *server.MCPServer) {
 
 	s.AddTool(
 		mcp.NewTool("add_to_pantry",
-			mcp.WithDescription("Mark an ingredient as currently available in the pantry"),
-			mcp.WithString("ingredient", mcp.Required(), mcp.Description("Ingredient name")),
+			mcp.WithDescription("Mark an ingredient as currently available in the pantry. Only works for ingredients used by a recipe in the book — for anything else use add_to_shopping_list. Fails if the name matches no ingredient."),
+			mcp.WithString("ingredient", mcp.Required(), mcp.Description("Ingredient name, as spelled in a recipe's ingredient list (case-insensitive)")),
 		),
 		h.AddToPantry,
 	)
 
 	s.AddTool(
 		mcp.NewTool("remove_from_pantry",
-			mcp.WithDescription("Remove an ingredient from the pantry"),
-			mcp.WithString("ingredient", mcp.Required(), mcp.Description("Ingredient name")),
+			mcp.WithDescription("Remove an ingredient from the pantry. Fails if the name matches no ingredient in the book."),
+			mcp.WithString("ingredient", mcp.Required(), mcp.Description("Ingredient name, as spelled in a recipe's ingredient list (case-insensitive)")),
 		),
 		h.RemoveFromPantry,
 	)

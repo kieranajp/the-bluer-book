@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -36,6 +37,10 @@ func (h *RecipeMCPHandler) AddToPantry(ctx context.Context, req mcplib.CallToolR
 		return nil, err
 	}
 	if err := h.pantryService.AddToPantry(ctx, ingredient); err != nil {
+		if errors.Is(err, pantry.ErrIngredientNotFound) {
+			h.logger.Warn().Str("ingredient", ingredient).Msg("Unknown ingredient for pantry add via MCP")
+			return unknownIngredientResult(ingredient), nil
+		}
 		h.logger.Error().Err(err).Str("ingredient", ingredient).Msg("Failed to add ingredient to pantry via MCP")
 		return nil, fmt.Errorf("failed to add ingredient to pantry: %w", err)
 	}
@@ -48,6 +53,10 @@ func (h *RecipeMCPHandler) RemoveFromPantry(ctx context.Context, req mcplib.Call
 		return nil, err
 	}
 	if err := h.pantryService.RemoveFromPantry(ctx, ingredient); err != nil {
+		if errors.Is(err, pantry.ErrIngredientNotFound) {
+			h.logger.Warn().Str("ingredient", ingredient).Msg("Unknown ingredient for pantry removal via MCP")
+			return unknownIngredientResult(ingredient), nil
+		}
 		h.logger.Error().Err(err).Str("ingredient", ingredient).Msg("Failed to remove ingredient from pantry via MCP")
 		return nil, fmt.Errorf("failed to remove ingredient from pantry: %w", err)
 	}
@@ -96,6 +105,17 @@ func (h *RecipeMCPHandler) RemoveFromShoppingList(ctx context.Context, req mcpli
 		return nil, fmt.Errorf("failed to remove shopping-list item: %w", err)
 	}
 	return successResult(fmt.Sprintf("Removed '%s' from the shopping list", name), "name", name)
+}
+
+// unknownIngredientResult tells the caller the pantry didn't change and why.
+// It's a tool error rather than a transport error so the model reads the text
+// and can correct itself — the usual fix is a name lifted from a recipe, or
+// add_to_shopping_list for something that isn't a recipe ingredient at all.
+func unknownIngredientResult(ingredient string) *mcplib.CallToolResult {
+	return mcplib.NewToolResultError(fmt.Sprintf(
+		"No ingredient called '%s' exists, so the pantry was not changed. The pantry only holds ingredients that recipes in the book already use — check the spelling against a recipe's ingredient list, or use add_to_shopping_list if this isn't a recipe ingredient.",
+		ingredient,
+	))
 }
 
 func requiredTrimmedString(req mcplib.CallToolRequest, key string) (string, error) {

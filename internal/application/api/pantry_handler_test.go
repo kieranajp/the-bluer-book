@@ -288,3 +288,41 @@ func TestRemoveFromPantry_Success(t *testing.T) {
 		t.Errorf("expected salt removed, got %v", svc.removed)
 	}
 }
+
+func TestPantryMutations_UnknownIngredientIs404(t *testing.T) {
+	tests := []struct {
+		name string
+		call func(*PantryHandler, http.ResponseWriter, *http.Request)
+		verb string
+	}{
+		{name: "add", call: (*PantryHandler).AddToPantry, verb: http.MethodPut},
+		{name: "remove", call: (*PantryHandler).RemoveFromPantry, verb: http.MethodDelete},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &stubPantryService{err: pantry.IngredientNotFoundError{Name: "unobtainium"}}
+			h := NewPantryHandler(svc, nil, &noopLogger{})
+
+			req := httptest.NewRequest(tt.verb, "/api/pantry/unobtainium", nil)
+			req.SetPathValue("ingredient", "unobtainium")
+			rec := httptest.NewRecorder()
+			tt.call(h, rec, req)
+
+			if rec.Code != http.StatusNotFound {
+				t.Fatalf("expected 404, got %d", rec.Code)
+			}
+			var body struct {
+				Error struct {
+					Code string `json:"code"`
+				} `json:"error"`
+			}
+			if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+				t.Fatalf("failed to decode response: %v", err)
+			}
+			if body.Error.Code != "ingredient_not_found" {
+				t.Errorf("error code = %q, want ingredient_not_found", body.Error.Code)
+			}
+		})
+	}
+}

@@ -184,3 +184,57 @@ func TestPantryToolsValidateAndWrapErrors(t *testing.T) {
 		t.Fatalf("ListPantry() error = %v, want wrapped context", err)
 	}
 }
+
+// The original bug: an ingredient name matching nothing was reported back as a
+// successful add, so the pantry looked like it had silently dropped the item.
+func TestPantryMutationsReportUnknownIngredient(t *testing.T) {
+	tests := []struct {
+		name string
+		call func(*RecipeMCPHandler) (*mcplib.CallToolResult, error)
+	}{
+		{
+			name: "add pantry",
+			call: func(h *RecipeMCPHandler) (*mcplib.CallToolResult, error) {
+				return h.AddToPantry(context.Background(), toolRequest(map[string]any{"ingredient": "unobtainium"}))
+			},
+		},
+		{
+			name: "remove pantry",
+			call: func(h *RecipeMCPHandler) (*mcplib.CallToolResult, error) {
+				return h.RemoveFromPantry(context.Background(), toolRequest(map[string]any{"ingredient": "unobtainium"}))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &stubPantryService{err: pantry.IngredientNotFoundError{Name: "unobtainium"}}
+			result, err := tt.call(NewRecipeMCPHandler(nil, svc, noopLogger{}))
+			if err != nil {
+				t.Fatalf("tool call error = %v, want an error result instead", err)
+			}
+			if !result.IsError {
+				t.Fatal("IsError = false, want true — a no-op must not read as success")
+			}
+			content, ok := result.Content[0].(mcplib.TextContent)
+			if !ok {
+				t.Fatalf("result content type = %T, want mcp.TextContent", result.Content[0])
+			}
+			if !strings.Contains(content.Text, "unobtainium") || !strings.Contains(content.Text, "not changed") {
+				t.Errorf("error text = %q, want the ingredient name and that nothing changed", content.Text)
+			}
+		})
+	}
+}
+
+// A genuine fault still surfaces as a transport error, not as a polite "no such
+// ingredient" the model would take at face value.
+func TestPantryMutationsWrapServiceFaults(t *testing.T) {
+	svc := &stubPantryService{err: errors.New("db down")}
+	handler := NewRecipeMCPHandler(nil, svc, noopLogger{})
+
+	_, err := handler.AddToPantry(context.Background(), toolRequest(map[string]any{"ingredient": "flour"}))
+	if err == nil || !strings.Contains(err.Error(), "failed to add ingredient to pantry") {
+		t.Fatalf("AddToPantry() error = %v, want wrapped context", err)
+	}
+}

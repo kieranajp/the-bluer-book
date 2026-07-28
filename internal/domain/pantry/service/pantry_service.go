@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -9,10 +10,15 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
 )
 
-// PantryService is the single door into the pantry domain. REST handlers (and
-// future MCP tools) call this rather than the repository directly.
+// PantryService is the single door into the pantry domain. REST handlers and
+// MCP tools call this rather than the repository directly.
 type PantryService interface {
+	// AddToPantry marks a known ingredient as in stock. The name is matched
+	// case-insensitively; one that matches no ingredient returns
+	// pantry.ErrIngredientNotFound rather than silently doing nothing.
 	AddToPantry(ctx context.Context, ingredient string) error
+	// RemoveFromPantry is the inverse, and reports the same not-found error.
+	// Removing an ingredient that isn't in the pantry is a no-op, not an error.
 	RemoveFromPantry(ctx context.Context, ingredient string) error
 	ListPantry(ctx context.Context) ([]pantry.PantryItem, error)
 	// ShoppingList returns everything to buy: the ingredients a planned recipe
@@ -38,8 +44,12 @@ func NewPantryService(repo repository.PantryRepository, probe pantry.Probe) Pant
 }
 
 func (s *pantryService) AddToPantry(ctx context.Context, ingredient string) error {
+	ingredient = strings.TrimSpace(ingredient)
+	if ingredient == "" {
+		return fmt.Errorf("ingredient name is required")
+	}
 	if err := s.repo.AddToPantry(ctx, ingredient); err != nil {
-		s.probe.PantryError("add", err)
+		s.observeFailure("add", ingredient, err)
 		return err
 	}
 	s.probe.PantryChanged("add", ingredient)
@@ -47,12 +57,27 @@ func (s *pantryService) AddToPantry(ctx context.Context, ingredient string) erro
 }
 
 func (s *pantryService) RemoveFromPantry(ctx context.Context, ingredient string) error {
+	ingredient = strings.TrimSpace(ingredient)
+	if ingredient == "" {
+		return fmt.Errorf("ingredient name is required")
+	}
 	if err := s.repo.RemoveFromPantry(ctx, ingredient); err != nil {
-		s.probe.PantryError("remove", err)
+		s.observeFailure("remove", ingredient, err)
 		return err
 	}
 	s.probe.PantryChanged("remove", ingredient)
 	return nil
+}
+
+// observeFailure splits "the caller named something we don't stock" from "the
+// pantry is broken". Only the latter belongs in the error counter; conflating
+// them would make a chat agent guessing ingredient names look like an outage.
+func (s *pantryService) observeFailure(action, ingredient string, err error) {
+	if errors.Is(err, pantry.ErrIngredientNotFound) {
+		s.probe.UnknownIngredient(action, ingredient)
+		return
+	}
+	s.probe.PantryError(action, err)
 }
 
 func (s *pantryService) ListPantry(ctx context.Context) ([]pantry.PantryItem, error) {

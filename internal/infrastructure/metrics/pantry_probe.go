@@ -16,6 +16,11 @@ var (
 		Name: "bluerbook_pantry_errors_total",
 		Help: "Total pantry operation errors by operation.",
 	}, []string{"operation"})
+
+	pantryUnknownIngredients = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "bluerbook_pantry_unknown_ingredient_total",
+		Help: "Total pantry operations naming an ingredient the book doesn't have, by action.",
+	}, []string{"action"})
 )
 
 // PantryProbe implements pantry.Probe with Prometheus metrics and structured logging.
@@ -35,4 +40,9 @@ func (p *PantryProbe) PantryChanged(action string, ingredient string) {
 func (p *PantryProbe) PantryError(operation string, err error) {
 	pantryErrors.WithLabelValues(operation).Inc()
 	p.logger.Error().Str("probe", "pantry").Str("operation", operation).Err(err).Msg("pantry operation failed")
+}
+
+func (p *PantryProbe) UnknownIngredient(action string, ingredient string) {
+	pantryUnknownIngredients.WithLabelValues(action).Inc()
+	p.logger.Warn().Str("probe", "pantry").Str("action", action).Str("ingredient", ingredient).Msg("pantry operation named an unknown ingredient")
 }

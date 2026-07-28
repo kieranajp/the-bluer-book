@@ -148,7 +148,19 @@ FROM recipes r
 LEFT JOIN photos p ON r.main_photo_id = p.uuid
 LEFT JOIN meal_plan_recipes mp ON r.uuid = mp.recipe_id
 WHERE r.archived_at IS NULL
-  AND ($3::text = '' OR r.name ILIKE '%' || $3 || '%' OR r.description ILIKE '%' || $3 || '%')
+  AND ($3::text = ''
+       OR r.name ILIKE '%' || $3 || '%'
+       OR r.description ILIKE '%' || $3 || '%'
+       -- Ingredients too: "what can I make with chickpeas" is the obvious
+       -- question, and the search_recipes tool has always claimed to answer it.
+       -- Matching canonical_name means the search is case-insensitive by
+       -- construction rather than by ILIKE.
+       OR EXISTS (
+         SELECT 1 FROM recipe_ingredient ri
+         INNER JOIN ingredients i ON i.uuid = ri.ingredient_id
+         WHERE ri.recipe_id = r.uuid
+           AND i.canonical_name LIKE '%' || lower(btrim($3)) || '%'
+       ))
 ORDER BY
   CASE WHEN $4::text = 'name' THEN LOWER(r.name) END ASC NULLS LAST,
   CASE WHEN $4::text = 'time' THEN COALESCE(r.prep_time, 0) + COALESCE(r.cook_time, 0) END ASC NULLS LAST,
@@ -159,7 +171,15 @@ LIMIT $1 OFFSET $2;
 SELECT COUNT(*)
 FROM recipes r
 WHERE r.archived_at IS NULL
-  AND ($1::text = '' OR r.name ILIKE '%' || $1 || '%' OR r.description ILIKE '%' || $1 || '%');
+  AND ($1::text = ''
+       OR r.name ILIKE '%' || $1 || '%'
+       OR r.description ILIKE '%' || $1 || '%'
+       OR EXISTS (
+         SELECT 1 FROM recipe_ingredient ri
+         INNER JOIN ingredients i ON i.uuid = ri.ingredient_id
+         WHERE ri.recipe_id = r.uuid
+           AND i.canonical_name LIKE '%' || lower(btrim($1)) || '%'
+       ));
 
 -- name: GetStepsByRecipeID :many
 SELECT s.* FROM steps s

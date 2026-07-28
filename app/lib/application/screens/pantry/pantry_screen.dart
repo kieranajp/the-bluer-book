@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../domain/ingredient.dart';
 import '../../providers/pantry_providers.dart';
 import '../../providers/recipe_providers.dart';
 import '../../styles/colours.dart';
@@ -19,9 +20,14 @@ class PantryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pantryAsync = ref.watch(pantryProvider);
-    final allNames =
-        ref.watch(ingredientsProvider).value?.map((e) => e.name).toList() ??
-            const <String>[];
+    final allIngredients = ref.watch(ingredientsProvider).value ??
+        const <IngredientDetail>[];
+    // The pantry is a set of canonical keys; chips show the name as written.
+    // The ingredient list is already loaded for the autocomplete, so it doubles
+    // as the key -> display lookup rather than needing its own fetch.
+    final displayNames = {
+      for (final ingredient in allIngredients) ingredient.key: ingredient.name
+    };
 
     ref.listen<AsyncValue<Set<String>>>(pantryProvider, (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {
@@ -51,11 +57,11 @@ class PantryScreen extends ConsumerWidget {
                 title: Text('Pantry', style: TextStyles.appBarTitle(context)),
               ),
               SliverToBoxAdapter(
-                child: PantryAddIngredientField(allNames: allNames),
+                child: PantryAddIngredientField(ingredients: allIngredients),
               ),
               pantryAsync.when(
-                data: (names) {
-                  if (names.isEmpty) {
+                data: (keys) {
+                  if (keys.isEmpty) {
                     return const SliverFillRemaining(
                       hasScrollBody: false,
                       child: EmptyState(
@@ -66,7 +72,7 @@ class PantryScreen extends ConsumerWidget {
                       ),
                     );
                   }
-                  final sorted = names.toList()..sort();
+                  final sorted = keys.toList()..sort();
                   return SliverPadding(
                     padding: const EdgeInsets.all(Spacing.m),
                     sliver: SliverToBoxAdapter(
@@ -74,7 +80,11 @@ class PantryScreen extends ConsumerWidget {
                         spacing: Spacing.xs,
                         runSpacing: Spacing.xs,
                         children: [
-                          for (final name in sorted) PantryChip(name: name),
+                          for (final key in sorted)
+                            PantryChip(
+                              name: displayNames[key] ?? key,
+                              canonical: key,
+                            ),
                         ],
                       ),
                     ),

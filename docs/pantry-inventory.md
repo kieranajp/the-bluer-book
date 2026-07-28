@@ -30,9 +30,24 @@ wants all fall out as **joins over data that already exists**:
 | **What am I missing for my meal plan** | Union of ingredients across `meal_plan_recipes`, minus the pantry. |
 | **Shopping list** | That gap, deduplicated. Checking an item off → it enters the pantry. |
 
+> **This next paragraph was wrong, and it cost us.** Left in place because the mistake
+> is the useful part.
+
 The big win: the existing `ingredients` table is already normalised (unique names, shared
 UUIDs across recipes), so "do I have this?" is an equality join — **no fuzzy text matching,
 no NLP.** This is the hard part of most inventory apps, and the schema already solved it.
+
+`ingredients.name` was `UNIQUE`, which is not the same as normalised. Nothing stopped the
+book holding "Salt" and "salt", "Onions" and "onion", "Garlic cloves" and "garlic" as
+unrelated rows, and it did — recipes are written by hand and by an LLM, neither of which
+picks a consistent casing. So the equality join lined nothing up: stocking "Salt" left
+"salt" on the shopping list, and the recipe checkbox for it never ticked.
+
+Fixed in 00011–00013: ingredients now carry a `canonical_name` (unique) separate from the
+display `name`, plus an `ingredient_aliases` table for retired spellings and synonyms.
+Resolution goes canonical → alias → not found, and clients match on `canonical`, never on
+display text. The equality join this design wanted is real now — it just needed an identity
+to join on. See `AGENTS.md` for the rule that keeps it that way.
 
 ## Where the existing "ingredient checkoff" fits
 
@@ -282,6 +297,7 @@ migration** (a deliberate simplification of the original sketch below):
 1. **Pantry tab placement** — new top-level tab, or a section inside an existing screen?
 2. **Cookability threshold** — surface only fully-cookable recipes, or also "missing 1–2"
    (with the missing ones listed)? Affects how aggressive the "what can I cook" view is.
-3. **Staples** — things like salt/oil/water clutter "missing" lists. Worth a
-   "pantry staple" flag later so they're assumed-present? (Future, but flags a schema hook.)
+3. **Staples** — ✅ done in 00012. `ingredients.is_staple`, seeded with salt/pepper/water/
+   oils, filtered out of `ListMealPlanShortfall` and counted as present by `cookabilityOf`.
+   Toggle with the `set_ingredient_staple` MCP tool.
 4. **MCP tools** — include the chat-agent tools in Phase 1, or defer to after the UI lands?

@@ -332,7 +332,7 @@ $IngredientUnitCopyWith<$Res>? get unit {
 /// @nodoc
 mixin _$IngredientDetail {
 
- String get name;
+ String get name; String? get canonical; bool get isStaple;
 /// Create a copy of IngredientDetail
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -345,16 +345,16 @@ $IngredientDetailCopyWith<IngredientDetail> get copyWith => _$IngredientDetailCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is IngredientDetail&&(identical(other.name, name) || other.name == name));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is IngredientDetail&&(identical(other.name, name) || other.name == name)&&(identical(other.canonical, canonical) || other.canonical == canonical)&&(identical(other.isStaple, isStaple) || other.isStaple == isStaple));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name);
+int get hashCode => Object.hash(runtimeType,name,canonical,isStaple);
 
 @override
 String toString() {
-  return 'IngredientDetail(name: $name)';
+  return 'IngredientDetail(name: $name, canonical: $canonical, isStaple: $isStaple)';
 }
 
 
@@ -365,7 +365,7 @@ abstract mixin class $IngredientDetailCopyWith<$Res>  {
   factory $IngredientDetailCopyWith(IngredientDetail value, $Res Function(IngredientDetail) _then) = _$IngredientDetailCopyWithImpl;
 @useResult
 $Res call({
- String name
+ String name, String? canonical, bool isStaple
 });
 
 
@@ -382,10 +382,12 @@ class _$IngredientDetailCopyWithImpl<$Res>
 
 /// Create a copy of IngredientDetail
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? canonical = freezed,Object? isStaple = null,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,
+as String,canonical: freezed == canonical ? _self.canonical : canonical // ignore: cast_nullable_to_non_nullable
+as String?,isStaple: null == isStaple ? _self.isStaple : isStaple // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -470,10 +472,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String? canonical,  bool isStaple)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _IngredientDetail() when $default != null:
-return $default(_that.name);case _:
+return $default(_that.name,_that.canonical,_that.isStaple);case _:
   return orElse();
 
 }
@@ -491,10 +493,10 @@ return $default(_that.name);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String? canonical,  bool isStaple)  $default,) {final _that = this;
 switch (_that) {
 case _IngredientDetail():
-return $default(_that.name);case _:
+return $default(_that.name,_that.canonical,_that.isStaple);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -511,10 +513,10 @@ return $default(_that.name);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String? canonical,  bool isStaple)?  $default,) {final _that = this;
 switch (_that) {
 case _IngredientDetail() when $default != null:
-return $default(_that.name);case _:
+return $default(_that.name,_that.canonical,_that.isStaple);case _:
   return null;
 
 }
@@ -525,11 +527,13 @@ return $default(_that.name);case _:
 /// @nodoc
 @JsonSerializable()
 
-class _IngredientDetail implements IngredientDetail {
-  const _IngredientDetail({required this.name});
+class _IngredientDetail extends IngredientDetail {
+  const _IngredientDetail({required this.name, this.canonical, this.isStaple = false}): super._();
   factory _IngredientDetail.fromJson(Map<String, dynamic> json) => _$IngredientDetailFromJson(json);
 
 @override final  String name;
+@override final  String? canonical;
+@override@JsonKey() final  bool isStaple;
 
 /// Create a copy of IngredientDetail
 /// with the given fields replaced by the non-null parameter values.
@@ -544,16 +548,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _IngredientDetail&&(identical(other.name, name) || other.name == name));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _IngredientDetail&&(identical(other.name, name) || other.name == name)&&(identical(other.canonical, canonical) || other.canonical == canonical)&&(identical(other.isStaple, isStaple) || other.isStaple == isStaple));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name);
+int get hashCode => Object.hash(runtimeType,name,canonical,isStaple);
 
 @override
 String toString() {
-  return 'IngredientDetail(name: $name)';
+  return 'IngredientDetail(name: $name, canonical: $canonical, isStaple: $isStaple)';
 }
 
 
@@ -564,7 +568,7 @@ abstract mixin class _$IngredientDetailCopyWith<$Res> implements $IngredientDeta
   factory _$IngredientDetailCopyWith(_IngredientDetail value, $Res Function(_IngredientDetail) _then) = __$IngredientDetailCopyWithImpl;
 @override @useResult
 $Res call({
- String name
+ String name, String? canonical, bool isStaple
 });
 
 
@@ -581,10 +585,12 @@ class __$IngredientDetailCopyWithImpl<$Res>
 
 /// Create a copy of IngredientDetail
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? canonical = freezed,Object? isStaple = null,}) {
   return _then(_IngredientDetail(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,
+as String,canonical: freezed == canonical ? _self.canonical : canonical // ignore: cast_nullable_to_non_nullable
+as String?,isStaple: null == isStaple ? _self.isStaple : isStaple // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

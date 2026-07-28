@@ -26,10 +26,18 @@ Map<String, dynamic> _$IngredientToJson(_Ingredient instance) =>
     };
 
 _IngredientDetail _$IngredientDetailFromJson(Map<String, dynamic> json) =>
-    _IngredientDetail(name: json['name'] as String);
+    _IngredientDetail(
+      name: json['name'] as String,
+      canonical: json['canonical'] as String?,
+      isStaple: json['isStaple'] as bool? ?? false,
+    );
 
 Map<String, dynamic> _$IngredientDetailToJson(_IngredientDetail instance) =>
-    <String, dynamic>{'name': instance.name};
+    <String, dynamic>{
+      'name': instance.name,
+      'canonical': instance.canonical,
+      'isStaple': instance.isStaple,
+    };
 
 _IngredientUnit _$IngredientUnitFromJson(Map<String, dynamic> json) =>
     _IngredientUnit(

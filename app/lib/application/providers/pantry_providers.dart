@@ -2,6 +2,7 @@ import 'dart:developer' as dev;
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/ingredient.dart';
 import '../../domain/shopping_list_item.dart';
 import '../../infrastructure/pantry_repository.dart';
 import 'recipe_providers.dart';
@@ -10,10 +11,11 @@ final pantryRepositoryProvider = Provider<PantryRepository>((ref) {
   return PantryRepository(ref.watch(apiClientProvider));
 });
 
-/// Holds the set of ingredient names currently in the pantry. Kept as a set of
-/// names because that's the lingua franca of the rest of the app (recipe
-/// ingredients reference their ingredient by name) — membership is all the
-/// "have / don't-have" model needs.
+/// Holds the set of ingredient *keys* currently in the pantry — the canonical
+/// name, not the display name. Membership is all the "have / don't-have" model
+/// needs, but it has to be membership of the same thing on both sides: this set
+/// used to hold display names, so "Salt" in the pantry never matched the "salt"
+/// a recipe asked for. Compare with [IngredientDetail.key].
 class PantryNotifier extends Notifier<AsyncValue<Set<String>>> {
   PantryRepository get _repository => ref.read(pantryRepositoryProvider);
 
@@ -27,26 +29,33 @@ class PantryNotifier extends Notifier<AsyncValue<Set<String>>> {
     state = const AsyncValue.loading();
     try {
       final items = await _repository.getPantry();
-      state = AsyncValue.data(items.map((e) => e.ingredient).toSet());
+      state = AsyncValue.data(items.map((e) => e.key).toSet());
     } catch (e, stack) {
       dev.log('Failed to load pantry', name: 'PantryNotifier', error: e, stackTrace: stack);
       state = AsyncValue.error(e, stack);
     }
   }
 
-  bool has(String ingredient) => state.value?.contains(ingredient) ?? false;
+  bool has(String ingredient, {String? key}) =>
+      state.value?.contains(key ?? ingredientKey(ingredient)) ?? false;
 
   /// Flip whether [ingredient] is in the pantry, optimistically updating local
   /// state and reverting if the API call fails.
-  Future<void> toggle(String ingredient) async {
+  ///
+  /// [ingredient] is the display name and is what the API is called with — the
+  /// server resolves it, tolerating casing and aliases. [key] is what local
+  /// state is keyed by; pass the canonical the API gave you where you have it,
+  /// otherwise it's derived from the name.
+  Future<void> toggle(String ingredient, {String? key}) async {
+    final k = key ?? ingredientKey(ingredient);
     final current = state.value ?? const <String>{};
-    final wasIn = current.contains(ingredient);
+    final wasIn = current.contains(k);
 
     final next = {...current};
     if (wasIn) {
-      next.remove(ingredient);
+      next.remove(k);
     } else {
-      next.add(ingredient);
+      next.add(k);
     }
     state = AsyncValue.data(next);
 
@@ -64,14 +73,14 @@ class PantryNotifier extends Notifier<AsyncValue<Set<String>>> {
     }
   }
 
-  Future<void> add(String ingredient) {
-    if (has(ingredient)) return Future.value();
-    return toggle(ingredient);
+  Future<void> add(String ingredient, {String? key}) {
+    if (has(ingredient, key: key)) return Future.value();
+    return toggle(ingredient, key: key);
   }
 
-  Future<void> remove(String ingredient) {
-    if (!has(ingredient)) return Future.value();
-    return toggle(ingredient);
+  Future<void> remove(String ingredient, {String? key}) {
+    if (!has(ingredient, key: key)) return Future.value();
+    return toggle(ingredient, key: key);
   }
 }
 

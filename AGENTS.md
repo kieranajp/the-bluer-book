@@ -39,6 +39,14 @@ the obvious stuff.
   separate "chat tools" layer.
 - **Vocabulary is "meal plan" everywhere.** There is no "favourite" concept (it was
   vestigial and removed). Don't reintroduce it.
+- **Ingredient identity is `canonical_name`, never `name`.** `name` is display and keeps
+  its casing ("MSG", "BIR base gravy"); `canonical_name` (lower, trimmed, uniquely
+  indexed) is what anything matches on, with `ingredient_aliases` behind it for retired
+  spellings and synonyms. Resolve free text through `FindIngredientByName` — canonical
+  then alias — and never `SELECT ... WHERE name = $1`. The Flutter side mirrors this:
+  compare `IngredientDetail.key`, not `.name`. Getting this wrong is invisible in tests
+  and shows up as a pantry that silently fails to match recipes (see
+  `docs/pantry-inventory.md`). Units have the same rule via `normalizeUnitName`.
 - **FE↔BE field names differ by design.** The Flutter domain bridges names with
   `@JsonKey` (e.g. `preparationTime`↔`prepTime`, `cookingTime`↔`cookTime`). If you
   change a Go JSON struct tag, update the matching `@JsonKey` in `app/lib/domain`.

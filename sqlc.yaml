@@ -11,6 +11,7 @@ sql:
       - "migrations/00008_consolidate_units.sql"
       - "migrations/00009_pantry.sql"
       - "migrations/00010_shopping_list_items.sql"
+      - "migrations/00011_recipe_ingredient_component_key.sql"
     queries: "internal/infrastructure/storage/queries"
     gen:
       go:

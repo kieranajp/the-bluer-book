@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -200,6 +201,10 @@ func (h *PantryHandler) AddToPantry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.pantryService.AddToPantry(r.Context(), ingredient); err != nil {
+		if errors.Is(err, pantry.ErrIngredientNotFound) {
+			h.writeErrorResponse(w, http.StatusNotFound, "ingredient_not_found", "No such ingredient")
+			return
+		}
 		h.logger.Error().Err(err).Str("ingredient", ingredient).Msg("Failed to add ingredient to pantry")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "pantry_add_failed", "Failed to add ingredient to pantry")
 		return
@@ -217,6 +222,10 @@ func (h *PantryHandler) RemoveFromPantry(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.pantryService.RemoveFromPantry(r.Context(), ingredient); err != nil {
+		if errors.Is(err, pantry.ErrIngredientNotFound) {
+			h.writeErrorResponse(w, http.StatusNotFound, "ingredient_not_found", "No such ingredient")
+			return
+		}
 		h.logger.Error().Err(err).Str("ingredient", ingredient).Msg("Failed to remove ingredient from pantry")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "pantry_remove_failed", "Failed to remove ingredient from pantry")
 		return

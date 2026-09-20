@@ -77,7 +77,9 @@ operation inside `InHomeTx`
 home as that transaction-local setting. An `INSERT` that never names a home still lands in
 the caller's, and one that runs with no home set fails the `NOT NULL` check rather than
 writing a row nobody owns — so no query takes a home parameter or carries a home predicate.
-`units` and `labels` stay global: shared vocabulary rather than anybody's data.
+`units` and `labels` stay global: shared vocabulary rather than anybody's data. Shared and
+mutable, though — `CreateUnit` upserts an abbreviation, so an ordinary save in one home
+rewrites the abbreviation every home sees. Nothing guards that.
 
 PostgreSQL enforces this, not the query layer. Nine tenant tables — `recipes`, `steps`,
 `recipe_ingredient`, `recipe_label`, `photos`, `meal_plan_recipes`, `ingredients`,
@@ -92,9 +94,14 @@ FORCE does not bind a superuser or a role holding BYPASSRLS — and `DB_USER` is
 superuser in the deployed chart. So the server connects instead as `bluer_book_app`, a role
 that owns no table and holds neither SUPERUSER nor BYPASSRLS. There is deliberately no
 fallback from `APP_DB_USER` to `DB_USER`, and the server checks the connected role's
-privileges at startup and refuses to serve on a connection the policies wouldn't bind.
-Ingredient lookup by name and a label's `uses` count are scoped per home by the same
-policy.
+privileges at startup, and the tables' `FORCE` flags and policies, refusing to serve on
+anything that wouldn't bind. Ingredient lookup by name and a label's `uses` count are
+scoped per home by the same policy.
+
+Uniqueness and foreign keys are checked with row security switched off, so a policy cannot
+stop one home writing a row that *references* another home's. Keys carry `home_id` for that
+reason — the pantry on `(home_id, ingredient_id)`, the meal plan on `(home_id, recipe_id)` —
+so such a row lands in the writer's own home and cannot occupy the other's slot.
 
 The MCP server has no caller to resolve — its route carries no auth and its tools take no
 caller argument — so every tool call acts on the home named by `MCP_HOME_ID`, which defaults
@@ -102,7 +109,9 @@ to the founder home. The chat agent reaches the same home through it.
 
 `cmd/tag` and `cmd/fetchimages` still connect as `DB_USER`, not `bluer_book_app`, because
 they sweep every home at once; so they name `home_id` explicitly, taking it from the recipe
-each row belongs to.
+each row belongs to. That sweep works only because `DB_USER` is a superuser: `FORCE` binds a
+plain owner like anyone else, so a `DB_USER` stripped of SUPERUSER would read nothing and
+both init containers would complete as silent no-ops.
 
 ## Observability
 

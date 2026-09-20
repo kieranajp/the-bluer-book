@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -19,6 +20,13 @@ type Config struct {
 	DBName string
 	DBHost string
 	DBPort string
+
+	// AppDBUser and AppDBPass are the non-owner role the server connects as.
+	// FORCE ROW LEVEL SECURITY does not bind a superuser or a table owner, and
+	// DB_USER is both, so connecting as it would leave every policy inert while
+	// everything still appeared to work.
+	AppDBUser string
+	AppDBPass string
 
 	GoogleAPIKey string
 	GeminiModel  string
@@ -44,6 +52,8 @@ func New(c *cli.Context) Config {
 		DBName:       c.String("db-name"),
 		DBHost:       c.String("db-host"),
 		DBPort:       c.String("db-port"),
+		AppDBUser:    c.String("app-db-user"),
+		AppDBPass:    c.String("app-db-pass"),
 		GoogleAPIKey: c.String("google-api-key"),
 		GeminiModel:  c.String("gemini-model"),
 
@@ -52,10 +62,31 @@ func New(c *cli.Context) Config {
 	}
 }
 
-// DBDSN returns the Postgres connection string.
+// DBDSN returns the Postgres connection string for the owning role. Migrations
+// and the sweep commands use it: they act on every home at once, which no
+// policy-bound role can do.
 func (c Config) DBDSN() string {
+	return c.dsn(c.DBUser, c.DBPass)
+}
+
+// ErrNoAppDBUser means APP_DB_USER is unset, so there is no non-owner role to
+// connect as.
+var ErrNoAppDBUser = errors.New("config: APP_DB_USER is not set")
+
+// AppDBDSN returns the connection string for the role the request path uses.
+// It has no fallback to DB_USER on purpose. The owner bypasses every isolation
+// policy in the schema, so a fallback would answer every request correctly
+// while enforcing nothing, and there is no symptom to notice.
+func (c Config) AppDBDSN() (string, error) {
+	if c.AppDBUser == "" {
+		return "", ErrNoAppDBUser
+	}
+	return c.dsn(c.AppDBUser, c.AppDBPass), nil
+}
+
+func (c Config) dsn(user, pass string) string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		url.QueryEscape(c.DBUser), url.QueryEscape(c.DBPass), c.DBHost, c.DBPort, c.DBName,
+		url.QueryEscape(user), url.QueryEscape(pass), c.DBHost, c.DBPort, c.DBName,
 	)
 }

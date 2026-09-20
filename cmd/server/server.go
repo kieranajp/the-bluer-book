@@ -77,6 +77,16 @@ var (
 				EnvVars: []string{"DB_PORT"},
 			},
 			&cli.StringFlag{
+				Name:    "app-db-user",
+				Usage:   "Non-owner database role the request path connects as, so the isolation policies bind it",
+				EnvVars: []string{"APP_DB_USER"},
+			},
+			&cli.StringFlag{
+				Name:    "app-db-pass",
+				Usage:   "Password for APP_DB_USER",
+				EnvVars: []string{"APP_DB_PASS"},
+			},
+			&cli.StringFlag{
 				Name:    "google-api-key",
 				Usage:   "Google AI Studio API key",
 				EnvVars: []string{"GOOGLE_API_KEY"},
@@ -108,6 +118,30 @@ var (
 		Action: run,
 	}
 )
+
+// checkUnprivileged refuses to serve on a connection the isolation policies do
+// not bind. A superuser and a role holding BYPASSRLS both read and write every
+// home while every request still looks right, so there is no symptom to catch
+// later — the only place to catch it is here.
+func checkUnprivileged(sqlDB *sql.DB, log logger.Logger) error {
+	var role string
+	var super, bypass bool
+	err := sqlDB.QueryRow(
+		`SELECT rolname, rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user`,
+	).Scan(&role, &super, &bypass)
+	if err != nil {
+		return fmt.Errorf("failed to read the connected role's privileges: %w", err)
+	}
+	if super || bypass {
+		return fmt.Errorf(
+			"refusing to serve as %q: rolsuper=%t rolbypassrls=%t, so row-level security would not apply — point APP_DB_USER at the non-owner role",
+			role, super, bypass,
+		)
+	}
+
+	log.Info().Str("role", role).Msg("Database connection is subject to row-level security")
+	return nil
+}
 
 // checkFounderHome reports a founder subject whose requests already resolve
 // somewhere other than the founder home. That happens when the subject is
@@ -146,8 +180,13 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("MCP_HOME_ID %q is not a uuid: %w", cfg.MCPHomeID, err)
 	}
 
-	// Set up database
-	sqlDB, err := sql.Open("postgres", cfg.DBDSN())
+	// Set up database. The server connects as the policy-bound role, never as
+	// the owner the migrations run as.
+	dsn, err := cfg.AppDBDSN()
+	if err != nil {
+		return err
+	}
+	sqlDB, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -156,6 +195,10 @@ func run(c *cli.Context) error {
 	// Test database connection
 	if err := sqlDB.Ping(); err != nil {
 		return fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	if err := checkUnprivileged(sqlDB, log); err != nil {
+		return err
 	}
 
 	// A home that does not exist would give every MCP tool call empty reads and

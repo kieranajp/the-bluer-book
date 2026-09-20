@@ -79,16 +79,30 @@ the caller's, and one that runs with no home set fails the `NOT NULL` check rath
 writing a row nobody owns — so no query takes a home parameter or carries a home predicate.
 `units` and `labels` stay global: shared vocabulary rather than anybody's data.
 
-Nothing stops a caller reading another home's rows yet. That is row-level security's job,
-and it is not here. Until it lands, ingredient lookup by name in particular reads across
-homes.
+PostgreSQL enforces this, not the query layer. Nine tenant tables — `recipes`, `steps`,
+`recipe_ingredient`, `recipe_label`, `photos`, `meal_plan_recipes`, `ingredients`,
+`pantry_items` and `shopping_list_items` — carry `ENABLE` and `FORCE ROW LEVEL SECURITY`
+with one `home_isolation` policy each, keyed on that same `app.home_id` setting
+(`migrations/00014_rls.sql`). No query carries a home predicate or a home parameter; the
+policy is the predicate. The identity tables — `users`, `homes`, `home_members`,
+`invitations` — stay outside it, because they're read to decide which home a request acts
+on in the first place.
+
+FORCE does not bind a superuser or a role holding BYPASSRLS — and `DB_USER` is the postgres
+superuser in the deployed chart. So the server connects instead as `bluer_book_app`, a role
+that owns no table and holds neither SUPERUSER nor BYPASSRLS. There is deliberately no
+fallback from `APP_DB_USER` to `DB_USER`, and the server checks the connected role's
+privileges at startup and refuses to serve on a connection the policies wouldn't bind.
+Ingredient lookup by name and a label's `uses` count are scoped per home by the same
+policy.
 
 The MCP server has no caller to resolve — its route carries no auth and its tools take no
 caller argument — so every tool call acts on the home named by `MCP_HOME_ID`, which defaults
 to the founder home. The chat agent reaches the same home through it.
 
-`cmd/tag` and `cmd/fetchimages` sweep every home at once under the owning database role, so
-they name `home_id` explicitly, taking it from the recipe each row belongs to.
+`cmd/tag` and `cmd/fetchimages` still connect as `DB_USER`, not `bluer_book_app`, because
+they sweep every home at once; so they name `home_id` explicitly, taking it from the recipe
+each row belongs to.
 
 ## Observability
 
@@ -111,6 +125,8 @@ they name `home_id` explicitly, taking it from the recipe each row belongs to.
 
 Containerised (`Dockerfile`), deployed via Helm charts under `charts/` to a Kubernetes
 homelab. `docker-compose.yml` brings up the binary + Postgres for local work.
-Migrations run via the `migrate` subcommand (goose) — see `cmd/migrate`.
+Migrations run via the `migrate` subcommand (goose) — see `cmd/migrate` — which also sets
+`bluer_book_app`'s password from `APP_DB_PASS` on every run, so that secret never lands in
+a file that ships in the image.
 
 [mark3labs/mcp-go]: https://github.com/mark3labs/mcp-go

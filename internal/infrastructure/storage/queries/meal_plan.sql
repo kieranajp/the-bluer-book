@@ -1,7 +1,7 @@
 -- name: AddToMealPlan :exec
 INSERT INTO meal_plan_recipes (recipe_id)
 VALUES ($1)
-ON CONFLICT (recipe_id) DO NOTHING;
+ON CONFLICT (home_id, recipe_id) DO NOTHING;
 
 -- name: RemoveFromMealPlan :exec
 DELETE FROM meal_plan_recipes

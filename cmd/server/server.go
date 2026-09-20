@@ -119,30 +119,6 @@ var (
 	}
 )
 
-// checkUnprivileged refuses to serve on a connection the isolation policies do
-// not bind. A superuser and a role holding BYPASSRLS both read and write every
-// home while every request still looks right, so there is no symptom to catch
-// later — the only place to catch it is here.
-func checkUnprivileged(sqlDB *sql.DB, log logger.Logger) error {
-	var role string
-	var super, bypass bool
-	err := sqlDB.QueryRow(
-		`SELECT rolname, rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user`,
-	).Scan(&role, &super, &bypass)
-	if err != nil {
-		return fmt.Errorf("failed to read the connected role's privileges: %w", err)
-	}
-	if super || bypass {
-		return fmt.Errorf(
-			"refusing to serve as %q: rolsuper=%t rolbypassrls=%t, so row-level security would not apply — point APP_DB_USER at the non-owner role",
-			role, super, bypass,
-		)
-	}
-
-	log.Info().Str("role", role).Msg("Database connection is subject to row-level security")
-	return nil
-}
-
 // checkFounderHome reports a founder subject whose requests already resolve
 // somewhere other than the founder home. That happens when the subject is
 // configured only after its owner has signed in once, and it is worth shouting
@@ -197,9 +173,11 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	if err := checkUnprivileged(sqlDB, log); err != nil {
+	role, err := repository.CheckIsolation(context.Background(), sqlDB)
+	if err != nil {
 		return err
 	}
+	log.Info().Str("role", role).Msg("Database connection is subject to row-level security")
 
 	// A home that does not exist would give every MCP tool call empty reads and
 	// a foreign-key failure on write, one call at a time and never at startup.

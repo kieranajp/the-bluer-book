@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 	"github.com/urfave/cli/v2"
 
@@ -40,6 +40,17 @@ var Command = &cli.Command{
 			Name:    "db-port",
 			Usage:   "Database Port",
 			EnvVars: []string{"DB_PORT"},
+		},
+		&cli.StringFlag{
+			Name:    "app-db-user",
+			Usage:   "Non-owner database role the server connects as; its password is set from APP_DB_PASS after migrating",
+			EnvVars: []string{"APP_DB_USER"},
+			Value:   "bluer_book_app",
+		},
+		&cli.StringFlag{
+			Name:    "app-db-pass",
+			Usage:   "Password to set on APP_DB_USER",
+			EnvVars: []string{"APP_DB_PASS"},
 		},
 	},
 	Action: run,
@@ -85,7 +96,38 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
+	if err := setAppRolePassword(db, c.String("app-db-user"), c.String("app-db-pass"), log); err != nil {
+		return err
+	}
+
 	log.Info().Msg("Migrations completed successfully")
+	return nil
+}
+
+// setAppRolePassword gives the server's role the password the server will use.
+// The migration creates the role without one, so the secret never lands in a
+// file that ships inside the image; this runs as the owner, which is the only
+// connection that could set it.
+//
+// ALTER ROLE takes no bind parameters, so both halves are quoted into the
+// statement. A role that does not exist is an error worth failing the deploy
+// for: the server would come up unable to connect and there would be nothing in
+// the migration log saying why.
+func setAppRolePassword(db *sql.DB, role, password string, log logger.Logger) error {
+	if password == "" {
+		log.Warn().Str("role", role).Msg("APP_DB_PASS not set — leaving the application role's password alone")
+		return nil
+	}
+	if role == "" {
+		return fmt.Errorf("APP_DB_PASS is set but APP_DB_USER is empty")
+	}
+
+	stmt := fmt.Sprintf("ALTER ROLE %s WITH PASSWORD %s", pq.QuoteIdentifier(role), pq.QuoteLiteral(password))
+	if _, err := db.Exec(stmt); err != nil {
+		return fmt.Errorf("failed to set the password for role %s: %w", role, err)
+	}
+
+	log.Info().Str("role", role).Msg("Set the application role's password")
 	return nil
 }
 

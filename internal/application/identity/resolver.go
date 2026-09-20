@@ -12,12 +12,12 @@ import (
 )
 
 type provisioningResolver struct {
-	svc service.Service
+	svc service.AccountService
 }
 
 // NewResolver builds the resolver the middleware runs on: a first sighting of a
 // subject provisions its user and home rather than failing the request.
-func NewResolver(svc service.Service) auth.UserResolver {
+func NewResolver(svc service.AccountService) auth.UserResolver {
 	return &provisioningResolver{svc: svc}
 }
 

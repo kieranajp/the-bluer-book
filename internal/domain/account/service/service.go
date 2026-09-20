@@ -11,8 +11,8 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/domain/account"
 )
 
-// Service is the door into the account domain.
-type Service interface {
+// AccountService is the door into the account domain.
+type AccountService interface {
 	// ProvisionFromSubject returns the user behind a token subject, creating
 	// them, a home and their ownership of it the first time that subject is
 	// seen.
@@ -32,7 +32,7 @@ type accountService struct {
 	founderSubject string
 }
 
-func NewAccountService(repo account.Repository, founderSubject string) Service {
+func NewAccountService(repo account.Repository, founderSubject string) AccountService {
 	return &accountService{repo: repo, founderSubject: founderSubject}
 }
 
@@ -62,8 +62,7 @@ func (s *accountService) ResolveActiveHome(ctx context.Context, user account.Use
 		return account.Home{}, err
 	}
 
-	// A known user with no home has lost their last membership. Give them one
-	// back rather than locking them out of their own account.
+	// A known user with no home has lost their last membership.
 	id := account.Identity{Subject: user.Subject, Email: user.Email, DisplayName: user.DisplayName}
 	_, home, err = s.repo.ProvisionUser(ctx, id, s.homeTarget(id))
 	return home, err

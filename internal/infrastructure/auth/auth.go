@@ -31,9 +31,7 @@ type Session struct {
 }
 
 // UserResolver maps an asserted caller onto their user and active home,
-// provisioning both the first time a subject is seen. The implementation lives
-// in application/identity so that packages reading a home off a context do not
-// pull the account domain in behind it.
+// provisioning both the first time a subject is seen.
 type UserResolver interface {
 	Resolve(ctx context.Context, caller Caller) (Session, error)
 }

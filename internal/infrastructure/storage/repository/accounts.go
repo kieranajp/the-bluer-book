@@ -12,10 +12,8 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
 )
 
-// accountRepository reads and writes the identity tables. They sit outside
-// per-home row-level security and resolve the request before a home is known,
-// so this is the one repository that works on the plain pool rather than inside
-// a home-scoped transaction.
+// accountRepository reads and writes the identity tables, which resolve a
+// request before any home is known.
 type accountRepository struct {
 	db     *db.Queries
 	sqlDB  *sql.DB
@@ -57,9 +55,6 @@ func (r *accountRepository) ProvisionUser(ctx context.Context, id account.Identi
 
 	q := db.New(tx)
 
-	// The lock and the re-checks below are what make this idempotent: a subject
-	// provisioned twice at once settles on one user and one home rather than
-	// racing to create two.
 	if err := q.LockSubject(ctx, id.Subject); err != nil {
 		return account.User{}, account.Home{}, err
 	}
@@ -79,7 +74,7 @@ func (r *accountRepository) ProvisionUser(ctx context.Context, id account.Identi
 
 	home, err := q.GetMostRecentHomeForUser(ctx, user.Uuid)
 	if errors.Is(err, sql.ErrNoRows) {
-		home, err = joinHome(ctx, q, user.Uuid, target)
+		home, err = joinHome(ctx, q, user.Uuid, target, account.RoleOwner)
 	}
 	if err != nil {
 		return account.User{}, account.Home{}, err
@@ -91,9 +86,9 @@ func (r *accountRepository) ProvisionUser(ctx context.Context, id account.Identi
 	return toUser(user), toHome(home), nil
 }
 
-// joinHome makes the user an owner of the home the target names, creating that
-// home first unless the target already identifies one.
-func joinHome(ctx context.Context, q *db.Queries, userID uuid.UUID, target account.HomeTarget) (db.Home, error) {
+// joinHome puts the user in the home the target names, creating that home first
+// unless the target already identifies one.
+func joinHome(ctx context.Context, q *db.Queries, userID uuid.UUID, target account.HomeTarget, role account.Role) (db.Home, error) {
 	var home db.Home
 	var err error
 
@@ -102,9 +97,8 @@ func joinHome(ctx context.Context, q *db.Queries, userID uuid.UUID, target accou
 	} else {
 		home, err = q.GetHomeByID(ctx, target.ID)
 		if errors.Is(err, sql.ErrNoRows) {
-			// Only the founder home is ever named directly, and migration 00011
-			// creates it. Landing the user somewhere else would quietly cut them
-			// off from every recipe that home holds.
+			// Landing them in a substitute home would quietly cut them off from
+			// everything the named one holds.
 			return db.Home{}, account.ErrHomeNotFound
 		}
 	}
@@ -115,7 +109,7 @@ func joinHome(ctx context.Context, q *db.Queries, userID uuid.UUID, target accou
 	err = q.AddHomeMember(ctx, db.AddHomeMemberParams{
 		HomeID: home.Uuid,
 		UserID: userID,
-		Role:   db.HomeRoleOwner,
+		Role:   db.HomeRole(role),
 	})
 	if err != nil {
 		return db.Home{}, err

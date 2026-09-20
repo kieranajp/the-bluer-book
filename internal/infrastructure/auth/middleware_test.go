@@ -106,9 +106,8 @@ func TestResolvedCallerReachesTheHandlerContext(t *testing.T) {
 	}
 }
 
-// The edge forwards the email and name claims as separate headers, and whether
-// it really does has never been confirmed. A caller arriving with the subject
-// alone must still get through.
+// The email and name headers are optional: a caller arriving with the subject
+// alone is still provisioned.
 func TestSubjectAloneIsEnough(t *testing.T) {
 	resolver := &stubResolver{session: Session{UserID: uuid.New(), HomeID: uuid.New()}}
 
@@ -141,5 +140,56 @@ func TestHomeIDIsAbsentWithoutTheMiddleware(t *testing.T) {
 	}
 	if _, ok := UserID(context.Background()); ok {
 		t.Error("a bare context reports a user")
+	}
+}
+
+// The edge appends its header rather than replacing what the client sent, so a
+// second value is the client's and net/http would hand that one over.
+func TestADuplicatedIdentityHeaderIsRejected(t *testing.T) {
+	for _, header := range []string{HeaderUser, HeaderEmail, HeaderName} {
+		t.Run(header, func(t *testing.T) {
+			var reached bool
+			next := http.HandlerFunc(func(http.ResponseWriter, *http.Request) { reached = true })
+
+			req := httptest.NewRequest(http.MethodGet, "/api/recipes", nil)
+			req.Header.Add(header, "sent-by-the-client")
+			req.Header.Add(header, "appended-by-the-edge")
+			if header != HeaderUser {
+				req.Header.Set(HeaderUser, "real-subject")
+			}
+
+			rec := httptest.NewRecorder()
+			resolver := &stubResolver{session: Session{UserID: uuid.New(), HomeID: uuid.New()}}
+			Middleware(resolver, &noopLogger{})(next).ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusUnauthorized {
+				t.Errorf("status %d, want 401", rec.Code)
+			}
+			if reached {
+				t.Error("a request carrying a forged header reached the handler")
+			}
+			if resolver.seen.Subject != "" {
+				t.Errorf("resolver was asked about %q", resolver.seen.Subject)
+			}
+		})
+	}
+}
+
+func TestASessionWithNoHomeDoesNotReachTheHandler(t *testing.T) {
+	for name, session := range map[string]Session{
+		"no home": {UserID: uuid.New()},
+		"no user": {HomeID: uuid.New()},
+		"neither": {},
+	} {
+		t.Run(name, func(t *testing.T) {
+			rec, _, reached := serve(t, &stubResolver{session: session}, map[string]string{HeaderUser: "subject-a"})
+
+			if rec.Code != http.StatusInternalServerError {
+				t.Errorf("status %d, want 500", rec.Code)
+			}
+			if reached {
+				t.Error("a request with no home reached the handler")
+			}
+		})
 	}
 }

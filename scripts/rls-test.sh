@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+#
+# Proves home isolation is real, on a database built from the migrations.
+#
+# A throwaway postgres is created with the same role shape as the deployed one:
+# DB_USER is the superuser that owns every table and runs the migrations, and
+# bluer_book_app is the non-owner role the server connects as. The suites then
+# run against the role each one needs, and the second run is the point:
+#
+#   TestIsolation as bluer_book_app  — must pass.
+#   TestIsolation as the owner       — must FAIL, on the role guard. A pass
+#     there means the guard is broken and every other result is worthless.
+#   TestHomeScoping as the owner     — must pass. Those assertions read rows out
+#     of band, which only an unbound connection can do.
+#   TestProvision as bluer_book_app  — must pass. No policy covers the identity
+#     tables, so the role makes no difference; the repeats are for the
+#     concurrency case.
+#
+# Everything it creates is removed on exit, including on failure.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+CONTAINER="${RLS_TEST_CONTAINER:-bluer-book-rls-test}"
+PORT="${RLS_TEST_PORT:-55433}"
+IMAGE="${RLS_TEST_IMAGE:-postgres:17.5-alpine}"
+PKG="./internal/infrastructure/storage/repository/..."
+
+OWNER_USER="bluer_book"
+OWNER_PASS="rls-test-owner"
+APP_USER="bluer_book_app"
+APP_PASS="rls-test-app"
+DB_NAME="bluer_book"
+
+OWNER_DSN="postgres://${OWNER_USER}:${OWNER_PASS}@127.0.0.1:${PORT}/${DB_NAME}?sslmode=disable"
+APP_DSN="postgres://${APP_USER}:${APP_PASS}@127.0.0.1:${PORT}/${DB_NAME}?sslmode=disable"
+
+cleanup() {
+  docker rm --force --volumes "$CONTAINER" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+cleanup
+
+echo "==> Starting $IMAGE on port $PORT"
+docker run --detach --name "$CONTAINER" \
+  --env "POSTGRES_USER=${OWNER_USER}" \
+  --env "POSTGRES_PASSWORD=${OWNER_PASS}" \
+  --env "POSTGRES_DB=${DB_NAME}" \
+  --publish "127.0.0.1:${PORT}:5432" \
+  "$IMAGE" >/dev/null
+
+for _ in $(seq 1 60); do
+  if docker exec "$CONTAINER" pg_isready --quiet --username "$OWNER_USER" --dbname "$DB_NAME"; then
+    break
+  fi
+  sleep 1
+done
+docker exec "$CONTAINER" pg_isready --username "$OWNER_USER" --dbname "$DB_NAME" >/dev/null
+
+echo "==> Generating query stubs"
+sqlc generate
+
+# 00001 to 00006 predate goose and carry none of its annotations, so goose
+# refuses to parse them and `migrate` cannot build a database from nothing.
+# Applying them by hand leaves exactly what the real database looks like — a
+# schema with no goose bookkeeping — which `migrate` then recognises and seeds
+# before running 00007 onwards. The path under test is the deployed one.
+echo "==> Applying the pre-goose schema"
+for file in migrations/0000[1-6]_*.sql; do
+  docker exec --interactive "$CONTAINER" \
+    psql --username "$OWNER_USER" --dbname "$DB_NAME" --quiet \
+    --set ON_ERROR_STOP=1 < "$file" >/dev/null
+done
+
+echo "==> Migrating as ${OWNER_USER}"
+DB_HOST=127.0.0.1 DB_PORT="$PORT" DB_NAME="$DB_NAME" \
+  DB_USER="$OWNER_USER" DB_PASS="$OWNER_PASS" \
+  APP_DB_USER="$APP_USER" APP_DB_PASS="$APP_PASS" \
+  go run . migrate
+
+echo "==> Checking ${APP_USER}'s privileges"
+attrs=$(docker exec "$CONTAINER" psql --username "$OWNER_USER" --dbname "$DB_NAME" \
+  --no-align --tuples-only \
+  --command "SELECT rolsuper || '|' || rolbypassrls FROM pg_roles WHERE rolname = '${APP_USER}'")
+if [ "$attrs" != "false|false" ]; then
+  echo "FAIL: ${APP_USER} reports rolsuper|rolbypassrls = ${attrs:-<no such role>}, want false|false" >&2
+  exit 1
+fi
+
+# run_suite insists the suite actually ran. A skip is as quiet as a pass and
+# says as little, so it fails the script just as a failure does.
+run_suite() {
+  local label="$1" dsn="$2"
+  shift 2
+
+  echo "==> ${label}"
+  local output
+  if ! output=$(BLUER_BOOK_TEST_DSN="$dsn" go test "$PKG" -v "$@" 2>&1); then
+    echo "$output" >&2
+    echo "FAIL: ${label}" >&2
+    exit 1
+  fi
+  echo "$output"
+  if printf '%s' "$output" | grep -q -- '--- SKIP'; then
+    echo "FAIL: ${label} skipped a case. A suite that skips proves nothing." >&2
+    exit 1
+  fi
+  if ! printf '%s' "$output" | grep -q -- '--- PASS'; then
+    echo "FAIL: ${label} ran no tests at all." >&2
+    exit 1
+  fi
+}
+
+run_suite "TestIsolation as ${APP_USER} (must pass)" "$APP_DSN" -run TestIsolation -count=1
+
+echo "==> TestIsolation as ${OWNER_USER} (must fail, on the guard)"
+if owner_output=$(BLUER_BOOK_TEST_DSN="$OWNER_DSN" go test "$PKG" -run TestIsolation -count=1 -v 2>&1); then
+  echo "FAIL: the isolation suite passed as ${OWNER_USER}, which bypasses every policy." >&2
+  echo "      Its role guard is broken, so the run above proved nothing." >&2
+  exit 1
+fi
+# A compile error fails too, and would otherwise read as the guard working.
+if ! printf '%s' "$owner_output" | grep -q 'which holds SUPERUSER or BYPASSRLS'; then
+  echo "$owner_output" >&2
+  echo "FAIL: the suite failed as ${OWNER_USER}, but not because the role guard fired." >&2
+  exit 1
+fi
+
+run_suite "TestHomeScoping as ${OWNER_USER} (must pass)" "$OWNER_DSN" \
+  -run 'TestHomeScoping|TestHomeScopedPantry' -count=1
+
+run_suite "TestProvision as ${APP_USER} (must pass)" "$APP_DSN" -run TestProvision -count=3
+
+echo "==> Home isolation holds."

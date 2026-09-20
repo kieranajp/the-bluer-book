@@ -136,6 +136,25 @@ if errors.Is(err, recipe.ErrRecipeNotFound) {
   unwrapped, so translate `sql.ErrNoRows` into a domain error inside the closure. The
   identity tables in `repository/accounts.go` are the exception: they resolve a request
   before any home is known, so they use the plain pool.
+
+  Postgres backs this now, not just the query layer: every tenant table carries a
+  `home_isolation` policy keyed on the same `app.home_id` setting (`migrations/00014_rls.sql`),
+  so a query inside `InHomeTx` needs no home predicate — the policy supplies it — and one
+  written outside `InHomeTx` reads and writes nothing rather than crossing a boundary. That
+  setting reverts to the empty string, not NULL, once its transaction ends, which is why the
+  policy folds it through `NULLIF` before the cast: a bare cast would raise on a connection
+  the pool hands back between transactions, and folding to NULL makes the comparison false
+  instead, so an idle connection reads zero rows rather than erroring. Ingredient name
+  resolution and a label's `uses` count from `ListLabels` are scoped per home by the same
+  policy — two homes can each own an ingredient called "milk".
+- **Isolation** is proved against a real database, not asserted in code:
+  `repository/isolation_integration_test.go` runs `TestIsolation` through the ordinary
+  repositories and refuses outright — never skips — on a connection the policies wouldn't
+  bind, since a superuser, a role holding BYPASSRLS, or the tables' owner would satisfy
+  every assertion without a policy being consulted. Run it with `./scripts/rls-test.sh`,
+  which builds both the owner and `bluer_book_app` roles and points the suite at each in
+  turn — including a run as the owner that must fail, so the pass as `bluer_book_app`
+  means something.
 - **Query metrics** come for free: both the pool and each home-scoped transaction are
   wrapped in `metrics.NewInstrumentedDBTX`, so every sqlc query records
   `bluerbook_db_query_duration_seconds` / `_errors_total` (labelled by the sqlc query
@@ -147,7 +166,10 @@ if errors.Is(err, recipe.ErrRecipeNotFound) {
 
 `main.go` builds a `urfave/cli/v2` app with `server`, `migrate`, and `tag` subcommands.
 Config comes from CLI flags backed by env vars (`config.New(c)`), e.g. `LISTEN_ADDR`,
-`MCP_ADDR`, `DB_*`, `GOOGLE_API_KEY`, `GEMINI_MODEL`, `FOUNDER_SUBJECT`, `MCP_HOME_ID`.
+`MCP_ADDR`, `DB_*`, `APP_DB_USER`, `APP_DB_PASS`, `GOOGLE_API_KEY`, `GEMINI_MODEL`,
+`FOUNDER_SUBJECT`, `MCP_HOME_ID`. `Config.AppDBDSN()` — not `DBDSN()` — is what the server
+connects with; the split exists because the isolation policies described in
+`docs/architecture.md` bind only the role `APP_DB_USER` names, never `DB_USER`.
 
 ## Adding a new recipe operation (checklist)
 

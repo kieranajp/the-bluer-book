@@ -9,6 +9,9 @@ SELECT pg_advisory_xact_lock(hashtext(@subject::text));
 -- name: GetUserBySubject :one
 SELECT * FROM users WHERE subject = @subject;
 
+-- name: GetUserByUUID :one
+SELECT * FROM users WHERE uuid = @user_id;
+
 -- name: CreateUser :one
 INSERT INTO users (subject, email, display_name)
 VALUES (@subject, @email, @display_name)
@@ -50,16 +53,47 @@ INNER JOIN users u ON u.uuid = m.user_id
 WHERE m.home_id = @home_id
 ORDER BY m.created_at ASC;
 
+-- name: GetMembershipRole :one
+SELECT role FROM home_members WHERE home_id = @home_id AND user_id = @user_id;
+
+-- name: ListHomesForUser :many
+SELECT sqlc.embed(h), m.role FROM homes h
+INNER JOIN home_members m ON m.home_id = h.uuid
+WHERE m.user_id = @user_id
+ORDER BY m.created_at DESC, h.name ASC;
+
+-- name: LockHome :one
+-- Held for the length of a membership change. Counting owners and then deleting
+-- one is otherwise a race: two owners removed at once each count two and each
+-- proceed, leaving the home with none.
+SELECT uuid FROM homes WHERE uuid = @home_id FOR UPDATE;
+
+-- name: CountHomeOwners :one
+SELECT count(*)::int FROM home_members WHERE home_id = @home_id AND role = 'owner';
+
+-- name: RemoveHomeMember :execrows
+DELETE FROM home_members WHERE home_id = @home_id AND user_id = @user_id;
+
 -- name: CreateInvitation :one
-INSERT INTO invitations (home_id, email, token, role, invited_by, expires_at)
-VALUES (@home_id, @email, @token, @role, @invited_by, @expires_at)
+INSERT INTO invitations (home_id, email, token_hash, role, invited_by, expires_at)
+VALUES (@home_id, @email, @token_hash, @role, @invited_by, @expires_at)
 RETURNING *;
 
--- name: GetInvitationByToken :one
-SELECT * FROM invitations WHERE token = @token;
+-- name: RedeemInvitation :one
+-- Spends an invitation in the statement that finds it, so a token is good once.
+-- Reading the row, deciding in Go and writing it back would let two requests
+-- arriving together both pass the check and both join.
+UPDATE invitations
+SET accepted_at = now()
+WHERE token_hash = @token_hash
+  AND accepted_at IS NULL
+  AND expires_at > now()
+RETURNING *;
 
--- name: MarkInvitationAccepted :exec
-UPDATE invitations SET accepted_at = now() WHERE uuid = @invitation_id;
+-- name: GetInvitationByTokenHash :one
+-- Only tells a caller why their token was refused. Redemption never reads
+-- first; it goes through RedeemInvitation.
+SELECT * FROM invitations WHERE token_hash = @token_hash;
 
 -- name: ListOpenInvitationsForHome :many
 SELECT * FROM invitations

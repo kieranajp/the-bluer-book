@@ -5,6 +5,9 @@ package identity
 
 import (
 	"context"
+	"errors"
+
+	"github.com/google/uuid"
 
 	"github.com/kieranajp/the-bluer-book/internal/domain/account"
 	"github.com/kieranajp/the-bluer-book/internal/domain/account/service"
@@ -31,8 +34,14 @@ func (r *provisioningResolver) Resolve(ctx context.Context, caller auth.Caller) 
 		return auth.Session{}, err
 	}
 
-	home, err := r.svc.ResolveActiveHome(ctx, user)
+	home, err := r.svc.ResolveActiveHome(ctx, user, caller.Home)
 	if err != nil {
+		// A caller who named a home and is not in it gets that answer and no
+		// other. Every other home-not-found here is a fault, because the
+		// no-preference path provisions a home rather than failing to find one.
+		if caller.Home != uuid.Nil && errors.Is(err, account.ErrHomeNotFound) {
+			return auth.Session{}, auth.ErrHomeForbidden
+		}
 		return auth.Session{}, err
 	}
 

@@ -15,6 +15,8 @@
 #   TestProvision as bluer_book_app  — must pass. No policy covers the identity
 #     tables, so the role makes no difference; the repeats are for the
 #     concurrency case.
+#   TestMembership as bluer_book_app — must pass. Invitations and the
+#     last-owner rule, including their concurrency cases.
 #
 # Everything it creates is removed on exit, including on failure.
 
@@ -131,5 +133,17 @@ run_suite "TestHomeScoping as ${OWNER_USER} (must pass)" "$OWNER_DSN" \
   -run 'TestHomeScoping|TestHomeScopedPantry' -count=1
 
 run_suite "TestProvision as ${APP_USER} (must pass)" "$APP_DSN" -run TestProvision -count=3
+
+# Proves an invitation token is stored only as a hash, is spent exactly once
+# however many callers present it together, and that a home never loses its last
+# owner — including when two owners leave at once.
+#
+# As ${APP_USER}, not the owner: the identity tables are deliberately outside
+# row-level security, because a token is looked up before either party's home is
+# known. Running as the role the server actually connects as is what proves that
+# claim, and would catch a policy creeping onto invitations or home_members that
+# an unbound owner connection would sail straight through.
+# The repeats are for the two concurrency cases, as with TestProvision.
+run_suite "TestMembership as ${APP_USER} (must pass)" "$APP_DSN" -run TestMembership -count=3
 
 echo "==> Home isolation holds."

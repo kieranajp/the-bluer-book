@@ -1,6 +1,10 @@
 package metrics
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // NoopRecipeProbe is a no-op implementation of recipe.Probe for tests.
 type NoopRecipeProbe struct{}
@@ -27,3 +31,11 @@ func (NoopChatProbe) SessionCreated(string)                        {}
 func (NoopChatProbe) MessageReceived(string)                       {}
 func (NoopChatProbe) ResponseCompleted(string, time.Duration, int) {}
 func (NoopChatProbe) ChatError(error)                              {}
+
+// NoopAccountProbe is a no-op implementation of account.Probe for tests.
+type NoopAccountProbe struct{}
+
+func (NoopAccountProbe) UserProvisioned(string)              {}
+func (NoopAccountProbe) MembershipChanged(string, uuid.UUID) {}
+func (NoopAccountProbe) InvitationRefused(string)            {}
+func (NoopAccountProbe) AccountError(string, error)          {}

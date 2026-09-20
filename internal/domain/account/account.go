@@ -51,3 +51,34 @@ type Home struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+// Membership is a home together with the standing its holder has in it.
+type Membership struct {
+	Home Home
+	Role Role
+}
+
+// Member is one person in a home, and what they may do there.
+type Member struct {
+	User User
+	Role Role
+}
+
+// Invitation is an outstanding offer of membership. The token that redeems it
+// is not here and is not in the database: only its hash is stored, so a copy of
+// this row joins nobody to anything.
+type Invitation struct {
+	UUID      uuid.UUID
+	HomeID    uuid.UUID
+	Email     string
+	Role      Role
+	InvitedBy uuid.UUID
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
+
+// Valid reports whether a role is one this application recognises. A role
+// arrives from a request body, so nothing may assume it does.
+func (r Role) Valid() bool {
+	return r == RoleOwner || r == RoleMember
+}

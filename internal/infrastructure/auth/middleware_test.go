@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -191,5 +192,134 @@ func TestASessionWithNoHomeDoesNotReachTheHandler(t *testing.T) {
 				t.Error("a request with no home reached the handler")
 			}
 		})
+	}
+}
+
+// X-Home is the one header a client sets for itself, so every test below asks
+// what happens when it is wrong rather than when it is right.
+
+func TestNoHomeHeaderAsksForNoParticularHome(t *testing.T) {
+	resolver := &stubResolver{session: Session{UserID: uuid.New(), HomeID: uuid.New()}}
+
+	_, _, reached := serve(t, resolver, map[string]string{HeaderUser: "subject-a"})
+
+	if !reached {
+		t.Fatal("handler not reached")
+	}
+	if resolver.seen.Home != uuid.Nil {
+		t.Errorf("resolver was asked for home %s, want none", resolver.seen.Home)
+	}
+}
+
+// The resolved home differs from the requested one so the context assertion
+// means something: given one uuid for both, stamping either would pass.
+func TestTheRequestedHomeReachesTheResolver(t *testing.T) {
+	requested, resolved := uuid.New(), uuid.New()
+	resolver := &stubResolver{session: Session{UserID: uuid.New(), HomeID: resolved}}
+
+	_, ctx, reached := serve(t, resolver, map[string]string{
+		HeaderUser: "subject-a",
+		HeaderHome: requested.String(),
+	})
+
+	if !reached {
+		t.Fatal("handler not reached")
+	}
+	if resolver.seen.Home != requested {
+		t.Errorf("resolver was asked for home %s, want %s", resolver.seen.Home, requested)
+	}
+	if got, _ := HomeID(ctx); got != resolved {
+		t.Errorf("context carries home %s, want the resolver's %s", got, resolved)
+	}
+}
+
+// The resolver decides membership; the middleware only has to refuse without
+// saying whether the home exists, and without letting the request through.
+func TestNamingAHomeYouAreNotInIsRefused(t *testing.T) {
+	home := uuid.New()
+	resolver := &stubResolver{
+		session: Session{UserID: uuid.New(), HomeID: uuid.New()},
+		err:     ErrHomeForbidden,
+	}
+
+	rec, _, reached := serve(t, resolver, map[string]string{
+		HeaderUser: "subject-b",
+		HeaderHome: home.String(),
+	})
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status %d, want 401", rec.Code)
+	}
+	if reached {
+		t.Error("a request naming somebody else's home reached the handler")
+	}
+
+	var body struct {
+		Error struct{ Code, Message string }
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("decoding the error body: %v", err)
+	}
+	if body.Error.Code != "unauthenticated" {
+		t.Errorf("error code %q, want unauthenticated", body.Error.Code)
+	}
+	if strings.Contains(body.Error.Message, home.String()) {
+		t.Errorf("the refusal repeats the home id back: %q", body.Error.Message)
+	}
+}
+
+// A home id that does not parse is a client fault, and the resolver is never
+// asked: there is no value to ask about, and guessing one would be worse.
+func TestAnUnusableHomeHeaderIsRefusedBeforeResolution(t *testing.T) {
+	for name, value := range map[string]string{
+		"not a uuid":   "home-a",
+		"truncated":    "00000000-0000-0000-0000",
+		"sql fragment": "' OR '1'='1",
+		"nil uuid":     uuid.Nil.String(),
+	} {
+		t.Run(name, func(t *testing.T) {
+			resolver := &stubResolver{session: Session{UserID: uuid.New(), HomeID: uuid.New()}}
+
+			rec, _, reached := serve(t, resolver, map[string]string{
+				HeaderUser: "subject-a",
+				HeaderHome: value,
+			})
+
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("status %d, want 400", rec.Code)
+			}
+			if reached {
+				t.Error("a request with an unusable home header reached the handler")
+			}
+			if resolver.seen.Subject != "" {
+				t.Error("the resolver was asked about a request that never had a home")
+			}
+		})
+	}
+}
+
+// Two X-Home values are two answers to one question. net/http would hand over
+// the first, which is no basis for deciding whose data a request reads.
+func TestADuplicatedHomeHeaderIsRefused(t *testing.T) {
+	var reached bool
+	next := http.HandlerFunc(func(http.ResponseWriter, *http.Request) { reached = true })
+
+	req := httptest.NewRequest(http.MethodGet, "/api/recipes", nil)
+	req.Header.Set(HeaderUser, "subject-a")
+	req.Header.Add(HeaderHome, uuid.New().String())
+	req.Header.Add(HeaderHome, uuid.New().String())
+
+	rec := httptest.NewRecorder()
+	resolver := &stubResolver{session: Session{UserID: uuid.New(), HomeID: uuid.New()}}
+	Middleware(resolver, &noopLogger{})(next).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status %d, want 400", rec.Code)
+	}
+	if reached {
+		t.Error("a request carrying two home headers reached the handler")
+	}
+	if resolver.seen.Subject != "" {
+		t.Error("the resolver was asked to pick between two homes")
 	}
 }

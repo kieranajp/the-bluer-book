@@ -69,6 +69,13 @@ dependencies:
   # Front-camera frame stream for touchless hand-wave gestures (cooking mode)
   camera: ^0.12.0+1
 
+  # OAuth2 authorization-code + PKCE against Authentik. AppAuth runs the browser
+  # dance and the code exchange natively, so no client secret ships in the binary.
+  flutter_appauth: ^12.1.0
+
+  # Keychain / EncryptedSharedPreferences for the access and refresh tokens.
+  flutter_secure_storage: ^11.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

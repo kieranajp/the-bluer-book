@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -19,6 +20,12 @@ const (
 	HeaderName  = "X-User-Name"
 )
 
+// HeaderHome lets a client pick which of its homes a request acts on. Unlike
+// the three above it comes from the client, not the edge, so it is a request
+// and nothing more: the resolver returns the home only to a member of it.
+// Absent, it means the home the caller most recently joined.
+const HeaderHome = "X-Home"
+
 // Middleware resolves the caller the edge asserts and stamps them onto the
 // request context. Mount it only on routes the edge has already authenticated.
 func Middleware(resolver UserResolver, log logger.Logger) func(http.Handler) http.Handler {
@@ -30,7 +37,19 @@ func Middleware(resolver UserResolver, log logger.Logger) func(http.Handler) htt
 				return
 			}
 
+			home, ok := requestedHome(r)
+			if !ok {
+				writeError(w, http.StatusBadRequest, "invalid_home", "X-Home is not a home id")
+				return
+			}
+			caller.Home = home
+
 			session, err := resolver.Resolve(r.Context(), caller)
+			if errors.Is(err, ErrHomeForbidden) {
+				log.Warn().Str("subject", caller.Subject).Str("home", home.String()).Msg("Caller named a home they are not in")
+				writeError(w, http.StatusUnauthorized, "unauthenticated", "Request carries no authenticated user")
+				return
+			}
 			if err != nil {
 				log.Error().Err(err).Str("subject", caller.Subject).Msg("Failed to resolve caller")
 				writeError(w, http.StatusInternalServerError, "identity_unresolved", "Failed to resolve the calling user")
@@ -70,6 +89,25 @@ func callerFrom(r *http.Request) (Caller, bool) {
 	}
 
 	return Caller{Subject: subject, Email: email, Name: name}, true
+}
+
+// requestedHome reads X-Home. Absent or empty asks for no particular home;
+// anything present has to parse, and two of them are refused rather than
+// settled by whichever net/http happens to return first.
+func requestedHome(r *http.Request) (uuid.UUID, bool) {
+	value, ok := soleHeader(r, HeaderHome)
+	if !ok {
+		return uuid.Nil, false
+	}
+	if value == "" {
+		return uuid.Nil, true
+	}
+
+	home, err := uuid.Parse(value)
+	if err != nil || home == uuid.Nil {
+		return uuid.Nil, false
+	}
+	return home, true
 }
 
 func soleHeader(r *http.Request, key string) (string, bool) {

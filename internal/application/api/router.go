@@ -7,6 +7,7 @@ import (
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api/middleware"
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
+	accountservice "github.com/kieranajp/the-bluer-book/internal/domain/account/service"
 	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/ai"
@@ -15,7 +16,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 )
 
-func NewRouter(recipeService service.RecipeService, pantryService pantryservice.PantryService, scanner *ai.ShoppingListScanner, chatHandler *chat.Handler, photoHandler *PhotoHandler, resolver auth.UserResolver, logger logger.Logger) http.Handler {
+func NewRouter(recipeService service.RecipeService, pantryService pantryservice.PantryService, accountService accountservice.AccountService, scanner *ai.ShoppingListScanner, chatHandler *chat.Handler, photoHandler *PhotoHandler, resolver auth.UserResolver, logger logger.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	// Prometheus metrics endpoint
@@ -29,6 +30,7 @@ func NewRouter(recipeService service.RecipeService, pantryService pantryservice.
 	// Create handlers
 	recipeHandler := NewRecipeHandler(recipeService, logger)
 	pantryHandler := NewPantryHandler(pantryService, scanner, logger)
+	accountHandler := NewAccountHandler(accountService, logger)
 	validationMiddleware := middleware.NewValidationMiddleware(logger)
 
 	apiMux := http.NewServeMux()
@@ -78,6 +80,13 @@ func NewRouter(recipeService service.RecipeService, pantryService pantryservice.
 
 	// Chat endpoint
 	apiMux.HandleFunc("POST /api/chat", chatHandler.HandleChat)
+
+	// Account routes
+	apiMux.HandleFunc("GET /api/me", accountHandler.Me)
+	apiMux.HandleFunc("POST /api/homes/{id}/invitations", accountHandler.CreateInvitation)
+	apiMux.HandleFunc("POST /api/invitations/accept", accountHandler.AcceptInvitation)
+	apiMux.HandleFunc("GET /api/homes/{id}/members", accountHandler.ListMembers)
+	apiMux.HandleFunc("DELETE /api/homes/{id}/members/{userID}", accountHandler.RemoveMember)
 
 	// Everything under /api acts on somebody's home, so the whole subtree hangs
 	// off one nested mux behind the identity middleware. /health and /metrics

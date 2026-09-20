@@ -66,7 +66,29 @@ home provisioned without them is called "My Book". `FOUNDER_SUBJECT` names the o
 that joins the home holding the collection that predates all this, rather than an empty
 one.
 
+A caller in more than one home picks between them with an `X-Home` header. That one comes
+from the client rather than the edge, so it is a request and not a fact: the middleware
+returns the named home only to a member of it, and answers a non-member with the same 401
+it gives an unauthenticated caller. Absent, a request acts on the home its caller most
+recently joined — which accepting an invitation makes the new one.
+
 Locally there is no auth in front of the binary; it talks to a local Postgres.
+
+## Homes, members and invitations
+
+`internal/application/api/account_handler.go` carries the five routes that move people
+between homes: `GET /api/me`, `POST /api/homes/{id}/invitations`,
+`POST /api/invitations/accept`, `GET /api/homes/{id}/members` and
+`DELETE /api/homes/{id}/members/{userID}`. Inviting and removing are an owner's to do; a
+home's last owner cannot be removed, since nobody would be left who could invite or remove
+anybody. There is no UI for any of it — this is an API a person drives with curl.
+
+An invitation is 256 bits from `crypto/rand`, handed back once in the response that
+creates it. The row stores only its SHA-256 hash, so reading the `invitations` table joins
+nobody to anything. That table sits outside row-level security by necessity: a token is
+looked up before either party's home is known. Redemption is a single conditional `UPDATE`
+that spends the invitation in the statement that finds it, so a token admits one person
+once however many requests carry it at the same moment.
 
 ## Tenancy
 

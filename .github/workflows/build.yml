@@ -63,6 +63,12 @@ jobs:
       - name: Home isolation
         run: ./scripts/rls-test.sh
 
+      # The layer above the policies: who an invitation admits, and whether
+      # X-Home names a home or takes one. Needs a server, so it cannot be a
+      # unit test either.
+      - name: Home membership
+        run: ./scripts/membership-test.sh
+
   docker-push:
     name: "Docker: Build & Push"
     needs: [go-test]

@@ -212,7 +212,7 @@ func run(c *cli.Context) error {
 	// Initialize services
 	recipeService := service.NewRecipeService(repo, recipeProbe)
 	pantryService := pantryservice.NewPantryService(pantryRepo, pantryProbe)
-	accountService := accountservice.NewAccountService(accountRepo, cfg.FounderSubject)
+	accountService := accountservice.NewAccountService(accountRepo, cfg.FounderSubject, metrics.NewAccountProbe(log))
 	if cfg.FounderSubject == "" {
 		log.Warn().Msg("FOUNDER_SUBJECT not set — the first user to sign in gets a new empty home, not the existing recipes")
 	} else {
@@ -292,7 +292,7 @@ func run(c *cli.Context) error {
 	}
 
 	// Create API router
-	router := api.NewRouter(recipeService, pantryService, scanner, chatHandler, photoHandler, resolver, log)
+	router := api.NewRouter(recipeService, pantryService, accountService, scanner, chatHandler, photoHandler, resolver, log)
 
 	// Create HTTP server
 	httpServer := &http.Server{

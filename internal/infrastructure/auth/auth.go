@@ -15,6 +15,11 @@ import (
 // rather than reaching for a default.
 var ErrNoHome = errors.New("auth: no home in context")
 
+// ErrHomeForbidden means the caller named a home they are not a member of. It
+// is the resolver's way of saying so without the middleware having to know what
+// a membership is.
+var ErrHomeForbidden = errors.New("auth: caller is not a member of the requested home")
+
 // Caller is what the edge asserts about a request. Only Subject is guaranteed;
 // Email and Name arrive only while the edge forwards those claims, so nothing
 // may depend on them being there.
@@ -22,6 +27,11 @@ type Caller struct {
 	Subject string
 	Email   string
 	Name    string
+
+	// Home is the home the client asked to act on, or uuid.Nil when it asked
+	// for none. The client chooses this value freely, so it is a request and
+	// not a fact: resolving it has to prove membership.
+	Home uuid.UUID
 }
 
 // Session is a Caller resolved onto the rows this application owns.

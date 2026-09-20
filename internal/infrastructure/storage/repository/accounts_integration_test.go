@@ -17,6 +17,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/domain/account"
 	"github.com/kieranajp/the-bluer-book/internal/domain/account/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
 )
 
@@ -185,7 +186,7 @@ func TestProvisionFounderSubject(t *testing.T) {
 	repo := newAccountRepo(sqlDB)
 
 	founderSubject := uniqueSubject("founder")
-	svc := service.NewAccountService(repo, founderSubject)
+	svc := service.NewAccountService(repo, founderSubject, metrics.NoopAccountProbe{})
 
 	t.Run("the founder subject attaches to the founder home", func(t *testing.T) {
 		user, err := svc.ProvisionFromSubject(context.Background(), account.Identity{
@@ -206,7 +207,7 @@ func TestProvisionFounderSubject(t *testing.T) {
 			}
 		})
 
-		home, err := svc.ResolveActiveHome(context.Background(), user)
+		home, err := svc.ResolveActiveHome(context.Background(), user, uuid.Nil)
 		if err != nil {
 			t.Fatalf("ResolveActiveHome: %v", err)
 		}
@@ -224,7 +225,7 @@ func TestProvisionFounderSubject(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ProvisionFromSubject: %v", err)
 		}
-		home, err := svc.ResolveActiveHome(context.Background(), user)
+		home, err := svc.ResolveActiveHome(context.Background(), user, uuid.Nil)
 		if err != nil {
 			t.Fatalf("ResolveActiveHome: %v", err)
 		}
@@ -242,7 +243,7 @@ func TestProvisionFounderSubject(t *testing.T) {
 func TestProvisionHomeNaming(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
-	svc := service.NewAccountService(repo, "")
+	svc := service.NewAccountService(repo, "", metrics.NoopAccountProbe{})
 
 	t.Run("an email names the home after its local part", func(t *testing.T) {
 		subject := uniqueSubject("naming-email")
@@ -253,7 +254,7 @@ func TestProvisionHomeNaming(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ProvisionFromSubject: %v", err)
 		}
-		home, err := svc.ResolveActiveHome(context.Background(), user)
+		home, err := svc.ResolveActiveHome(context.Background(), user, uuid.Nil)
 		if err != nil {
 			t.Fatalf("ResolveActiveHome: %v", err)
 		}
@@ -272,7 +273,7 @@ func TestProvisionHomeNaming(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ProvisionFromSubject: %v", err)
 		}
-		home, err := svc.ResolveActiveHome(context.Background(), user)
+		home, err := svc.ResolveActiveHome(context.Background(), user, uuid.Nil)
 		if err != nil {
 			t.Fatalf("ResolveActiveHome: %v", err)
 		}

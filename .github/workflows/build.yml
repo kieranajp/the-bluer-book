@@ -56,6 +56,13 @@ jobs:
 
       - run: go mod tidy && go test -v ./...
 
+      # Home isolation is the one property unit tests cannot demonstrate: it
+      # lives in the database, and only shows up on a connection the policies
+      # bind. The script builds a throwaway postgres with both roles and runs
+      # the suite against each — including the run that has to fail.
+      - name: Home isolation
+        run: ./scripts/rls-test.sh
+
   docker-push:
     name: "Docker: Build & Push"
     needs: [go-test]

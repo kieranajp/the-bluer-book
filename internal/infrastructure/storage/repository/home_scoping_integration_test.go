@@ -36,6 +36,18 @@ func openTestDB(t *testing.T) *sql.DB {
 	return sqlDB
 }
 
+// skipUnlessUnrestricted leaves this suite to the owning role. Its assertions
+// read tenant tables on the bare pool, outside any transaction, which is
+// exactly what the isolation policies stop. TestIsolation is the suite that
+// wants the bound connection, and it refuses to run without one.
+func skipUnlessUnrestricted(t *testing.T, sqlDB *sql.DB) {
+	t.Helper()
+
+	if role, bound := rlsBinds(t, sqlDB); bound {
+		t.Skipf("connected as %q, which row-level security binds: these assertions read tenant tables outside a transaction", role)
+	}
+}
+
 // makeHome creates a home to act as, and removes it afterwards. Every tenant
 // table cascades from homes, so the delete takes the test's rows with it.
 func makeHome(t *testing.T, sqlDB *sql.DB, name string) uuid.UUID {
@@ -114,6 +126,8 @@ func testRecipe(name, ingredient string) recipe.Recipe {
 // reaches the database not at all.
 func TestHomeScoping(t *testing.T) {
 	sqlDB := openTestDB(t)
+	skipUnlessUnrestricted(t, sqlDB)
+
 	log := logger.New(logger.LogLevelError)
 	repo := NewRecipeRepository(sqlDB, log)
 	dropTestVocabulary(t, sqlDB)
@@ -213,6 +227,8 @@ func TestHomeScoping(t *testing.T) {
 // ingredient and writes it in one transaction.
 func TestHomeScopedPantry(t *testing.T) {
 	sqlDB := openTestDB(t)
+	skipUnlessUnrestricted(t, sqlDB)
+
 	log := logger.New(logger.LogLevelError)
 	recipes := NewRecipeRepository(sqlDB, log)
 	pantry := NewPantryRepository(sqlDB, log)

@@ -137,14 +137,14 @@ if errors.Is(err, recipe.ErrRecipeNotFound) {
   identity tables in `repository/accounts.go` are the exception: they resolve a request
   before any home is known, so they use the plain pool.
 
-  Postgres backs this now, not just the query layer: every tenant table carries a
+  Postgres enforces this, not just the query layer: every tenant table carries a
   `home_isolation` policy keyed on the same `app.home_id` setting (`migrations/00014_rls.sql`),
   so a query inside `InHomeTx` needs no home predicate — the policy supplies it — and one
   written outside `InHomeTx` reads and writes nothing rather than crossing a boundary. That
   setting reverts to the empty string, not NULL, once its transaction ends, which is why the
   policy folds it through `NULLIF` before the cast: a bare cast would raise on a connection
-  the pool hands back between transactions, and folding to NULL makes the comparison false
-  instead, so an idle connection reads zero rows rather than erroring. Ingredient name
+  the pool hands back between transactions, whereas comparing against NULL evaluates to
+  NULL, which excludes the row, so an idle connection reads zero rows rather than erroring. Ingredient name
   resolution and a label's `uses` count from `ListLabels` are scoped per home by the same
   policy — two homes can each own an ingredient called "milk".
 - **Isolation** is proved against a real database, not asserted in code:

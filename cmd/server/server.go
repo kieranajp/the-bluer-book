@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/urfave/cli/v2"
@@ -25,6 +26,7 @@ import (
 	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/ai"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
@@ -90,6 +92,12 @@ var (
 				Usage:   "Token subject that owns the founder home, and so the recipes that predate multitenancy",
 				EnvVars: []string{"FOUNDER_SUBJECT"},
 			},
+			&cli.StringFlag{
+				Name:    "mcp-home-id",
+				Usage:   "Home that every MCP tool call acts on, the MCP server having no caller to resolve",
+				EnvVars: []string{"MCP_HOME_ID"},
+				Value:   account.FounderHomeID.String(),
+			},
 			&cli.StringFlag{Name: "r2-account-id", EnvVars: []string{"R2_ACCOUNT_ID"}},
 			&cli.StringFlag{Name: "r2-jurisdiction", EnvVars: []string{"R2_JURISDICTION"}},
 			&cli.StringFlag{Name: "r2-access-key-id", EnvVars: []string{"R2_ACCESS_KEY_ID"}},
@@ -133,6 +141,11 @@ func run(c *cli.Context) error {
 	// Initialize logger
 	log := logger.New(logger.LogLevelInfo)
 
+	mcpHomeID, err := uuid.Parse(cfg.MCPHomeID)
+	if err != nil {
+		return fmt.Errorf("MCP_HOME_ID %q is not a uuid: %w", cfg.MCPHomeID, err)
+	}
+
 	// Set up database
 	sqlDB, err := sql.Open("postgres", cfg.DBDSN())
 	if err != nil {
@@ -145,15 +158,29 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
+	// A home that does not exist would give every MCP tool call empty reads and
+	// a foreign-key failure on write, one call at a time and never at startup.
+	// Refuse here instead.
+	var mcpHomeExists bool
+	if err := sqlDB.QueryRow(`SELECT EXISTS (SELECT 1 FROM homes WHERE uuid = $1)`, mcpHomeID).Scan(&mcpHomeExists); err != nil {
+		return fmt.Errorf("failed to check MCP home %s: %w", mcpHomeID, err)
+	}
+	if !mcpHomeExists {
+		return fmt.Errorf("MCP_HOME_ID %s is not a home in this database", mcpHomeID)
+	}
+
 	// Expose connection-pool stats (go_sql_*) alongside the per-query metrics
 	// recorded by the instrumented DBTX below.
 	metrics.RegisterDBStats(sqlDB)
 
 	// Initialize dependencies. Wrapping the pool in an instrumented DBTX times
 	// every sqlc query without the repository needing to know about metrics.
+	// The identity tables resolve a request before any home is known, so the
+	// account repository keeps the plain pool. Everything tenant-scoped goes
+	// through InHomeTx instead and takes the pool itself.
 	queries := db.New(metrics.NewInstrumentedDBTX(sqlDB))
-	repo := repository.NewRecipeRepository(queries, sqlDB, log)
-	pantryRepo := repository.NewPantryRepository(queries, log)
+	repo := repository.NewRecipeRepository(sqlDB, log)
+	pantryRepo := repository.NewPantryRepository(sqlDB, log)
 	accountRepo := repository.NewAccountRepository(queries, sqlDB, log)
 
 	// Create probes
@@ -189,7 +216,15 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on MCP address %s: %w", mcpAddr, err)
 	}
-	httpMCPServer := server.NewStreamableHTTPServer(mcpServer)
+	// Nothing identifies an MCP caller: the route carries no auth and the tools
+	// take no caller argument. Every call therefore acts on one configured
+	// home, stamped here so the repositories find one where a request's
+	// middleware would normally have put it.
+	httpMCPServer := server.NewStreamableHTTPServer(mcpServer,
+		server.WithHTTPContextFunc(func(ctx context.Context, _ *http.Request) context.Context {
+			return auth.WithHome(ctx, mcpHomeID)
+		}),
+	)
 	go func() {
 		log.Info().Str("address", mcpAddr).Msg("Starting MCP server")
 		if err := http.Serve(mcpListener, httpMCPServer); err != nil && err != http.ErrServerClosed {
@@ -229,7 +264,7 @@ func run(c *cli.Context) error {
 			c.String("r2-public-url"),
 			log,
 		)
-		photoHandler = api.NewPhotoHandler(r2, queries, sqlDB, log)
+		photoHandler = api.NewPhotoHandler(r2, sqlDB, log)
 		log.Info().Msg("R2 photo upload enabled")
 	} else {
 		log.Warn().Msg("R2 not configured — photo upload endpoint disabled")

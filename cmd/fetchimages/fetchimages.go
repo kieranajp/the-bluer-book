@@ -509,9 +509,11 @@ func setMainPhoto(ctx context.Context, db *sql.DB, recipeID uuid.UUID, photoURL 
 	now := time.Now()
 	photoUUID := uuid.New()
 
+	// This tool sweeps every home at once, so there is no app.home_id to
+	// default from and the home comes from the recipe the photo belongs to.
 	_, err = tx.ExecContext(ctx, `
-		INSERT INTO photos (uuid, url, entity_type, entity_id, created_at, updated_at)
-		VALUES ($1, $2, 'recipe', $3, $4, $4)
+		INSERT INTO photos (uuid, url, entity_type, entity_id, home_id, created_at, updated_at)
+		VALUES ($1, $2, 'recipe', $3, (SELECT home_id FROM recipes WHERE uuid = $3), $4, $4)
 	`, photoUUID, photoURL, recipeID, now)
 	if err != nil {
 		return fmt.Errorf("insert photo: %w", err)

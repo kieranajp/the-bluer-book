@@ -27,6 +27,11 @@ type Config struct {
 	// founder home rather than to a fresh one. Empty means nobody gets that
 	// treatment, and the founder home stays unclaimed.
 	FounderSubject string
+
+	// MCPHomeID is the home every MCP tool call acts on. The MCP server has no
+	// caller to resolve, so it serves one fixed home and the chat assistant
+	// reaches the same one through it.
+	MCPHomeID string
 }
 
 // New builds a Config from the CLI context.
@@ -43,6 +48,7 @@ func New(c *cli.Context) Config {
 		GeminiModel:  c.String("gemini-model"),
 
 		FounderSubject: c.String("founder-subject"),
+		MCPHomeID:      c.String("mcp-home-id"),
 	}
 }
 

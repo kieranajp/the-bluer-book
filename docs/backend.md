@@ -119,34 +119,42 @@ if errors.Is(err, recipe.ErrRecipeNotFound) {
   from `migrations/*.sql` (schema) and `queries/*.sql` (queries). This directory is
   git-ignored — run `sqlc generate` after changing either. Config: `sqlc.yaml`.
 - The **repository** (`repository/recipes.go`) is the only place that imports `db`. It
-  maps sqlc rows ↔ domain types (helpers in `storage/mapper`) and owns transactions
-  with the `defer` commit/rollback idiom:
+  maps sqlc rows ↔ domain types (helpers in `storage/mapper`) and reaches a tenant table
+  only through `InHomeTx`, which opens the transaction, publishes the caller's home as
+  `app.home_id` and commits or rolls back:
 
   ```go
-  tx, err := r.sqlDB.BeginTx(ctx, nil)
-  q := db.New(tx)
-  defer func() { if err != nil { tx.Rollback() } else { tx.Commit() } }()
+  var out *recipe.Recipe
+  err := InHomeTx(ctx, r.sqlDB, func(q *db.Queries) error {
+      // …every query for this operation, in this one transaction…
+      return nil
+  })
   ```
 
-  (The named `err` return is what makes that defer work — keep assigning to it.)
-- **Query metrics** come for free: `cmd/server` wraps the pool in
-  `metrics.NewInstrumentedDBTX(sqlDB)` before `db.New`, so every sqlc query records
+  One transaction per repository method — never one per query, never nested. A context
+  with no home gets `auth.ErrNoHome` and touches nothing. `fn`'s error comes back
+  unwrapped, so translate `sql.ErrNoRows` into a domain error inside the closure. The
+  identity tables in `repository/accounts.go` are the exception: they resolve a request
+  before any home is known, so they use the plain pool.
+- **Query metrics** come for free: both the pool and each home-scoped transaction are
+  wrapped in `metrics.NewInstrumentedDBTX`, so every sqlc query records
   `bluerbook_db_query_duration_seconds` / `_errors_total` (labelled by the sqlc query
   name parsed from its `-- name:` header) without the repository touching Prometheus —
   the same infra-owned, cross-cutting split as `metrics.HTTPMetrics`. `metrics.RegisterDBStats`
-  adds `go_sql_*` connection-pool gauges. (Queries inside an explicit `db.New(tx)`
-  transaction use the raw `*sql.Tx` and aren't per-query timed, but still show in pool stats.)
+  adds `go_sql_*` connection-pool gauges.
 
 ## CLI & config
 
 `main.go` builds a `urfave/cli/v2` app with `server`, `migrate`, and `tag` subcommands.
 Config comes from CLI flags backed by env vars (`config.New(c)`), e.g. `LISTEN_ADDR`,
-`MCP_ADDR`, `DB_*`, `GOOGLE_API_KEY`, `GEMINI_MODEL`.
+`MCP_ADDR`, `DB_*`, `GOOGLE_API_KEY`, `GEMINI_MODEL`, `FOUNDER_SUBJECT`, `MCP_HOME_ID`.
 
 ## Adding a new recipe operation (checklist)
 
-1. Add the SQL to `queries/*.sql`; run `sqlc generate`.
-2. Add the method to `RecipeRepository` (interface + impl) with row↔domain mapping.
+1. Add the SQL to `queries/*.sql`; run `sqlc generate`. A tenant table's `home_id` fills
+   itself from the GUC, so do not name it or filter on it.
+2. Add the method to `RecipeRepository` (interface + impl) with row↔domain mapping, its
+   body inside a single `InHomeTx`.
 3. Add it to `RecipeService`; fire the relevant `Probe` calls; add a `Probe` method +
    noop + Prometheus impl if it's a new kind of event.
 4. Expose it: REST handler + route, and/or an MCP tool in `mcp/handler.go`. The chat

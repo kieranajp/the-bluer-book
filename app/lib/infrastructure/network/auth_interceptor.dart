@@ -1,99 +1,185 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
-import '../config/oauth_config.dart';
 
-/// Dio interceptor that obtains and attaches a JWT bearer token
-/// via the OAuth2 client_credentials grant.
+import '../auth/auth_repository.dart';
+import '../auth/token_store.dart';
+
+/// What a refresh attempt settled. [session] is null when it produced no new
+/// token; [sessionDead] then says whether the grant was rejected — only then is
+/// signing the person out the right answer.
+typedef _RefreshResult = ({AuthSession? session, bool sessionDead});
+
+/// Attaches the signed-in person's bearer token to every API call and keeps it
+/// fresh.
+///
+/// A request made within [_refreshWindow] of expiry refreshes first; a 401
+/// refreshes once and replays. Only a grant the server rejects ends the
+/// session — a refresh that could not be delivered leaves the tokens alone, so
+/// a spell without a network costs a request rather than the login.
 class AuthInterceptor extends Interceptor {
-  String? _accessToken;
-  DateTime? _expiresAt;
+  AuthInterceptor({
+    TokenStore? store,
+    AuthRepository? auth,
+    FutureOr<void> Function()? onSignedOut,
+    Dio? retryClient,
+  })  : _store = store ?? TokenStore(),
+        _auth = auth ?? AuthRepository(),
+        _onSignedOut = onSignedOut,
+        _retryDio = retryClient ?? Dio();
 
-  // Separate Dio instance for token requests to avoid interceptor recursion.
-  final Dio _tokenDio = Dio();
+  static const _refreshWindow = Duration(seconds: 30);
+
+  final TokenStore _store;
+  final AuthRepository _auth;
+  final FutureOr<void> Function()? _onSignedOut;
+
+  /// Coalesces concurrent refreshes so a burst of expiring requests shares one
+  /// round trip.
+  Future<_RefreshResult>? _pendingRefresh;
+
+  /// Bare Dio for the post-401 replay. It carries no interceptors, which is
+  /// what keeps a replay from re-entering this one.
+  final Dio _retryDio;
 
   @override
-  void onRequest(
+  Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // Dio drops the future this returns and waits on the handler instead, so
+    // an error escaping here would leave the caller waiting forever.
+    AuthSession? session;
+    Object? failure;
     try {
-      final token = await _getToken();
-      options.headers['Authorization'] = 'Bearer $token';
-      handler.next(options);
+      session = await _currentSession();
     } catch (e) {
-      handler.reject(
-        DioException(requestOptions: options, error: e),
-      );
+      failure = e;
     }
+
+    if (session == null) {
+      handler.reject(
+        DioException(
+          requestOptions: options,
+          error: failure ?? const AuthException('no signed-in session'),
+        ),
+      );
+      return;
+    }
+
+    options.headers['Authorization'] = 'Bearer ${session.accessToken}';
+    handler.next(options);
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) async {
-    // If we get a 401, the token may have been revoked — clear and retry once.
-    if (err.response?.statusCode == 401 && _accessToken != null) {
-      _accessToken = null;
-      _expiresAt = null;
-
-      try {
-        final token = await _getToken();
-        final opts = err.requestOptions;
-        opts.headers['Authorization'] = 'Bearer $token';
-
-        final response = await _tokenDio.fetch(opts);
-        return handler.resolve(response);
-      } catch (_) {
-        // Retry failed — propagate the original error.
-      }
-    }
-    handler.next(err);
-  }
-
-  Future<String> _getToken() async {
-    // Return cached token if still valid (with 30s buffer).
-    if (_accessToken != null &&
-        _expiresAt != null &&
-        _expiresAt!.isAfter(DateTime.now().add(const Duration(seconds: 30)))) {
-      return _accessToken!;
-    }
-
-    final credentials = base64Encode(
-      utf8.encode('${OAuthConfig.clientId}:${OAuthConfig.clientSecret}'),
-    );
-
-    developer.log(
-      'Requesting token from ${OAuthConfig.tokenUrl} '
-      'client=${OAuthConfig.clientId} scope=${OAuthConfig.scope}',
-      name: 'AuthInterceptor',
-    );
-
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    Response<dynamic>? replayed;
     try {
-      final response = await _tokenDio.post(
-        OAuthConfig.tokenUrl,
-        data: 'grant_type=client_credentials&scope=${OAuthConfig.scope}',
-        options: Options(
-          headers: {
-            'Authorization': 'Basic $credentials',
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        ),
-      );
-
-      final body = response.data as Map<String, dynamic>;
-      _accessToken = body['access_token'] as String;
-      final expiresIn = body['expires_in'] as int;
-      _expiresAt = DateTime.now().add(Duration(seconds: expiresIn));
-
-      developer.log('Token obtained, expires in ${expiresIn}s', name: 'AuthInterceptor');
-      return _accessToken!;
-    } on DioException catch (e) {
+      replayed = await _replayAfterRefresh(err);
+    } catch (e) {
       developer.log(
-        'Token request failed: ${e.response?.statusCode} ${e.response?.data}',
+        'Recovering from 401 failed: $e',
         name: 'AuthInterceptor',
         level: 1000,
       );
-      rethrow;
     }
+
+    if (replayed == null) {
+      handler.next(err);
+    } else {
+      handler.resolve(replayed);
+    }
+  }
+
+  /// Refreshes and replays a request the server answered with 401, or returns
+  /// null to let it keep its original error.
+  Future<Response<dynamic>?> _replayAfterRefresh(DioException err) async {
+    if (err.response?.statusCode != 401) return null;
+
+    final options = err.requestOptions;
+    // A FormData body is finalised on the way out and cannot be sent twice, so
+    // replaying a photo upload would report that instead of the 401.
+    if (options.data is FormData) return null;
+
+    final refreshToken = (await _store.read())?.refreshToken;
+    if (refreshToken == null) {
+      // The token was refused and there is nothing to refresh from.
+      await _endSession();
+      return null;
+    }
+
+    final result = await _refresh(refreshToken);
+    final session = result.session;
+    if (session == null) {
+      if (result.sessionDead) await _endSession();
+      return null;
+    }
+
+    options.headers['Authorization'] = 'Bearer ${session.accessToken}';
+    return _retryDio.fetch(options);
+  }
+
+  Future<AuthSession?> _currentSession() async {
+    final stored = await _store.read();
+    if (stored == null) return null;
+    if (!stored.expiresWithin(_refreshWindow)) return stored;
+
+    // An expiring session with nothing to refresh from still gets its shot:
+    // the 401 path ends it if the server disagrees.
+    final refreshToken = stored.refreshToken;
+    if (refreshToken == null) return stored;
+
+    final result = await _refresh(refreshToken);
+    if (result.session != null) return result.session;
+    if (result.sessionDead) {
+      await _endSession();
+      return null;
+    }
+    // The refresh never reached the server. Send the token we have and let the
+    // response decide, rather than signing someone out over a dropped packet.
+    return stored;
+  }
+
+  Future<_RefreshResult> _refresh(String refreshToken) {
+    final pending = _pendingRefresh;
+    if (pending != null) return pending;
+
+    final started = _attemptRefresh(refreshToken);
+    _pendingRefresh = started;
+    unawaited(
+      started.whenComplete(() {
+        if (identical(_pendingRefresh, started)) _pendingRefresh = null;
+      }),
+    );
+    return started;
+  }
+
+  Future<_RefreshResult> _attemptRefresh(String refreshToken) async {
+    try {
+      return (session: await _auth.refresh(refreshToken), sessionDead: false);
+    } on AuthGrantRejectedException catch (e) {
+      developer.log(
+        'Refresh grant rejected: $e',
+        name: 'AuthInterceptor',
+        level: 1000,
+      );
+      return (session: null, sessionDead: true);
+    } catch (e) {
+      developer.log(
+        'Token refresh could not be delivered: $e',
+        name: 'AuthInterceptor',
+        level: 900,
+      );
+      return (session: null, sessionDead: false);
+    }
+  }
+
+  Future<void> _endSession() async {
+    await _auth.signOut();
+    await _onSignedOut?.call();
   }
 }

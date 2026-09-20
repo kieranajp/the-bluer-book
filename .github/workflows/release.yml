@@ -62,7 +62,6 @@ jobs:
         env:
           API_URL: ${{ secrets.API_URL }}
           OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
-          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -71,8 +70,6 @@ jobs:
           printf '%s\n' \
             "API_URL=${API_URL}" \
             "OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}" \
-            "OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}" \
-            "OAUTH_SCOPE=recipes:api" \
             > env/release.env
           flutter build apk --release \
             --dart-define-from-file=env/release.env \

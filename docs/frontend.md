@@ -7,6 +7,7 @@ app/lib/
 ├── domain/                   # immutable models (freezed + json_serializable)
 ├── infrastructure/           # the outside world
 │   ├── network/              #   ApiClient (Dio) + AuthInterceptor
+│   ├── auth/                 #   AuthRepository (AppAuth) + TokenStore (keychain)
 │   ├── recipe_repository.dart#   the only place HTTP lives
 │   ├── chat_service.dart     #   SSE client for /api/chat
 │   └── config/               #   ApiConfig, OAuthConfig
@@ -198,9 +199,13 @@ Future<Recipe> getRecipe(String uuid) async {
 
 `ApiClient` (`network/api_client.dart`) configures the Dio base URL/timeouts and the
 interceptor chain — **`AuthInterceptor` first** (so the token is attached before
-logging), then the log interceptor. `AuthInterceptor` caches an OAuth2
-`client_credentials` token and transparently retries once on a 401. Base URL is
-platform-aware in `ApiConfig` (and overridable with `--dart-define=API_URL=...`).
+logging), then the log interceptor. `AuthInterceptor` attaches the signed-in person's
+bearer token from the keychain, refreshes it inside 30s of expiry, and on a 401 refreshes
+once and retries before ending the session. Base URL is platform-aware in `ApiConfig`
+(and overridable with `--dart-define=API_URL=...`).
+
+`AuthGate` sits at `MaterialApp.home` and shows `SignInScreen` until a token exists, so no
+other screen has to think about auth.
 
 Logging convention everywhere: `dev.log(..., name: '<ClassName>')` — the mirror of the
 backend's structured logs.

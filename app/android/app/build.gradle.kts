@@ -24,10 +24,16 @@ android {
         applicationId = "com.thebluerbook.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // 24 is where flutter_appauth and flutter_secure_storage floor; the
+        // Flutter default wins whenever it is higher.
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // AppAuth's RedirectUriReceiverActivity reads this to claim the OAuth
+        // callback scheme. `+=` keeps the Flutter plugin's own placeholders.
+        manifestPlaceholders += mapOf("appAuthRedirectScheme" to "com.thebluerbook.app")
     }
 
     // Release signing is driven by environment variables (set in CI from

@@ -5,9 +5,22 @@ import '../../domain/ingredient.dart';
 import '../../domain/label.dart';
 import '../../domain/recipe.dart';
 import '../../infrastructure/network/api_client.dart';
+import '../../infrastructure/network/auth_interceptor.dart';
 import '../../infrastructure/recipe_repository.dart';
+import 'auth_providers.dart';
 
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+/// The one Dio client every repository shares. Its interceptor reads the same
+/// token store and repository the auth notifier does, and tells that notifier
+/// when a refresh has failed and the session is over.
+final apiClientProvider = Provider<ApiClient>((ref) {
+  return ApiClient(
+    authInterceptor: AuthInterceptor(
+      store: ref.watch(tokenStoreProvider),
+      auth: ref.watch(authRepositoryProvider),
+      onSignedOut: () => ref.read(authProvider.notifier).sessionEnded(),
+    ),
+  );
+});
 
 final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
   return RecipeRepository(ref.watch(apiClientProvider));

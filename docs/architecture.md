@@ -48,11 +48,17 @@ entry point reaches the repository or `db` package directly. See `docs/backend.m
 
 In production the backend sits behind Traefik, whose `auth-token` middleware
 (traefik-jwt-plugin) validates the bearer token's RS256 signature against the-bluer-book's
-Authentik JWKS and injects an `X-User` header (the JWT `sub`). The Flutter app obtains and
-caches a token via the OAuth2 `client_credentials` grant in `AuthInterceptor`
-(`app/lib/infrastructure/network/auth_interceptor.dart`). This replaced the Ory stack
-(Hydra issued the tokens; Oathkeeper validated them). The full auth model is documented in
-the `oauth-api-auth` skill (`.claude/skills/oauth-api-auth.md`).
+Authentik JWKS and injects an `X-User` header (the JWT `sub`). A person signs in through
+Authentik in the Flutter app with the `authorization_code` grant and PKCE
+(`app/lib/infrastructure/auth/`), against a public client — no secret ships in the binary.
+Their tokens live in the device keychain and `AuthInterceptor`
+(`app/lib/infrastructure/network/auth_interceptor.dart`) refreshes them as they age out.
+This replaced the Ory stack (Hydra issued the tokens; Oathkeeper validated them). The
+`oauth-api-auth` skill (`.claude/skills/oauth-api-auth.md`) covers the endpoints and the
+edge, but still describes the app's old `client_credentials` grant.
+
+The backend does not yet read `X-User`: every API call still resolves to the same data
+regardless of who made it.
 
 Locally there is no auth in front of the binary; it talks to a local Postgres.
 

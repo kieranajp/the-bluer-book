@@ -1,36 +1,18 @@
-/// OAuth2 endpoints and client credentials for the-bluer-book.
+/// OAuth2 configuration for the-bluer-book's Authentik client.
 ///
-/// Tokens are issued by Authentik (the OAuth2 provider/application
-/// `the-bluer-book`), which replaced the previous Ory Hydra client.
-///
-/// The app authenticates today with the `client_credentials` grant, which only
-/// needs [tokenUrl] + [clientId]/[clientSecret]. The authorization, JWKS and
-/// discovery URLs plus [redirectUri] are the Authentik endpoints for the
-/// upcoming user-facing auth-code + PKCE login flow; they are defined here so
-/// the whole OAuth config points at Authentik in one place.
+/// A person signs in with the authorization-code grant and PKCE, so this is a
+/// public client and no secret ships in the binary. AppAuth reads every
+/// endpoint from [discoveryUrl] and runs the code exchange natively.
 class OAuthConfig {
-  static const String tokenUrl = String.fromEnvironment(
-    'OAUTH_TOKEN_URL',
-    defaultValue: 'https://auth.kieranajp.uk/application/o/token/',
-  );
-
-  static const String authorizationUrl = String.fromEnvironment(
-    'OAUTH_AUTHORIZATION_URL',
-    defaultValue: 'https://auth.kieranajp.uk/application/o/authorize/',
-  );
-
-  static const String jwksUrl = String.fromEnvironment(
-    'OAUTH_JWKS_URL',
-    defaultValue:
-        'https://auth.kieranajp.uk/application/o/the-bluer-book/jwks/',
-  );
-
   static const String discoveryUrl = String.fromEnvironment(
     'OAUTH_DISCOVERY_URL',
     defaultValue:
         'https://auth.kieranajp.uk/application/o/the-bluer-book/.well-known/openid-configuration',
   );
 
+  /// Must match the provider's `allowed_redirect_uris` byte for byte —
+  /// Authentik matches it literally, and the scheme is registered with the
+  /// platform in the Android manifest placeholder and the iOS URL types.
   static const String redirectUri = String.fromEnvironment(
     'OAUTH_REDIRECT_URI',
     defaultValue: 'com.thebluerbook.app://oauth/callback',
@@ -41,13 +23,13 @@ class OAuthConfig {
     defaultValue: '',
   );
 
-  static const String clientSecret = String.fromEnvironment(
-    'OAUTH_CLIENT_SECRET',
-    defaultValue: '',
+  static const String _scopes = String.fromEnvironment(
+    'OAUTH_SCOPES',
+    defaultValue: 'openid email profile offline_access recipes:api',
   );
 
-  static const String scope = String.fromEnvironment(
-    'OAUTH_SCOPE',
-    defaultValue: 'recipes:api',
-  );
+  /// `offline_access` is what earns a refresh token. Drop it and every session
+  /// dies when the access token expires.
+  static List<String> get scopes =>
+      _scopes.split(' ').where((scope) => scope.isNotEmpty).toList();
 }

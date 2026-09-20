@@ -18,6 +18,13 @@ analyzer:
     # analysed/run on its own (see tool/widget_lint/README.md), not as part of
     # the app, so keep `flutter analyze` out of it.
     - tool/**
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   # The lint rules applied to this project can be customized in the

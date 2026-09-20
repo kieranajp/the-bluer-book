@@ -164,10 +164,10 @@ func TestHomeScoping(t *testing.T) {
 		}
 	})
 
-	// Ingredient names used to be globally unique. The constraint is tested
-	// directly rather than through SaveRecipe because GetIngredientByName still
-	// reads every home, so a repository save in home B finds home A's row and
-	// reuses it. Row-level security is what stops that.
+	// The constraint is tested directly rather than through SaveRecipe: on this
+	// unbound connection ingredient lookup by name sees every home, so a save in
+	// home B would find home A's row and reuse it. The policies are what stop
+	// that, and TestIsolation is where that is asserted.
 	t.Run("two homes each hold an ingredient of the same name", func(t *testing.T) {
 		const shared = "scoping shared ingredient"
 

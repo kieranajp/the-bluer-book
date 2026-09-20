@@ -66,9 +66,29 @@ home provisioned without them is called "My Book". `FOUNDER_SUBJECT` names the o
 that joins the home holding the collection that predates all this, rather than an empty
 one.
 
-No recipe or pantry row carries a home yet, so every caller still reads the same data.
-
 Locally there is no auth in front of the binary; it talks to a local Postgres.
+
+## Tenancy
+
+Every recipe, pantry and shopping-list table carries a `home_id` whose default is
+`NULLIF(current_setting('app.home_id', true), '')::uuid`. The repositories run each
+operation inside `InHomeTx`
+(`internal/infrastructure/storage/repository/home_tx.go`), which publishes the request's
+home as that transaction-local setting. An `INSERT` that never names a home still lands in
+the caller's, and one that runs with no home set fails the `NOT NULL` check rather than
+writing a row nobody owns — so no query takes a home parameter or carries a home predicate.
+`units` and `labels` stay global: shared vocabulary rather than anybody's data.
+
+Nothing stops a caller reading another home's rows yet. That is row-level security's job,
+and it is not here. Until it lands, ingredient lookup by name in particular reads across
+homes.
+
+The MCP server has no caller to resolve — its route carries no auth and its tools take no
+caller argument — so every tool call acts on the home named by `MCP_HOME_ID`, which defaults
+to the founder home. The chat agent reaches the same home through it.
+
+`cmd/tag` and `cmd/fetchimages` sweep every home at once under the owning database role, so
+they name `home_id` explicitly, taking it from the recipe each row belongs to.
 
 ## Observability
 

@@ -34,7 +34,7 @@ INSERT INTO ingredients (
     updated_at
 ) VALUES (
     $1, $2, $3, $4
-) ON CONFLICT (name) DO UPDATE SET updated_at = EXCLUDED.updated_at
+) ON CONFLICT (home_id, name) DO UPDATE SET updated_at = EXCLUDED.updated_at
 RETURNING *;
 
 -- name: GetIngredientByName :one
@@ -244,3 +244,6 @@ LIMIT $1 OFFSET $2;
 
 -- name: CountArchivedRecipes :one
 SELECT COUNT(*) FROM recipes WHERE archived_at IS NOT NULL;
+
+-- name: SetRecipeMainPhoto :exec
+UPDATE recipes SET main_photo_id = $2, updated_at = $3 WHERE uuid = $1;

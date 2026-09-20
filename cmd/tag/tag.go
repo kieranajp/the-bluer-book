@@ -441,9 +441,11 @@ func applyLabels(
 				mu.Unlock()
 			}
 
+			// This tool sweeps every home at once, so there is no app.home_id to
+			// default from and the home comes from the recipe being labelled.
 			_, err := tx.ExecContext(ctx, `
-				INSERT INTO recipe_label (recipe_id, label_id, created_at, updated_at)
-				VALUES ($1, $2, $3, $3)
+				INSERT INTO recipe_label (recipe_id, label_id, home_id, created_at, updated_at)
+				VALUES ($1, $2, (SELECT home_id FROM recipes WHERE uuid = $1), $3, $3)
 				ON CONFLICT (recipe_id, label_id) DO NOTHING
 			`, recipeID, id, now)
 			if err != nil {

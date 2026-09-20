@@ -22,6 +22,11 @@ type Config struct {
 
 	GoogleAPIKey string
 	GeminiModel  string
+
+	// FounderSubject is the token subject whose first login attaches to the
+	// founder home rather than to a fresh one. Empty means nobody gets that
+	// treatment, and the founder home stays unclaimed.
+	FounderSubject string
 }
 
 // New builds a Config from the CLI context.
@@ -36,6 +41,8 @@ func New(c *cli.Context) Config {
 		DBPort:       c.String("db-port"),
 		GoogleAPIKey: c.String("google-api-key"),
 		GeminiModel:  c.String("gemini-model"),
+
+		FounderSubject: c.String("founder-subject"),
 	}
 }
 

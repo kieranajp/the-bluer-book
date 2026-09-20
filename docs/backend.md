@@ -11,12 +11,17 @@ internal/
 │   ├── errors.go             #   typed errors + sentinels
 │   ├── probe.go              #   observability interface (domain-owned)
 │   └── service/              #   RecipeService — orchestration
+├── domain/account/           # users, homes and who belongs to which
+│   ├── repository.go         #   the persistence port, owned by the domain
+│   └── service/              #   provision on first login, resolve the active home
 ├── application/              # adapters / entry points
 │   ├── api/                  #   REST (net/http) + middleware
 │   ├── mcp/                  #   MCP tools (mark3labs)
-│   └── chat/                 #   LLM agent (ADK/Gemini, SSE)
+│   ├── chat/                 #   LLM agent (ADK/Gemini, SSE)
+│   └── identity/             #   binds the auth middleware to the account service
 └── infrastructure/           # the outside world
     ├── storage/{db,queries,repository,mapper}
+    ├── auth/                 #   X-User middleware; user and home on the context
     ├── metrics/              #   Prometheus impls of the Probe interfaces
     ├── logger/ config/
 ```

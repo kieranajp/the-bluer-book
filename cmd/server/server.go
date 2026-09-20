@@ -17,7 +17,9 @@ import (
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api"
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
+	"github.com/kieranajp/the-bluer-book/internal/application/identity"
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
+	accountservice "github.com/kieranajp/the-bluer-book/internal/domain/account/service"
 	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/ai"
@@ -81,6 +83,11 @@ var (
 				EnvVars: []string{"GEMINI_MODEL"},
 				Value:   "gemini-3.5-flash",
 			},
+			&cli.StringFlag{
+				Name:    "founder-subject",
+				Usage:   "Token subject that owns the founder home, and so the recipes that predate multitenancy",
+				EnvVars: []string{"FOUNDER_SUBJECT"},
+			},
 			&cli.StringFlag{Name: "r2-account-id", EnvVars: []string{"R2_ACCOUNT_ID"}},
 			&cli.StringFlag{Name: "r2-jurisdiction", EnvVars: []string{"R2_JURISDICTION"}},
 			&cli.StringFlag{Name: "r2-access-key-id", EnvVars: []string{"R2_ACCESS_KEY_ID"}},
@@ -121,6 +128,7 @@ func run(c *cli.Context) error {
 	queries := db.New(metrics.NewInstrumentedDBTX(sqlDB))
 	repo := repository.NewRecipeRepository(queries, sqlDB, log)
 	pantryRepo := repository.NewPantryRepository(queries, log)
+	accountRepo := repository.NewAccountRepository(queries, sqlDB, log)
 
 	// Create probes
 	recipeProbe := metrics.NewRecipeProbe(log)
@@ -130,6 +138,14 @@ func run(c *cli.Context) error {
 	// Initialize services
 	recipeService := service.NewRecipeService(repo, recipeProbe)
 	pantryService := pantryservice.NewPantryService(pantryRepo, pantryProbe)
+	accountService := accountservice.NewAccountService(accountRepo, cfg.FounderSubject)
+	if cfg.FounderSubject == "" {
+		log.Warn().Msg("FOUNDER_SUBJECT not set — the first user to sign in gets a new empty home, not the existing recipes")
+	}
+
+	// Turns the edge's X-User header into the caller and the home their request
+	// acts on, provisioning both on a first login.
+	resolver := identity.NewResolver(accountService)
 
 	// Create MCP handler
 	mcpHandler := mcp.NewRecipeMCPHandler(recipeService, pantryService, log)
@@ -192,7 +208,7 @@ func run(c *cli.Context) error {
 	}
 
 	// Create API router
-	router := api.NewRouter(recipeService, pantryService, scanner, chatHandler, photoHandler, log)
+	router := api.NewRouter(recipeService, pantryService, scanner, chatHandler, photoHandler, resolver, log)
 
 	// Create HTTP server
 	httpServer := &http.Server{

@@ -57,8 +57,16 @@ This replaced the Ory stack (Hydra issued the tokens; Oathkeeper validated them)
 `oauth-api-auth` skill (`.claude/skills/oauth-api-auth.md`) covers the endpoints and the
 edge, but still describes the app's old `client_credentials` grant.
 
-The backend does not yet read `X-User`: every API call still resolves to the same data
-regardless of who made it.
+Middleware on every `/api/` route (`internal/infrastructure/auth`) turns `X-User` into a
+user and a home on the request context, provisioning both the first time a subject
+appears. A request without the header is 401; `/health` and `/metrics` sit outside it.
+The edge also forwards the `email` and `name` claims as `X-User-Email` and `X-User-Name`,
+and a new home is named after the email's local part — both headers are optional, and a
+home provisioned without them is called "My Book". `FOUNDER_SUBJECT` names the one subject
+that joins the home holding the collection that predates all this, rather than an empty
+one.
+
+No recipe or pantry row carries a home yet, so every caller still reads the same data.
 
 Locally there is no auth in front of the binary; it talks to a local Postgres.
 

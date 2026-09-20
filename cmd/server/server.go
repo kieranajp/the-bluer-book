@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
 	"github.com/kieranajp/the-bluer-book/internal/application/identity"
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
+	"github.com/kieranajp/the-bluer-book/internal/domain/account"
 	accountservice "github.com/kieranajp/the-bluer-book/internal/domain/account/service"
 	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
@@ -99,6 +101,30 @@ var (
 	}
 )
 
+// checkFounderHome reports a founder subject whose requests already resolve
+// somewhere other than the founder home. That happens when the subject is
+// configured only after its owner has signed in once, and it is worth shouting
+// about: the collection stays in the founder home while its owner does not.
+func checkFounderHome(ctx context.Context, repo account.Repository, subject string, log logger.Logger) {
+	user, err := repo.FindUserBySubject(ctx, subject)
+	if errors.Is(err, account.ErrUserNotFound) {
+		return
+	}
+	if err == nil {
+		var home account.Home
+		home, err = repo.FindMostRecentHome(ctx, user.UUID)
+		if err == nil && home.UUID != account.FounderHomeID {
+			log.Error().
+				Str("home", home.UUID.String()).
+				Str("home_name", home.Name).
+				Msg("FOUNDER_SUBJECT resolves to another home — that user signed in before the subject was configured, and their requests will not reach the founder home")
+		}
+	}
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not check which home FOUNDER_SUBJECT resolves to")
+	}
+}
+
 func run(c *cli.Context) error {
 	cfg := config.New(c)
 	listenAddr := cfg.ListenAddr
@@ -141,6 +167,8 @@ func run(c *cli.Context) error {
 	accountService := accountservice.NewAccountService(accountRepo, cfg.FounderSubject)
 	if cfg.FounderSubject == "" {
 		log.Warn().Msg("FOUNDER_SUBJECT not set — the first user to sign in gets a new empty home, not the existing recipes")
+	} else {
+		checkFounderHome(context.Background(), accountRepo, cfg.FounderSubject, log)
 	}
 
 	// Turns the edge's X-User header into the caller and the home their request

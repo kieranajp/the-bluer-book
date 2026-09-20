@@ -17,12 +17,14 @@ type stubRepo struct {
 	userErr error
 	homeErr error
 
+	lookedUp       []string
 	provisioned    []account.Identity
 	provisionedAt  []account.HomeTarget
 	provisionError error
 }
 
-func (s *stubRepo) FindUserBySubject(context.Context, string) (account.User, error) {
+func (s *stubRepo) FindUserBySubject(_ context.Context, subject string) (account.User, error) {
+	s.lookedUp = append(s.lookedUp, subject)
 	if s.userErr != nil {
 		return account.User{}, s.userErr
 	}
@@ -60,14 +62,46 @@ func TestProvisionFromSubjectCreatesUserAndHomeOnFirstSight(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ProvisionFromSubject: %v", err)
 	}
-	if user.Subject != "subject-a" {
-		t.Errorf("provisioned user has subject %q, want subject-a", user.Subject)
+	if user.UUID == uuid.Nil {
+		t.Error("provisioned user has no id")
+	}
+	if len(repo.lookedUp) != 1 || repo.lookedUp[0] != "subject-a" {
+		t.Errorf("looked up %v, want one lookup of subject-a", repo.lookedUp)
 	}
 	if len(repo.provisioned) != 1 {
 		t.Fatalf("provisioned %d times, want 1", len(repo.provisioned))
 	}
+	want := account.Identity{Subject: "subject-a", Email: "ada@example.com"}
+	if repo.provisioned[0] != want {
+		t.Errorf("provisioned %+v, want %+v", repo.provisioned[0], want)
+	}
 	if got := repo.provisionedAt[0]; got.ID != uuid.Nil {
 		t.Errorf("provisioned into home %s, want a newly created one", got.ID)
+	}
+}
+
+func TestProvisionFromSubjectNeedsASubject(t *testing.T) {
+	repo := &stubRepo{userErr: account.ErrUserNotFound}
+	svc := NewAccountService(repo, "")
+
+	if _, err := svc.ProvisionFromSubject(context.Background(), account.Identity{Email: "ada@example.com"}); err == nil {
+		t.Error("an empty subject was accepted")
+	}
+	if len(repo.provisioned) != 0 {
+		t.Error("provisioned a user with no subject")
+	}
+}
+
+func TestProvisionFromSubjectSurfacesLookupFailures(t *testing.T) {
+	boom := errors.New("connection refused")
+	repo := &stubRepo{userErr: boom}
+	svc := NewAccountService(repo, "")
+
+	if _, err := svc.ProvisionFromSubject(context.Background(), account.Identity{Subject: "subject-a"}); !errors.Is(err, boom) {
+		t.Errorf("got error %v, want %v", err, boom)
+	}
+	if len(repo.provisioned) != 0 {
+		t.Error("provisioned a user after a failed lookup")
 	}
 }
 
@@ -82,6 +116,9 @@ func TestProvisionFromSubjectLeavesAKnownUserAlone(t *testing.T) {
 	}
 	if user.UUID != known.UUID {
 		t.Errorf("returned user %s, want the known %s", user.UUID, known.UUID)
+	}
+	if len(repo.lookedUp) != 1 || repo.lookedUp[0] != "subject-a" {
+		t.Errorf("looked up %v, want one lookup of subject-a", repo.lookedUp)
 	}
 	if len(repo.provisioned) != 0 {
 		t.Errorf("provisioned a user that already existed")

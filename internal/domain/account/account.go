@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// FounderHomeID is the home migration 00011 creates for the collection that
-// predates multitenancy. The operator's subject attaches to it on first login
+// FounderHomeID is the home that holds the collection predating multitenancy.
+// The schema creates it; the operator's subject attaches to it on first login
 // rather than getting a fresh, empty one.
 var FounderHomeID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 

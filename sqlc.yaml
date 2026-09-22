@@ -17,6 +17,7 @@ sql:
       - "migrations/00015_meal_plan_home_key.sql"
       - "migrations/00016_invitation_tokens.sql"
       - "migrations/00017_recipe_ingredient_component_key.sql"
+      - "migrations/00018_ingredient_canonical.sql"
     queries: "internal/infrastructure/storage/queries"
     gen:
       go:

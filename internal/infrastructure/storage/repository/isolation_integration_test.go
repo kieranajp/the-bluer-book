@@ -449,7 +449,9 @@ func TestIsolation(t *testing.T) {
 
 		for _, home := range []uuid.UUID{homeA, homeB} {
 			if err := inTestHome(sqlDB, home, func(tx *sql.Tx) error {
-				_, err := tx.Exec(`INSERT INTO ingredients (name) VALUES ($1)`, shared)
+				// canonical_name mirrors what the repository's CreateIngredient
+				// derives; the raw insert has to do the same job.
+				_, err := tx.Exec(`INSERT INTO ingredients (name, canonical_name) VALUES ($1::text, lower(btrim($1::text)))`, shared)
 				return err
 			}); err != nil {
 				t.Fatalf("insert %q into %s: %v", shared, home, err)

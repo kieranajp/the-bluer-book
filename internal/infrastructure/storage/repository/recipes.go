@@ -486,7 +486,9 @@ func (r *recipeRepository) buildRecipeFromRows(ctx context.Context, q *db.Querie
 	for i, ingRow := range ingredientRows {
 		ingredients[i] = recipe.RecipeIngredient{
 			Ingredient: recipe.Ingredient{
-				Name: ingRow.IngredientName,
+				Name:      ingRow.IngredientName,
+				Canonical: ingRow.IngredientCanonicalName,
+				IsStaple:  ingRow.IngredientIsStaple,
 			},
 			Unit: recipe.Unit{
 				Name:         ingRow.UnitName.String,

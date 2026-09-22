@@ -13,13 +13,15 @@ import (
 )
 
 type stubPantryService struct {
-	pantryItems     []pantry.PantryItem
-	shoppingList    []pantry.ShoppingListItem
-	addedPantry     string
-	removedPantry   string
-	addedShopping   string
-	removedShopping string
-	err             error
+	pantryItems       []pantry.PantryItem
+	shoppingList      []pantry.ShoppingListItem
+	addedPantry       string
+	removedPantry     string
+	stapledIngredient string
+	stapleValue       bool
+	addedShopping     string
+	removedShopping   string
+	err               error
 }
 
 func (s *stubPantryService) AddToPantry(_ context.Context, ingredient string) error {
@@ -29,6 +31,12 @@ func (s *stubPantryService) AddToPantry(_ context.Context, ingredient string) er
 
 func (s *stubPantryService) RemoveFromPantry(_ context.Context, ingredient string) error {
 	s.removedPantry = ingredient
+	return s.err
+}
+
+func (s *stubPantryService) SetStaple(_ context.Context, ingredient string, staple bool) error {
+	s.stapledIngredient = ingredient
+	s.stapleValue = staple
 	return s.err
 }
 
@@ -236,5 +244,44 @@ func TestPantryMutationsWrapServiceFaults(t *testing.T) {
 	_, err := handler.AddToPantry(context.Background(), toolRequest(map[string]any{"ingredient": "flour"}))
 	if err == nil || !strings.Contains(err.Error(), "failed to add ingredient to pantry") {
 		t.Fatalf("AddToPantry() error = %v, want wrapped context", err)
+	}
+}
+
+func TestSetIngredientStaple(t *testing.T) {
+	svc := &stubPantryService{}
+	handler := NewRecipeMCPHandler(nil, svc, noopLogger{})
+
+	// The flag defaults to true, so "make salt a staple" needs no argument.
+	result, err := handler.SetIngredientStaple(context.Background(), toolRequest(map[string]any{"ingredient": " salt "}))
+	if err != nil {
+		t.Fatalf("SetIngredientStaple() error = %v", err)
+	}
+	if svc.stapledIngredient != "salt" || !svc.stapleValue {
+		t.Fatalf("service got (%q, %v), want (salt, true)", svc.stapledIngredient, svc.stapleValue)
+	}
+	if success := resultJSON(t, result)["success"]; success != true {
+		t.Fatalf("success = %v, want true", success)
+	}
+
+	svc = &stubPantryService{}
+	handler = NewRecipeMCPHandler(nil, svc, noopLogger{})
+	if _, err := handler.SetIngredientStaple(context.Background(), toolRequest(map[string]any{"ingredient": "salt", "staple": false})); err != nil {
+		t.Fatalf("SetIngredientStaple(false) error = %v", err)
+	}
+	if svc.stapleValue {
+		t.Error("stapleValue = true, want false")
+	}
+}
+
+func TestSetIngredientStapleReportsUnknownIngredient(t *testing.T) {
+	svc := &stubPantryService{err: pantry.IngredientNotFoundError{Name: "unobtainium"}}
+	handler := NewRecipeMCPHandler(nil, svc, noopLogger{})
+
+	result, err := handler.SetIngredientStaple(context.Background(), toolRequest(map[string]any{"ingredient": "unobtainium"}))
+	if err != nil {
+		t.Fatalf("tool call error = %v, want an error result instead", err)
+	}
+	if !result.IsError {
+		t.Fatal("IsError = false, want true")
 	}
 }

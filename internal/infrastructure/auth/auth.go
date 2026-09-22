@@ -1,6 +1,5 @@
 // Package auth turns the identity the edge asserts about a request into
-// per-request context: who is calling, and which home the request acts on. The
-// repository layer reads the home back out to scope every database touch.
+// per-request context: who is calling, and which home the request acts on.
 package auth
 
 import (
@@ -10,27 +9,21 @@ import (
 	"github.com/google/uuid"
 )
 
-// ErrNoHome means a request context carries no home — the middleware was not in
-// the chain, or the path never established one. Callers fail closed on it
-// rather than reaching for a default.
+// ErrNoHome means a request context carries no home; callers fail closed
+// rather than falling back to a default.
 var ErrNoHome = errors.New("auth: no home in context")
 
-// ErrHomeForbidden means the caller named a home they are not a member of. It
-// is the resolver's way of saying so without the middleware having to know what
-// a membership is.
+// ErrHomeForbidden means the caller named a home they are not a member of.
 var ErrHomeForbidden = errors.New("auth: caller is not a member of the requested home")
 
-// Caller is what the edge asserts about a request. Only Subject is guaranteed;
-// Email and Name arrive only while the edge forwards those claims, so nothing
-// may depend on them being there.
+// Caller is what the edge asserts about a request. Only Subject is
+// guaranteed; Email and Name may be empty.
 type Caller struct {
 	Subject string
 	Email   string
 	Name    string
 
-	// Home is the home the client asked to act on, or uuid.Nil when it asked
-	// for none. The client chooses this value freely, so it is a request and
-	// not a fact: resolving it has to prove membership.
+	// Home is client-asserted, not verified; uuid.Nil means none was asked for.
 	Home uuid.UUID
 }
 
@@ -58,9 +51,8 @@ func WithIdentity(ctx context.Context, userID, homeID uuid.UUID) context.Context
 	return context.WithValue(WithHome(ctx, homeID), userIDKey, userID)
 }
 
-// WithHome stamps a home with no user behind it, for work that acts on a home
-// without anybody having asked: the MCP server serves one fixed home and has no
-// caller.
+// WithHome stamps a home with no user behind it, for callerless work like
+// the MCP server, which serves one fixed home.
 func WithHome(ctx context.Context, homeID uuid.UUID) context.Context {
 	return context.WithValue(ctx, homeIDKey, homeID)
 }

@@ -8,9 +8,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Config holds all runtime configuration, sourced from CLI flags (which in turn
-// read their EnvVars). It's the single place env-backed settings are gathered,
-// so nothing downstream needs to reach for os.Getenv.
+// Config is the single place env-backed settings are gathered, so nothing
+// downstream needs to reach for os.Getenv.
 type Config struct {
 	ListenAddr string
 	MCPAddr    string
@@ -68,9 +67,8 @@ func (c Config) DBDSN() string {
 // connect as.
 var ErrNoAppDBUser = errors.New("config: APP_DB_USER is not set")
 
-// AppDBDSN returns the connection string for the request path's role. It has
-// no fallback to DB_USER: that role bypasses row-level security, so a
-// fallback would look correct while enforcing nothing.
+// AppDBDSN has no fallback to DB_USER: that role bypasses row-level
+// security, so a fallback would look correct while enforcing nothing.
 func (c Config) AppDBDSN() (string, error) {
 	if c.AppDBUser == "" {
 		return "", ErrNoAppDBUser

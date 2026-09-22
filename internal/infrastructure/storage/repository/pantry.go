@@ -44,9 +44,8 @@ func (r *pantryRepository) AddToPantry(ctx context.Context, ingredient string) e
 }
 
 func (r *pantryRepository) RemoveFromPantry(ctx context.Context, ingredient string) error {
-	// Resolve first purely to validate the name: an unknown ingredient is worth
-	// reporting rather than passing off as a successful removal. The delete
-	// itself works by name so it clears every casing variant.
+	// Resolve first purely to validate the name; the delete itself matches by
+	// name so it clears every casing variant.
 	return InHomeTx(ctx, r.sqlDB, func(q *db.Queries) error {
 		if _, err := r.resolveIngredient(ctx, q, ingredient); err != nil {
 			return err
@@ -55,11 +54,8 @@ func (r *pantryRepository) RemoveFromPantry(ctx context.Context, ingredient stri
 	})
 }
 
-// resolveIngredient maps a free-text ingredient name onto a known ingredient,
-// tolerating casing and surrounding whitespace. A name that matches nothing is
-// an error: pantry entries are foreign keys into the ingredients table, so
-// there is no row to create, and reporting success would leave the caller
-// believing the pantry changed when it didn't.
+// resolveIngredient errors on an unmatched name rather than creating one:
+// pantry entries are foreign keys into the ingredients table.
 func (r *pantryRepository) resolveIngredient(ctx context.Context, q *db.Queries, name string) (uuid.UUID, error) {
 	row, err := q.FindIngredientByName(ctx, name)
 	if errors.Is(err, sql.ErrNoRows) {

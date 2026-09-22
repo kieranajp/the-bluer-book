@@ -19,9 +19,8 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 )
 
-// Taxonomy mirrors the canonical (type, name) pairs locked down by
-// migrations/00007_label_taxonomy.sql. Keep these in sync — any value the
-// model returns that isn't in this map will be skipped.
+// Taxonomy mirrors the canonical (type, name) pairs the schema locks down.
+// Keep these in sync — any value the model returns outside this map is skipped.
 var taxonomy = map[string][]string{
 	"course": {
 		"main", "side", "starter", "dessert", "breakfast", "lunch", "snack",
@@ -417,9 +416,8 @@ func applyLabels(
 			id, ok := labelIDs[key]
 			mu.Unlock()
 			if !ok {
-				// Label row doesn't exist yet (shouldn't happen for taxonomy
-				// rows since the migration seeded them, but be defensive for
-				// any future additions). Insert it and cache the id.
+				// Shouldn't happen for seeded taxonomy rows, but defends
+				// against a future addition. Insert it and cache the id.
 				id = uuid.New()
 				_, err := tx.ExecContext(ctx, `
 					INSERT INTO labels (uuid, type, name, created_at, updated_at)

@@ -1,11 +1,9 @@
 -- +goose Up
--- Invitations sit outside row-level security since a token is looked up before
--- either party's home is known; storing only its hash keeps read access to
--- this table from letting anybody join a home.
+-- Only the hash is stored: invitations sit outside row-level security, so
+-- read access to a plaintext token here would let anybody join a home.
 
 -- Replaced, not converted: a hash can't be derived from a token nobody kept.
--- NOT NULL with no default refuses to run against a table already holding
--- invitations rather than inventing hashes for them.
+-- NOT NULL with no default refuses to run rather than inventing hashes.
 ALTER TABLE invitations DROP COLUMN token;
 ALTER TABLE invitations ADD COLUMN token_hash TEXT NOT NULL UNIQUE;
 

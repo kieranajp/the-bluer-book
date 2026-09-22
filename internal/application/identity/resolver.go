@@ -1,6 +1,5 @@
-// Package identity bridges the auth middleware's resolver port to the account
-// service. It sits outside infrastructure/auth so that the packages reading a
-// home off a request context never pull the account domain in behind it.
+// Package identity bridges the auth middleware's resolver port to the
+// account service, so reading a home off a context never pulls the domain in.
 package identity
 
 import (

@@ -41,9 +41,8 @@ mcp:
 
 monitoring:
   dashboard:
-    # Ships the Grafana dashboard (charts/bluer-book/dashboards/dashboard.json)
-    # as a labelled ConfigMap. Grafana's sidecar auto-provisions it; no homelab
-    # change needed.
+    # Ships the dashboard as a labelled ConfigMap; the Grafana sidecar
+    # auto-provisions it, no homelab change needed.
     enabled: true
 
 gemini:
@@ -52,17 +51,11 @@ gemini:
 
 secretName: bluer-book-secrets
 
-# All secret and config values live in a single 1Password item (Homelab vault),
+# Secret and config values live in a single 1Password item (Homelab vault),
 # materialised into k8s Secret `secretName` by the onepassword-connect operator.
-# Required keys: DB_USER, DB_PASS, DB_NAME, DB_HOST, DB_PORT, APP_DB_USER,
-# APP_DB_PASS, GOOGLE_API_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
-# R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL, FOUNDER_SUBJECT.
 
-# APP_DB_USER ("bluer_book_app", created by migration 00014) is the non-owner
-# role the server connects as; DB_USER is the superuser, so the server refuses
-# to start as it. migrate's init container sets APP_DB_PASS on the role each
-# run. FOUNDER_SUBJECT decides who inherits the pre-multitenancy recipes, and
-# tracks the Authentik provider's sub mode.
+# APP_DB_USER has no fallback to DB_USER: DB_USER is the superuser, and the
+# server refuses to start as it.
 onepassword:
   vault: Homelab
   item: bluer-book-secrets

@@ -119,9 +119,8 @@ var (
 	}
 )
 
-// checkFounderHome warns when FOUNDER_SUBJECT's requests already resolve to a
-// home other than the founder home — the subject was configured after its
-// owner's first sign-in, so the collection and its owner are now split.
+// checkFounderHome warns when FOUNDER_SUBJECT resolves outside the founder
+// home: it was configured after its owner's first sign-in.
 func checkFounderHome(ctx context.Context, repo account.Repository, subject string, log logger.Logger) {
 	user, err := repo.FindUserBySubject(ctx, subject)
 	if errors.Is(err, account.ErrUserNotFound) {
@@ -190,9 +189,8 @@ func run(c *cli.Context) error {
 	// recorded by the instrumented DBTX below.
 	metrics.RegisterDBStats(sqlDB)
 
-	// Metrics wrap the pool once here, timing every sqlc query without the
-	// repository knowing about it. Identity tables resolve before any home is
-	// known, so the account repo keeps the plain pool; tenant code uses InHomeTx.
+	// The account repo keeps the plain pool since identity resolves before
+	// any home is known; tenant code uses InHomeTx instead.
 	queries := db.New(metrics.NewInstrumentedDBTX(sqlDB))
 	repo := repository.NewRecipeRepository(sqlDB, log)
 	pantryRepo := repository.NewPantryRepository(sqlDB, log)

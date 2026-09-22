@@ -1,8 +1,6 @@
 -- +goose Up
--- recipe_id is unique to one home, but a caller can still name another home's
--- id; on the recipe_id-only primary key that row occupied the slot the
--- owning home needed for its own plan entry. The composite key below gives
--- each home its own slot.
+-- A recipe_id-only primary key lets another home's plan entry occupy the
+-- slot the owning home needed; the composite key below gives each its own.
 
 -- Rows already sitting in a home other than their recipe's are exactly those
 -- collisions; a home can't see the recipe it names, so there's nothing to keep.

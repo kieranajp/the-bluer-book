@@ -2,9 +2,8 @@
 -- Pantry and shopping list get the same home_id-from-GUC model as the rest of
 -- the book, backfilled to the founder home for pre-existing rows.
 
--- Unlike 00012, this backfill is unguarded: a database holding only a pantry
--- has nothing for 00012's guard to see. Same bet as a first deploy, and the
--- pantry is cheap to rebuild where the recipe collection isn't.
+-- Unlike 00012, this backfill is unguarded — the pantry is cheap to rebuild
+-- where the recipe collection isn't.
 
 ALTER TABLE pantry_items         ADD COLUMN home_id UUID REFERENCES homes(uuid) ON DELETE CASCADE;
 ALTER TABLE shopping_list_items  ADD COLUMN home_id UUID REFERENCES homes(uuid) ON DELETE CASCADE;

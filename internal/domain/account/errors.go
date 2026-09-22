@@ -13,9 +13,8 @@ var (
 	// ErrMemberNotFound means the named user is not in the home.
 	ErrMemberNotFound = errors.New("member not found")
 
-	// ErrForbidden means the caller may not do this here. Not being a member of
-	// the home at all lands here too: whether a home exists is not a
-	// non-member's to learn.
+	// ErrForbidden also covers not being a member at all: whether a home
+	// exists is not a non-member's to learn.
 	ErrForbidden = errors.New("forbidden")
 
 	// ErrLastOwner means the removal would leave a home with no owner, and so

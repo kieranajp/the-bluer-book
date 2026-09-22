@@ -259,9 +259,8 @@ func loadRecipesNeedingImages(ctx context.Context, db *sql.DB, onlyMissing bool)
 	return out, rows.Err()
 }
 
-// extractRecipeImage fetches a page and extracts a dish photo URL.
-// It tries schema.org/Recipe JSON-LD first (more reliable for recipe sites),
-// then falls back to og:image. Returns (url, source, error).
+// extractRecipeImage tries schema.org/Recipe JSON-LD first (more reliable
+// for recipe sites), then falls back to og:image.
 func extractRecipeImage(ctx context.Context, client *http.Client, pageURL string) (string, string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", pageURL, nil)
 	if err != nil {

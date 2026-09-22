@@ -145,8 +145,11 @@ if errors.Is(err, recipe.ErrRecipeNotFound) {
   policy folds it through `NULLIF` before the cast: a bare cast would raise on a connection
   the pool hands back between transactions, whereas comparing against NULL evaluates to
   NULL, which excludes the row, so an idle connection reads zero rows rather than erroring. Ingredient name
-  resolution and a label's `uses` count from `ListLabels` are scoped per home by the same
-  policy — two homes can each own an ingredient called "milk".
+  resolution is scoped per home by the same policy — two homes can each own an ingredient
+  called "milk". `labels` is not: it is a global taxonomy carrying no policy, so only the
+  `uses` count `ListLabels` reads out of `recipe_label` is scoped, and the query's
+  `HAVING COUNT(rl.recipe_id) > 0` is what keeps a label another home invented out of the
+  list.
 - **Isolation** is proved against a real database, not asserted in code:
   `repository/isolation_integration_test.go` runs `TestIsolation` through the ordinary
   repositories and refuses outright — never skips — on a connection the policies wouldn't

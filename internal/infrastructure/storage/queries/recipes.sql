@@ -91,10 +91,14 @@ RETURNING *;
 SELECT * FROM labels WHERE type = $1 AND name = $2;
 
 -- name: ListLabels :many
+-- `labels` is global and unpoliced, so a zero count is a label this home has
+-- never applied — including ones another home invented. The HAVING keeps the
+-- list inside the home the count is already scoped to.
 SELECT l.type, l.name, COUNT(rl.recipe_id) AS uses
 FROM labels l
 LEFT JOIN recipe_label rl ON rl.label_id = l.uuid
 GROUP BY l.type, l.name
+HAVING COUNT(rl.recipe_id) > 0
 ORDER BY l.type, l.name;
 
 -- name: CreateRecipeLabel :one

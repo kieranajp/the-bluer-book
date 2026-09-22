@@ -168,6 +168,13 @@ func (h *RecipeMCPHandler) RegisterTools(s *server.MCPServer) {
 	)
 
 	s.AddTool(
+		mcp.NewTool("list_ingredients",
+			mcp.WithDescription("List every ingredient the book knows about, with its canonical name and staple flag. Call this before creating a recipe to reuse the book's existing spelling for each ingredient and avoid near-duplicate rows."),
+		),
+		h.ListIngredients,
+	)
+
+	s.AddTool(
 		mcp.NewTool("add_to_pantry",
 			mcp.WithDescription("Mark an ingredient as currently available in the pantry. Only works for ingredients used by a recipe in the book — for anything else use add_to_shopping_list. Fails if the name matches no ingredient."),
 			mcp.WithString("ingredient", mcp.Required(), mcp.Description("Ingredient name, as spelled in a recipe's ingredient list (case-insensitive)")),

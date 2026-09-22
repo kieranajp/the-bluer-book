@@ -77,7 +77,7 @@ func (s *accountService) ProvisionFromSubject(ctx context.Context, id account.Id
 
 	user, err := s.repo.FindUserBySubject(ctx, id.Subject)
 	if err == nil {
-		return user, nil
+		return s.refreshed(ctx, user, id), nil
 	}
 	if !errors.Is(err, account.ErrUserNotFound) {
 		s.probe.AccountError("find_user", err)
@@ -91,6 +91,30 @@ func (s *accountService) ProvisionFromSubject(ctx context.Context, id account.Id
 	}
 	s.probe.UserProvisioned(id.Subject)
 	return user, nil
+}
+
+// refreshed keeps the stored email and display name level with the claims the
+// edge is forwarding, which is what the rest of a home sees in the member list.
+// A failed refresh is not worth failing the request over: the caller resolves
+// either way and their profile stays a request behind.
+func (s *accountService) refreshed(ctx context.Context, user account.User, id account.Identity) account.User {
+	if !profileMoved(user, id) {
+		return user
+	}
+
+	updated, err := s.repo.RefreshProfile(ctx, id)
+	if err != nil {
+		s.probe.AccountError("refresh_profile", err)
+		return user
+	}
+	return updated
+}
+
+// profileMoved ignores a claim that did not arrive: an absent email is the edge
+// forwarding nothing, not a user who has given theirs up.
+func profileMoved(user account.User, id account.Identity) bool {
+	return (id.Email != "" && id.Email != user.Email) ||
+		(id.DisplayName != "" && id.DisplayName != user.DisplayName)
 }
 
 func (s *accountService) FindUser(ctx context.Context, userID uuid.UUID) (account.User, error) {

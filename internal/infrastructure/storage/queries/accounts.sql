@@ -17,6 +17,16 @@ INSERT INTO users (subject, email, display_name)
 VALUES (@subject, @email, @display_name)
 RETURNING *;
 
+-- name: UpdateUserProfile :one
+-- An empty value keeps what is stored: the edge forwards email and name as
+-- claims, and a claim that did not arrive is silence rather than a blanking.
+UPDATE users
+SET email        = COALESCE(NULLIF(@email::text, ''), email),
+    display_name = COALESCE(NULLIF(@display_name::text, ''), display_name),
+    updated_at   = now()
+WHERE subject = @subject
+RETURNING *;
+
 -- name: CreateHome :one
 INSERT INTO homes (name) VALUES (@name) RETURNING *;
 

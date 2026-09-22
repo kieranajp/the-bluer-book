@@ -284,3 +284,69 @@ func TestProvisionHomeNaming(t *testing.T) {
 		}
 	})
 }
+
+// TestProvisionRefreshesTheProfile covers what the member list shows a
+// housemate: an email changed at the provider has to reach the row, and a
+// claim the edge stopped forwarding must not blank the one already there.
+func TestProvisionRefreshesTheProfile(t *testing.T) {
+	sqlDB := openTestDB(t)
+	repo := newAccountRepo(sqlDB)
+	svc := service.NewAccountService(repo, "", metrics.NoopAccountProbe{})
+
+	subject := uniqueSubject("refresh")
+	user, err := svc.ProvisionFromSubject(context.Background(), account.Identity{
+		Subject:     subject,
+		Email:       "before@example.com",
+		DisplayName: "Before",
+	})
+	if err != nil {
+		t.Fatalf("ProvisionFromSubject: %v", err)
+	}
+	home, err := svc.ResolveActiveHome(context.Background(), user, uuid.Nil)
+	if err != nil {
+		t.Fatalf("ResolveActiveHome: %v", err)
+	}
+	cleanupProvisioned(t, sqlDB, user.UUID, home.UUID)
+
+	stored := func(t *testing.T) (string, string) {
+		t.Helper()
+		var email, name string
+		if err := sqlDB.QueryRow(`SELECT email, display_name FROM users WHERE uuid = $1`, user.UUID).Scan(&email, &name); err != nil {
+			t.Fatalf("read back the user: %v", err)
+		}
+		return email, name
+	}
+
+	t.Run("a changed claim reaches the row", func(t *testing.T) {
+		refreshed, err := svc.ProvisionFromSubject(context.Background(), account.Identity{
+			Subject:     subject,
+			Email:       "after@example.com",
+			DisplayName: "After",
+		})
+		if err != nil {
+			t.Fatalf("ProvisionFromSubject: %v", err)
+		}
+		if refreshed.UUID != user.UUID {
+			t.Errorf("returned user %s, want the same %s", refreshed.UUID, user.UUID)
+		}
+		if refreshed.Email != "after@example.com" || refreshed.DisplayName != "After" {
+			t.Errorf("returned %q / %q, want after@example.com / After", refreshed.Email, refreshed.DisplayName)
+		}
+
+		email, name := stored(t)
+		if email != "after@example.com" || name != "After" {
+			t.Errorf("stored %q / %q, want after@example.com / After", email, name)
+		}
+	})
+
+	t.Run("a claim that did not arrive keeps what is stored", func(t *testing.T) {
+		if _, err := svc.ProvisionFromSubject(context.Background(), account.Identity{Subject: subject}); err != nil {
+			t.Fatalf("ProvisionFromSubject: %v", err)
+		}
+
+		email, name := stored(t)
+		if email != "after@example.com" || name != "After" {
+			t.Errorf("stored %q / %q, want after@example.com / After", email, name)
+		}
+	})
+}

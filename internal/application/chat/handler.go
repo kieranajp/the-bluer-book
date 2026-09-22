@@ -18,6 +18,9 @@ import (
 	"google.golang.org/adk/tool/mcptoolset"
 	"google.golang.org/genai"
 
+	"github.com/google/uuid"
+
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 )
@@ -28,6 +31,9 @@ type Handler struct {
 	logger         logger.Logger
 	probe          Probe
 	mu             sync.Mutex
+
+	// mcpHomeID is the home the MCP server this agent calls is pinned to.
+	mcpHomeID uuid.UUID
 }
 
 type chatRequest struct {
@@ -41,7 +47,7 @@ type chatEvent struct {
 	SessionID string `json:"session_id,omitempty"`
 }
 
-func NewHandler(cfg config.Config, log logger.Logger, probe Probe) (*Handler, error) {
+func NewHandler(cfg config.Config, mcpHomeID uuid.UUID, log logger.Logger, probe Probe) (*Handler, error) {
 	ctx := context.Background()
 
 	if cfg.GoogleAPIKey == "" {
@@ -100,10 +106,23 @@ When creating or updating recipes, confirm the details with the user before proc
 		sessionService: sessionService,
 		logger:         log,
 		probe:          probe,
+		mcpHomeID:      mcpHomeID,
 	}, nil
 }
 
+// HandleChat refuses a caller whose home is not the one the MCP server is
+// pinned to: the agent reaches its tools through that server, so every tool
+// call acts on that home whoever asked. A request carrying no home at all is
+// refused on the same line, since the identity middleware always puts one there.
 func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
+	home, ok := auth.HomeID(r.Context())
+	if !ok || home != h.mcpHomeID {
+		h.logger.Warn().Str("home", home.String()).Msg("Refused a chat request from outside the home the assistant acts on")
+		writeError(w, http.StatusForbidden, "chat_unavailable_for_home",
+			"The assistant can only act on the home it is configured for, which is not this one")
+		return
+	}
+
 	var req chatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
@@ -183,6 +202,17 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 
 	// Send final done event
 	writeSSE(w, flusher, chatEvent{Done: true, SessionID: sessionID})
+}
+
+func writeError(w http.ResponseWriter, status int, code, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]any{
+		"error": map[string]string{
+			"code":    code,
+			"message": message,
+		},
+	})
 }
 
 func writeSSE(w http.ResponseWriter, flusher http.Flusher, event chatEvent) {

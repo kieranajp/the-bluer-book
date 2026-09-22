@@ -255,7 +255,7 @@ func run(c *cli.Context) error {
 	}()
 
 	// Create chat handler — MCP server is guaranteed to be listening
-	chatHandler, err := chat.NewHandler(cfg, log, chatProbe)
+	chatHandler, err := chat.NewHandler(cfg, mcpHomeID, log, chatProbe)
 	if err != nil {
 		return fmt.Errorf("failed to create chat handler: %w", err)
 	}

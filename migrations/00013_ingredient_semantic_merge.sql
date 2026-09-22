@@ -76,7 +76,7 @@ INSERT INTO semantic_merge (from_name, to_name, preparation) VALUES
   -- synonyms: one shopping item, whatever it is called
   ('scallions',                      'spring onion', ''),
   ('green onion',                    'spring onion', ''),
-  ('cilantro',                       'coriander', ''),
+  ('cilantro',                       'fresh coriander', ''),
   ('fresh cilantro',                 'fresh coriander', ''),
   ('eggplants',                      'aubergine', ''),
   ('eggplant',                       'aubergine', ''),

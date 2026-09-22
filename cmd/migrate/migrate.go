@@ -101,11 +101,8 @@ func run(c *cli.Context) error {
 	return nil
 }
 
-// setAppRolePassword sets the password the server will use; the migration
-// creates the role without one so the secret never ships in the image, and
-// this runs as the owner, the only connection that can set it.
-//
-// ALTER ROLE takes no bind parameters, so both halves are quoted in below.
+// setAppRolePassword runs as the owner, the only connection that can set it.
+// ALTER ROLE takes no bind parameters, so both halves are quoted below.
 func setAppRolePassword(db *sql.DB, role, password string, log logger.Logger) error {
 	if password == "" {
 		log.Warn().Str("role", role).Msg("APP_DB_PASS not set — leaving the application role's password alone")
@@ -124,9 +121,8 @@ func setAppRolePassword(db *sql.DB, role, password string, log logger.Logger) er
 	return nil
 }
 
-// seedExistingMigrations detects a database set up before goose was adopted
-// (recipes exists, goose_db_version doesn't) and marks the original migrations
-// applied, with ON CONFLICT DO NOTHING so it's safe to run repeatedly.
+// seedExistingMigrations marks the original migrations applied for a
+// database that predates goose (recipes exists, goose_db_version doesn't).
 func seedExistingMigrations(db *sql.DB, log logger.Logger) error {
 	var hasRecipes bool
 	err := db.QueryRow(`SELECT EXISTS (

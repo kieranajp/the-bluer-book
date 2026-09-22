@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# Proves home isolation on a database built from the migrations, running each
-# suite as the role it needs: DB_USER, the superuser that owns every table and
-# runs migrations, and bluer_book_app, the non-owner role the server connects
-# as. Everything created here is removed on exit, including on failure.
+# Proves home isolation, running each suite as DB_USER (owner) and bluer_book_app (the server's role).
 
 set -euo pipefail
 
@@ -47,9 +44,8 @@ docker exec "$CONTAINER" pg_isready --username "$OWNER_USER" --dbname "$DB_NAME"
 echo "==> Generating query stubs"
 sqlc generate
 
-# 00001 to 00006 predate goose and carry none of its annotations, so goose
-# can't parse them; applying them by hand leaves the schema goose then
-# recognises and seeds before running 00007 onwards, matching the deployed path.
+# 00001 to 00006 predate goose and carry none of its annotations, so they're
+# applied by hand before goose takes over at 00007 — matching the deployed path.
 echo "==> Applying the pre-goose schema"
 for file in migrations/0000[1-6]_*.sql; do
   docker exec --interactive "$CONTAINER" \
@@ -118,9 +114,8 @@ run_suite "TestHomeScoping as ${OWNER_USER} (must pass)" "$OWNER_DSN" \
 
 run_suite "TestProvision as ${APP_USER} (must pass)" "$APP_DSN" -run TestProvision -count=3
 
-# As ${APP_USER}, not the owner: identity tables carry no RLS policy since a
-# token is looked up before either party's home is known, so this is what
-# would catch one creeping onto invitations or home_members.
+# As ${APP_USER}: identity tables carry no RLS policy, since a token is
+# looked up before any home is known — this catches one creeping on regardless.
 run_suite "TestMembership as ${APP_USER} (must pass)" "$APP_DSN" -run TestMembership -count=3
 
 echo "==> Home isolation holds."

@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# Proves who can reach a home over HTTP against an enforcing database: an
-# invitation admits one person to one home, X-Home names a home rather than
-# taking one, and a stranger naming another home is refused. Runs as
-# bluer_book_app, so every read is bound by the policies as deployed.
+# Proves who can reach a home over HTTP, running as bluer_book_app so every read is bound by the deployed policies.
 
 # Requires a recipe already in home A — the run stops if it's missing, since
 # an empty result would make every assertion trivially true.
@@ -215,9 +212,8 @@ expect 204 "$(status subject-a DELETE "/api/homes/${HOME_A}/members/${MEMBER_ID}
 expect 403 "$(HOME_HEADER="$HOME_A" status subject-b GET /api/recipes)" \
   "subject-b naming home A once removed"
 
-# Strips ANSI colour first, since the console writer separates the role from
-# its label in the bytes. grep reads to the end, not --quiet, since sed writing
-# into a closed pipe would otherwise report as pipefail failing the check.
+# Strips ANSI colour first since the console writer embeds it in the label.
+# grep reads to the end, not --quiet, to avoid pipefail on a closed pipe.
 sed 's/\x1b\[[0-9;]*m//g' "$SERVER_LOG" | grep "role=${APP_USER}" >/dev/null \
   || fail "the server did not report connecting as ${APP_USER}"
 

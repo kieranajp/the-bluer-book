@@ -1,20 +1,14 @@
 -- +goose Up
--- home_id is denormalised onto each table so the RLS policies that follow are
--- one predicate per table. It defaults from the per-transaction app.home_id
--- GUC, so an INSERT that omits it still lands in the caller's home, and one
--- with no GUC set fails NOT NULL instead of writing an orphan row.
+-- home_id is denormalised onto each table so the RLS policies that follow
+-- are one predicate per table.
 
 -- units and labels stay global: shared vocabulary, not anybody's data.
 
 -- Everything in the book today predates multitenancy, so it all belongs to the
 -- founder home 00011 created.
 
--- Refuses to backfill if a user exists outside the founder home: that user
--- could be the collection's real owner, signed in before FOUNDER_SUBJECT was
--- configured, and stamping the collection onto an empty home would hide it
--- from them. It can't catch an ordinary first deploy where nobody has signed
--- in yet — reachability there depends on FOUNDER_SUBJECT being right at the
--- first login; cmd/server warns at boot when it's unset or resolves elsewhere.
+-- Refuses to backfill if a user exists outside the founder home: they may be
+-- the real owner, signed in before FOUNDER_SUBJECT was set.
 -- +goose StatementBegin
 DO $$
 DECLARE stranded bigint;
@@ -60,6 +54,8 @@ ALTER TABLE photos             ALTER COLUMN home_id SET NOT NULL;
 ALTER TABLE meal_plan_recipes  ALTER COLUMN home_id SET NOT NULL;
 ALTER TABLE ingredients        ALTER COLUMN home_id SET NOT NULL;
 
+-- Defaults from the per-transaction app.home_id GUC, so an unset GUC fails
+-- NOT NULL instead of writing an orphan row.
 ALTER TABLE recipes            ALTER COLUMN home_id SET DEFAULT NULLIF(current_setting('app.home_id', true), '')::uuid;
 ALTER TABLE steps              ALTER COLUMN home_id SET DEFAULT NULLIF(current_setting('app.home_id', true), '')::uuid;
 ALTER TABLE recipe_ingredient  ALTER COLUMN home_id SET DEFAULT NULLIF(current_setting('app.home_id', true), '')::uuid;

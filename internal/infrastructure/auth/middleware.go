@@ -11,19 +11,16 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 )
 
-// Headers the edge sets from the validated token. Only HeaderUser is relied on;
-// the other two carry claims the edge may or may not be forwarding, and a home
-// provisioned without them simply gets a duller name.
+// Headers the edge sets from the validated token. Only HeaderUser is relied
+// on; the others are optional claims.
 const (
 	HeaderUser  = "X-User"
 	HeaderEmail = "X-User-Email"
 	HeaderName  = "X-User-Name"
 )
 
-// HeaderHome lets a client pick which of its homes a request acts on. Unlike
-// the three above it comes from the client, not the edge, so it is a request
-// and nothing more: the resolver returns the home only to a member of it.
-// Absent, it means the home the caller most recently joined.
+// HeaderHome is client-supplied, not edge-asserted: the resolver returns the
+// home only to a member of it. Absent means the most recently joined home.
 const HeaderHome = "X-Home"
 
 // Middleware resolves the caller the edge asserts and stamps them onto the
@@ -69,11 +66,6 @@ func Middleware(resolver UserResolver, log logger.Logger) func(http.Handler) htt
 	}
 }
 
-// callerFrom reads the identity headers, refusing a request that carries any of
-// them more than once. The edge appends its header to whatever the client sent
-// rather than replacing it, so a second value means the client supplied one —
-// and net/http hands the client's over, which would let any token holder call
-// themselves anybody.
 func callerFrom(r *http.Request) (Caller, bool) {
 	subject, ok := soleHeader(r, HeaderUser)
 	if !ok || subject == "" {
@@ -93,9 +85,8 @@ func callerFrom(r *http.Request) (Caller, bool) {
 	return Caller{Subject: subject, Email: email, Name: name}, true
 }
 
-// requestedHome reads X-Home. Absent or empty asks for no particular home;
-// anything present has to parse, and two of them are refused rather than
-// settled by whichever net/http happens to return first.
+// requestedHome treats an absent or empty X-Home as no request, not a
+// failure; anything present must parse to a valid, non-nil id.
 func requestedHome(r *http.Request) (uuid.UUID, bool) {
 	value, ok := soleHeader(r, HeaderHome)
 	if !ok {
@@ -112,6 +103,8 @@ func requestedHome(r *http.Request) (uuid.UUID, bool) {
 	return home, true
 }
 
+// soleHeader refuses a header sent twice: the edge appends to whatever the
+// client sent rather than replacing it, so a second value is client forgery.
 func soleHeader(r *http.Request, key string) (string, bool) {
 	values := r.Header.Values(key)
 	if len(values) > 1 {

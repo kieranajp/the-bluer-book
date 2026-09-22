@@ -236,10 +236,8 @@ func (r *accountRepository) CreateInvitation(ctx context.Context, inv account.In
 	return toInvitation(row), nil
 }
 
-// RedeemInvitation spends a token and joins its home in one transaction. The
-// redeeming UPDATE matches only an unaccepted, unexpired invitation and marks
-// it accepted as it matches, so two requests with the same token can't both be
-// admitted; a failed member-add rolls the mark back too.
+// RedeemInvitation's UPDATE matches and marks an invitation accepted in one
+// statement, so two requests with the same token can't both be admitted.
 func (r *accountRepository) RedeemInvitation(ctx context.Context, tokenHash string, userID uuid.UUID) (account.Home, account.Role, error) {
 	tx, err := r.sqlDB.BeginTx(ctx, nil)
 	if err != nil {
@@ -286,9 +284,8 @@ func (r *accountRepository) RedeemInvitation(ctx context.Context, tokenHash stri
 	return toHome(home), account.Role(role), nil
 }
 
-// refusalReason says why a token redeemed nothing. It runs only after the
-// redeeming statement has already declined to match, so it decides no
-// admission — it only turns one silence into an answer the caller can act on.
+// refusalReason runs only after the redeeming UPDATE has already declined to
+// match; it explains why, it doesn't decide admission.
 func refusalReason(ctx context.Context, q *db.Queries, tokenHash string) error {
 	inv, err := q.GetInvitationByTokenHash(ctx, tokenHash)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -303,9 +300,8 @@ func refusalReason(ctx context.Context, q *db.Queries, tokenHash string) error {
 	return account.ErrInvitationExpired
 }
 
-// RemoveMember takes a user out of a home under a lock on it, since the
-// last-owner rule is about the whole membership: without the lock, two
-// concurrent removals could each see the other's owner and both proceed.
+// RemoveMember locks the home first: without it, two concurrent removals
+// could each see the other's owner and both proceed.
 func (r *accountRepository) RemoveMember(ctx context.Context, homeID, userID uuid.UUID) error {
 	tx, err := r.sqlDB.BeginTx(ctx, nil)
 	if err != nil {

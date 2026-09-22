@@ -1,7 +1,6 @@
 -- +goose Up
--- Identity and tenancy tables: who is calling, which homes exist, and who
--- belongs to which. They run before a home is known, so stay outside the
--- row-level security later migrations put on the tenant tables.
+-- Identity and tenancy tables run before a home is known, so stay outside
+-- the row-level security later migrations put on the tenant tables.
 
 CREATE TABLE users (
   uuid         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

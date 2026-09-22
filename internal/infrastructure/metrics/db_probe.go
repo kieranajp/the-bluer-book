@@ -27,9 +27,8 @@ var (
 	}, []string{"query"})
 )
 
-// queryNamePattern pulls the query name out of the `-- name: X :kind` header that
-// sqlc prepends to every generated statement. It gives us a low-cardinality label
-// that matches the Go method name (e.g. "ListRecipes") instead of full SQL text.
+// queryNamePattern pulls a low-cardinality label out of sqlc's `-- name: X
+// :kind` header, rather than using the full SQL text as the label.
 var queryNamePattern = regexp.MustCompile(`--\s*name:\s*(\w+)`)
 
 func queryName(query string) string {
@@ -39,13 +38,8 @@ func queryName(query string) string {
 	return "unknown"
 }
 
-// InstrumentedDBTX wraps a db.DBTX so every sqlc query records its duration
-// and error count; db.New takes a DBTX, so one wrapper covers everything
-// underneath it.
-//
-// Account provisioning runs its own *sql.Tx and isn't wrapped, so it's not
-// timed here; connection use itself shows up separately in the go_sql_* pool
-// stats from RegisterDBStats.
+// InstrumentedDBTX wraps every sqlc query for duration and error count.
+// Account provisioning's own *sql.Tx isn't covered.
 type InstrumentedDBTX struct {
 	inner db.DBTX
 }
@@ -95,9 +89,8 @@ func (i *InstrumentedDBTX) QueryRowContext(ctx context.Context, query string, ar
 	return row
 }
 
-// RegisterDBStats exposes database/sql connection-pool stats (go_sql_* metrics:
-// open/in-use/idle connections, wait count and duration) for the given pool.
-// Call once at startup.
+// RegisterDBStats exposes pool stats as go_sql_* metrics. Call once —
+// MustRegister panics on a duplicate collector.
 func RegisterDBStats(pool *sql.DB) {
 	prometheus.MustRegister(collectors.NewDBStatsCollector(pool, "bluerbook"))
 }

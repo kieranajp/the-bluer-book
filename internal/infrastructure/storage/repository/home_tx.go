@@ -12,14 +12,8 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
 )
 
-// InHomeTx runs fn in a transaction scoped to the caller's home: it publishes
-// the home as the transaction-local app.home_id GUC, commits on a nil return,
-// and rolls back on anything else, including a panic. Every home_id column
-// defaults from that GUC and is NOT NULL, so code that bypasses this helper
-// reads and writes nothing rather than crossing a home.
-//
-// fn's error returns untouched; callers still compare it against sql.ErrNoRows
-// and their own domain errors.
+// InHomeTx scopes fn to the caller's home via the app.home_id GUC, rolling back on panic as well as error.
+// Bypassing it writes nothing: home_id defaults from that GUC and is NOT NULL.
 func InHomeTx(ctx context.Context, sqlDB *sql.DB, fn func(q *db.Queries) error) error {
 	homeID, ok := auth.HomeID(ctx)
 	if !ok || homeID == uuid.Nil {

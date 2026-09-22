@@ -1,6 +1,5 @@
-// Package account models the people using the book and the homes they keep it
-// in. It resolves a request before any home is known, so nothing here carries a
-// home_id.
+// Package account models the people using the book and the homes they keep
+// it in. Nothing here carries a home_id.
 package account
 
 import (
@@ -9,9 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// FounderHomeID is the home that holds the collection predating multitenancy.
-// The schema creates it; the operator's subject attaches to it on first login
-// rather than getting a fresh, empty one.
+// FounderHomeID holds the collection predating multitenancy; the operator's
+// subject attaches to it on first login rather than getting a fresh one.
 var FounderHomeID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 // Role is a user's standing in a home. The user a home is provisioned for owns
@@ -23,9 +21,7 @@ const (
 	RoleMember Role = "member"
 )
 
-// Identity is what the edge knows about a caller: the token subject, plus the
-// email and name claims when the edge is configured to forward them. Only
-// Subject is guaranteed.
+// Identity is what the edge knows about a caller. Only Subject is guaranteed.
 type Identity struct {
 	Subject     string
 	Email       string
@@ -64,9 +60,8 @@ type Member struct {
 	Role Role
 }
 
-// Invitation is an outstanding offer of membership. The token that redeems it
-// is not here and is not in the database: only its hash is stored, so a copy of
-// this row joins nobody to anything.
+// Invitation is an outstanding offer of membership. Only its token's hash is
+// stored, so a copy of this row joins nobody to anything.
 type Invitation struct {
 	UUID      uuid.UUID
 	HomeID    uuid.UUID

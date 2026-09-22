@@ -1,6 +1,5 @@
 // Package service implements the account operations the auth middleware
-// depends on: finding or provisioning the caller, deciding which home their
-// request acts on, and who may join or leave that home.
+// depends on.
 package service
 
 import (
@@ -20,26 +19,22 @@ const InvitationTTL = 7 * 24 * time.Hour
 
 // AccountService is the door into the account domain.
 type AccountService interface {
-	// ProvisionFromSubject returns the user behind a token subject, creating
-	// them, a home and their ownership of it the first time that subject is
-	// seen.
+	// ProvisionFromSubject finds or creates the user, home and ownership for
+	// a first-seen subject.
 	ProvisionFromSubject(ctx context.Context, id account.Identity) (account.User, error)
 
-	// FindUser returns a user by their own id.
 	FindUser(ctx context.Context, userID uuid.UUID) (account.User, error)
 
-	// ResolveActiveHome returns the home a request acts on. A requested home is
-	// returned only to a member of it; uuid.Nil asks for the one the user most
-	// recently joined.
+	// ResolveActiveHome returns a requested home only to a member of it;
+	// uuid.Nil asks for the one most recently joined.
 	ResolveActiveHome(ctx context.Context, user account.User, requested uuid.UUID) (account.Home, error)
 
 	// ListHomes returns the homes the user belongs to and their standing in
 	// each.
 	ListHomes(ctx context.Context, userID uuid.UUID) ([]account.Membership, error)
 
-	// Invite creates an invitation to a home and returns it alongside the token
-	// that redeems it. Only an owner may invite. The token is returned once and
-	// is not recoverable afterwards.
+	// Invite requires an owner. The redeeming token is returned once and is
+	// not recoverable afterwards.
 	Invite(ctx context.Context, actorID, homeID uuid.UUID, email string, role account.Role) (account.Invitation, string, error)
 
 	// AcceptInvitation redeems a token, putting the caller in the home it names
@@ -58,9 +53,8 @@ type accountService struct {
 	repo  account.Repository
 	probe account.Probe
 
-	// founderSubject is the operator's subject. It attaches to the home that
-	// already holds the recipes rather than to a fresh one. Empty means nobody
-	// gets that treatment.
+	// founderSubject, if matched, attaches to the home holding the existing
+	// recipes rather than a fresh one.
 	founderSubject string
 
 	now func() time.Time
@@ -124,8 +118,6 @@ func (s *accountService) FindUser(ctx context.Context, userID uuid.UUID) (accoun
 }
 
 func (s *accountService) ResolveActiveHome(ctx context.Context, user account.User, requested uuid.UUID) (account.Home, error) {
-	// requested is honoured only for a home the caller belongs to; anything else
-	// returns not-found rather than another home or a freshly provisioned one.
 	if requested != uuid.Nil {
 		home, err := s.repo.FindHomeForUser(ctx, user.UUID, requested)
 		if err != nil && !errors.Is(err, account.ErrHomeNotFound) {
@@ -276,9 +268,8 @@ func (s *accountService) homeTarget(id account.Identity) account.HomeTarget {
 	return account.HomeTarget{Name: homeName(id.Email)}
 }
 
-// homeName builds a name for a new home out of the local part of the caller's
-// email. The edge forwards the email claim as an optional header, so an absent
-// or unusable one has to leave a home that still reads sensibly.
+// homeName falls back to a generic name since the edge forwards email as an
+// optional header.
 func homeName(email string) string {
 	local, _, hasDomain := strings.Cut(email, "@")
 	local = strings.TrimSpace(local)

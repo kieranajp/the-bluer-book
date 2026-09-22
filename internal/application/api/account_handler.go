@@ -55,9 +55,8 @@ func (h *AccountHandler) writeAccountError(w http.ResponseWriter, op string, err
 	}
 }
 
-// callerFromContext reads the caller the auth middleware stamped onto the
-// request. Every route this handler serves sits behind that middleware, so
-// this cannot fail in practice — handled anyway rather than assumed away.
+// callerFromContext handles a missing caller rather than assuming the auth
+// middleware always ran first.
 func (h *AccountHandler) callerFromContext(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	userID, ok := auth.UserID(r.Context())
 	if !ok {
@@ -130,11 +129,8 @@ func (h *AccountHandler) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /api/homes/{id}/invitations
-//
-// token is the plaintext invitation token. It is returned exactly once, in
-// this response, and cannot be recovered afterwards — only its hash is
-// stored.
+// POST /api/homes/{id}/invitations returns the plaintext token exactly once;
+// only its hash is stored afterwards.
 func (h *AccountHandler) CreateInvitation(w http.ResponseWriter, r *http.Request) {
 	callerID, ok := h.callerFromContext(w, r)
 	if !ok {
@@ -174,11 +170,8 @@ func (h *AccountHandler) CreateInvitation(w http.ResponseWriter, r *http.Request
 	})
 }
 
-// POST /api/invitations/accept
-//
-// The token travels in the body rather than the path because the access log
-// records every path, which would leave a live credential in the log of any
-// accept that failed before spending it.
+// POST /api/invitations/accept takes the token in the body: a path or query
+// version would land a live credential in every access log entry.
 func (h *AccountHandler) AcceptInvitation(w http.ResponseWriter, r *http.Request) {
 	callerID, ok := h.callerFromContext(w, r)
 	if !ok {

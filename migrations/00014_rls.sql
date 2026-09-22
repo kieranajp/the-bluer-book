@@ -61,10 +61,8 @@ CREATE POLICY home_isolation ON shopping_list_items
 -- units, labels, users, homes, home_members and invitations carry no home_id
 -- and stay outside RLS: they decide which home a request acts on.
 
--- bluer_book_app owns no table and holds neither SUPERUSER nor BYPASSRLS, so
--- the policies above bind it; the ALTER re-asserts that for a role carried
--- over from an earlier cluster. The migrate command sets its password from
--- APP_DB_PASS on every run rather than storing it here.
+-- bluer_book_app owns no table and holds neither SUPERUSER nor BYPASSRLS;
+-- the ALTER re-asserts that for a role carried over from an earlier cluster.
 -- +goose StatementBegin
 DO $$
 BEGIN

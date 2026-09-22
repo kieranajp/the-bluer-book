@@ -25,11 +25,8 @@ jobs:
 
       - run: flutter analyze
 
-      # Structural lint: enforces "one widget class per file" and bans
-      # Widget-returning helper methods (docs/frontend.md). Self-contained Dart
-      # package — runs on the Flutter-bundled Dart, no extra setup.
-      # The backlog has been cleared, so baseline.txt is empty and this is
-      # effectively strict; any new violation fails the build.
+      # Enforces one widget class per file and bans Widget-returning helpers.
+      # baseline.txt is empty, so any new violation fails the build.
       - name: Widget structure lint
         working-directory: app/tool/widget_lint
         run: |
@@ -56,9 +53,8 @@ jobs:
 
       - run: go mod tidy && go test -v ./...
 
-      # Home isolation only shows up on a real connection the policies bind, so
-      # unit tests can't prove it; the script runs the suite as both roles,
-      # including the run that has to fail.
+      # Isolation only shows up on a real connection the policies bind, so
+      # unit tests can't prove it.
       - name: Home isolation
         run: ./scripts/rls-test.sh
 

@@ -224,8 +224,10 @@ expect 403 "$(HOME_HEADER="$HOME_A" status subject-b GET /api/recipes)" \
   "subject-b naming home A once removed"
 
 # The console writer colours its fields, so the role and its label are not
-# adjacent in the bytes.
-sed 's/\x1b\[[0-9;]*m//g' "$SERVER_LOG" | grep --quiet "role=${APP_USER}" \
+# adjacent in the bytes. grep reads to the end rather than stopping at the
+# match, because --quiet leaves sed writing into a closed pipe and pipefail
+# reports that as the check failing.
+sed 's/\x1b\[[0-9;]*m//g' "$SERVER_LOG" | grep "role=${APP_USER}" >/dev/null \
   || fail "the server did not report connecting as ${APP_USER}"
 
 # The access log records every path, so a token in one would sit in the log for

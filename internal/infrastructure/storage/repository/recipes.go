@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -125,65 +126,8 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) (*
 		}
 
 		// Insert ingredients and recipe_ingredient
-		ingredientSet := make(map[uuid.UUID]bool)
-		for _, ri := range rec.Ingredients {
-			// Ingredient
-			ingRow, err := q.GetIngredientByName(ctx, ri.Ingredient.Name)
-			if err == sql.ErrNoRows {
-				ingRow, err = q.CreateIngredient(ctx, db.CreateIngredientParams{
-					Uuid:      uuid.New(),
-					Name:      ri.Ingredient.Name,
-					CreatedAt: now,
-					UpdatedAt: now,
-				})
-				if err != nil {
-					return err
-				}
-				r.logger.Info().Msgf("Inserted new ingredient: %s (UUID: %s)", ri.Ingredient.Name, ingRow.Uuid)
-			} else if err != nil {
-				return err
-			}
-			if ingredientSet[ingRow.Uuid] {
-				continue // already inserted for this recipe
-			}
-			ingredientSet[ingRow.Uuid] = true
-			// Unit
-			unitName := normalizeUnitName(ri.Unit.Name)
-			var unitID uuid.NullUUID
-			if unitName != "" {
-				unitRow, err := q.GetUnitByName(ctx, unitName)
-				if err == sql.ErrNoRows {
-					unitRow, err = q.CreateUnit(ctx, db.CreateUnitParams{
-						Uuid:         uuid.New(),
-						Name:         unitName,
-						Abbreviation: sql.NullString{String: ri.Unit.Abbreviation, Valid: ri.Unit.Abbreviation != ""},
-						CreatedAt:    now,
-						UpdatedAt:    now,
-					})
-					if err != nil {
-						return err
-					}
-					r.logger.Info().Msgf("Inserted new unit: %s (UUID: %s)", unitName, unitRow.Uuid)
-				} else if err != nil {
-					return err
-				}
-				unitID = uuidToNullUUID(&unitRow.Uuid)
-			}
-			// RecipeIngredient
-			_, err = q.CreateRecipeIngredient(ctx, db.CreateRecipeIngredientParams{
-				RecipeID:     recipeID,
-				IngredientID: ingRow.Uuid,
-				UnitID:       unitID,
-				Quantity:     sql.NullFloat64{Float64: ri.Quantity, Valid: true},
-				Preparation:  sql.NullString{String: ri.Preparation, Valid: ri.Preparation != ""},
-				Component:    sql.NullString{String: ri.Component, Valid: ri.Component != ""},
-				CreatedAt:    now,
-				UpdatedAt:    now,
-			})
-			if err != nil {
-				return err
-			}
-			r.logger.Info().Msgf("Linked ingredient %s to recipe %s", ri.Ingredient.Name, rec.Name)
+		if err := r.writeRecipeIngredients(ctx, q, recipeID, rec.Name, rec.Ingredients, now); err != nil {
+			return err
 		}
 
 		// Insert labels and recipe_label
@@ -263,6 +207,117 @@ func uuidToNullUUID(id *uuid.UUID) uuid.NullUUID {
 
 func normalizeUnitName(name string) string {
 	return strings.ToLower(strings.TrimSpace(name))
+}
+
+// resolveIngredient finds the ingredient a free-text name refers to, creating
+// it only when nothing matches. Matching ignores case and surrounding
+// whitespace, so a recipe saved with "Fresh Ginger" reuses the existing
+// "fresh ginger" instead of minting a near-duplicate.
+//
+// The display name is stored as the caller wrote it — ingredient names carry
+// proper nouns ("MSG", "BIR base gravy") that lowercasing would mangle.
+func (r *recipeRepository) resolveIngredient(ctx context.Context, q *db.Queries, name string, now time.Time) (uuid.UUID, error) {
+	match, err := q.FindIngredientByName(ctx, name)
+	switch {
+	case err == nil:
+		return match.Uuid, nil
+	case !errors.Is(err, sql.ErrNoRows):
+		return uuid.Nil, err
+	}
+
+	created, err := q.CreateIngredient(ctx, db.CreateIngredientParams{
+		Uuid:      uuid.New(),
+		Name:      strings.TrimSpace(name),
+		CreatedAt: now,
+		UpdatedAt: now,
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	r.logger.Info().Msgf("Inserted new ingredient: %s (UUID: %s)", created.Name, created.Uuid)
+	return created.Uuid, nil
+}
+
+// resolveUnit is the same idea for units, which were already normalised on
+// write — extracted alongside resolveIngredient so the two upsert call sites
+// could collapse into one.
+func (r *recipeRepository) resolveUnit(ctx context.Context, q *db.Queries, u recipe.Unit, now time.Time) (uuid.NullUUID, error) {
+	name := normalizeUnitName(u.Name)
+	if name == "" {
+		return uuid.NullUUID{}, nil
+	}
+
+	unitRow, err := q.GetUnitByName(ctx, name)
+	if errors.Is(err, sql.ErrNoRows) {
+		unitRow, err = q.CreateUnit(ctx, db.CreateUnitParams{
+			Uuid:         uuid.New(),
+			Name:         name,
+			Abbreviation: sql.NullString{String: u.Abbreviation, Valid: u.Abbreviation != ""},
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		})
+		if err != nil {
+			return uuid.NullUUID{}, err
+		}
+		r.logger.Info().Msgf("Inserted new unit: %s (UUID: %s)", name, unitRow.Uuid)
+	} else if err != nil {
+		return uuid.NullUUID{}, err
+	}
+	return uuidToNullUUID(&unitRow.Uuid), nil
+}
+
+// writeRecipeIngredients resolves and links every ingredient on a recipe.
+// SaveRecipe and UpdateRecipe carried byte-identical copies of this loop; the
+// duplication is how ingredient handling drifted from unit handling in the
+// first place, so they share it now.
+//
+// Rows are keyed by (home, recipe, ingredient, component), matching the table's
+// primary key since 00017 — the same ingredient may legitimately appear in two
+// components, and only an exact repeat within one component is dropped.
+func (r *recipeRepository) writeRecipeIngredients(ctx context.Context, q *db.Queries, recipeID uuid.UUID, recipeName string, ingredients []recipe.RecipeIngredient, now time.Time) error {
+	type ingredientKey struct {
+		id        uuid.UUID
+		component string
+	}
+	seen := make(map[ingredientKey]bool, len(ingredients))
+
+	for _, ri := range ingredients {
+		ingredientID, err := r.resolveIngredient(ctx, q, ri.Ingredient.Name, now)
+		if err != nil {
+			return err
+		}
+
+		key := ingredientKey{id: ingredientID, component: ri.Component}
+		if seen[key] {
+			r.logger.Warn().
+				Str("ingredient", ri.Ingredient.Name).
+				Str("component", ri.Component).
+				Str("recipe", recipeName).
+				Msg("Skipping repeated ingredient within the same component")
+			continue
+		}
+		seen[key] = true
+
+		unitID, err := r.resolveUnit(ctx, q, ri.Unit, now)
+		if err != nil {
+			return err
+		}
+
+		if _, err := q.CreateRecipeIngredient(ctx, db.CreateRecipeIngredientParams{
+			RecipeID:     recipeID,
+			IngredientID: ingredientID,
+			UnitID:       unitID,
+			Quantity:     sql.NullFloat64{Float64: ri.Quantity, Valid: true},
+			Preparation:  sql.NullString{String: ri.Preparation, Valid: ri.Preparation != ""},
+			Component:    ri.Component,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}); err != nil {
+			return err
+		}
+		r.logger.Info().Msgf("Linked ingredient %s to recipe %s", ri.Ingredient.Name, recipeName)
+	}
+	return nil
 }
 
 func (r *recipeRepository) GetRecipeByID(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error) {
@@ -439,7 +494,7 @@ func (r *recipeRepository) buildRecipeFromRows(ctx context.Context, q *db.Querie
 			},
 			Quantity:    ingRow.Quantity.Float64,
 			Preparation: ingRow.Preparation.String,
-			Component:   ingRow.Component.String,
+			Component:   ingRow.Component,
 		}
 	}
 	rec.Ingredients = ingredients
@@ -578,61 +633,14 @@ func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec r
 		}
 
 		// Re-insert ingredients and recipe_ingredient
-		ingredientSet := make(map[uuid.UUID]bool)
-		for _, ri := range rec.Ingredients {
-			ingRow, err := q.GetIngredientByName(ctx, ri.Ingredient.Name)
-			if err == sql.ErrNoRows {
-				ingRow, err = q.CreateIngredient(ctx, db.CreateIngredientParams{
-					Uuid:      uuid.New(),
-					Name:      ri.Ingredient.Name,
-					CreatedAt: now,
-					UpdatedAt: now,
-				})
-				if err != nil {
-					return err
-				}
-			} else if err != nil {
-				return err
-			}
-			if ingredientSet[ingRow.Uuid] {
-				continue
-			}
-			ingredientSet[ingRow.Uuid] = true
+		if err := r.writeRecipeIngredients(ctx, q, recipeID, rec.Name, rec.Ingredients, now); err != nil {
+			return err
+		}
 
-			unitName := normalizeUnitName(ri.Unit.Name)
-			var unitID uuid.NullUUID
-			if unitName != "" {
-				unitRow, err := q.GetUnitByName(ctx, unitName)
-				if err == sql.ErrNoRows {
-					unitRow, err = q.CreateUnit(ctx, db.CreateUnitParams{
-						Uuid:         uuid.New(),
-						Name:         unitName,
-						Abbreviation: sql.NullString{String: ri.Unit.Abbreviation, Valid: ri.Unit.Abbreviation != ""},
-						CreatedAt:    now,
-						UpdatedAt:    now,
-					})
-					if err != nil {
-						return err
-					}
-				} else if err != nil {
-					return err
-				}
-				unitID = uuidToNullUUID(&unitRow.Uuid)
-			}
-
-			_, err = q.CreateRecipeIngredient(ctx, db.CreateRecipeIngredientParams{
-				RecipeID:     recipeID,
-				IngredientID: ingRow.Uuid,
-				UnitID:       unitID,
-				Quantity:     sql.NullFloat64{Float64: ri.Quantity, Valid: true},
-				Preparation:  sql.NullString{String: ri.Preparation, Valid: ri.Preparation != ""},
-				Component:    sql.NullString{String: ri.Component, Valid: ri.Component != ""},
-				CreatedAt:    now,
-				UpdatedAt:    now,
-			})
-			if err != nil {
-				return err
-			}
+		// Sweep up anything the re-insert above left unreferenced — an ingredient
+		// renamed in the editor would otherwise linger forever.
+		if err := q.DeleteOrphanedIngredients(ctx); err != nil {
+			return err
 		}
 
 		// Re-insert labels and recipe_label

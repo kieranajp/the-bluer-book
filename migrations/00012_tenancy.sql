@@ -83,8 +83,6 @@ ALTER TABLE ingredients        ALTER COLUMN home_id SET DEFAULT NULLIF(current_s
 ALTER TABLE ingredients DROP CONSTRAINT ingredients_name_key;
 ALTER TABLE ingredients ADD CONSTRAINT ingredients_home_name_unique UNIQUE (home_id, name);
 
--- The meal plan keeps its single-column primary key: a recipe uuid belongs to
--- exactly one home, so it can only ever appear in that home's plan.
 CREATE INDEX idx_meal_plan_home ON meal_plan_recipes(home_id, added_at DESC);
 
 CREATE INDEX idx_recipes_home_active   ON recipes(home_id, created_at DESC)  WHERE archived_at IS NULL;

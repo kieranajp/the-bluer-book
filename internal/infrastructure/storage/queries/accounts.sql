@@ -94,8 +94,3 @@ RETURNING *;
 -- Only tells a caller why their token was refused. Redemption never reads
 -- first; it goes through RedeemInvitation.
 SELECT * FROM invitations WHERE token_hash = @token_hash;
-
--- name: ListOpenInvitationsForHome :many
-SELECT * FROM invitations
-WHERE home_id = @home_id AND accepted_at IS NULL AND expires_at > now()
-ORDER BY created_at DESC;

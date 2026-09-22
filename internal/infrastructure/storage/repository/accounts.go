@@ -97,6 +97,21 @@ func (r *accountRepository) ProvisionUser(ctx context.Context, id account.Identi
 	return toUser(user), toHome(home), nil
 }
 
+func (r *accountRepository) RefreshProfile(ctx context.Context, id account.Identity) (account.User, error) {
+	row, err := r.db.UpdateUserProfile(ctx, db.UpdateUserProfileParams{
+		Subject:     id.Subject,
+		Email:       id.Email,
+		DisplayName: id.DisplayName,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return account.User{}, account.ErrUserNotFound
+	}
+	if err != nil {
+		return account.User{}, err
+	}
+	return toUser(row), nil
+}
+
 // joinHome puts the user in the home the target names, creating that home first
 // unless the target already identifies one.
 func joinHome(ctx context.Context, q *db.Queries, userID uuid.UUID, target account.HomeTarget, role account.Role) (db.Home, error) {

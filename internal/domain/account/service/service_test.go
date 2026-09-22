@@ -47,6 +47,10 @@ type stubRepo struct {
 	provisionedAt  []account.HomeTarget
 	provisionError error
 
+	refreshed      []account.Identity
+	refreshedUser  account.User
+	refreshProfErr error
+
 	// findMostRecentHomeCalls only counts calls: a test asserting the
 	// fallback never ran does not otherwise care what it would have
 	// returned.
@@ -130,6 +134,14 @@ func (s *stubRepo) ProvisionUser(_ context.Context, id account.Identity, target 
 		home.UUID = uuid.New()
 	}
 	return account.User{UUID: uuid.New(), Subject: id.Subject, Email: id.Email}, home, nil
+}
+
+func (s *stubRepo) RefreshProfile(_ context.Context, id account.Identity) (account.User, error) {
+	s.refreshed = append(s.refreshed, id)
+	if s.refreshProfErr != nil {
+		return account.User{}, s.refreshProfErr
+	}
+	return s.refreshedUser, nil
 }
 
 func (s *stubRepo) FindRole(_ context.Context, homeID, userID uuid.UUID) (account.Role, error) {
@@ -241,6 +253,84 @@ func TestProvisionFromSubjectLeavesAKnownUserAlone(t *testing.T) {
 	}
 	if len(repo.provisioned) != 0 {
 		t.Errorf("provisioned a user that already existed")
+	}
+}
+
+func TestProvisionFromSubjectRefreshesAChangedProfile(t *testing.T) {
+	known := account.User{UUID: uuid.New(), Subject: "subject-a", Email: "old@example.com", DisplayName: "Old Name"}
+	moved := account.User{UUID: known.UUID, Subject: known.Subject, Email: "new@example.com", DisplayName: "New Name"}
+	repo := &stubRepo{user: known, refreshedUser: moved}
+	svc := NewAccountService(repo, "", metrics.NoopAccountProbe{})
+
+	user, err := svc.ProvisionFromSubject(context.Background(), account.Identity{
+		Subject:     "subject-a",
+		Email:       "new@example.com",
+		DisplayName: "New Name",
+	})
+	if err != nil {
+		t.Fatalf("ProvisionFromSubject: %v", err)
+	}
+	if len(repo.refreshed) != 1 {
+		t.Fatalf("%d refreshes, want 1", len(repo.refreshed))
+	}
+	if user.Email != moved.Email || user.DisplayName != moved.DisplayName {
+		t.Errorf("returned %q / %q, want the refreshed %q / %q", user.Email, user.DisplayName, moved.Email, moved.DisplayName)
+	}
+}
+
+// Every request carries the profile, so a refresh on each one would be a write
+// per read. Only a difference is worth the round trip.
+func TestProvisionFromSubjectLeavesAnUnchangedProfileAlone(t *testing.T) {
+	known := account.User{UUID: uuid.New(), Subject: "subject-a", Email: "a@example.com", DisplayName: "A"}
+	repo := &stubRepo{user: known}
+	svc := NewAccountService(repo, "", metrics.NoopAccountProbe{})
+
+	if _, err := svc.ProvisionFromSubject(context.Background(), account.Identity{
+		Subject:     "subject-a",
+		Email:       "a@example.com",
+		DisplayName: "A",
+	}); err != nil {
+		t.Fatalf("ProvisionFromSubject: %v", err)
+	}
+	if len(repo.refreshed) != 0 {
+		t.Errorf("refreshed a profile nothing had changed")
+	}
+}
+
+// The edge forwards email and name only while it is configured to, so an
+// absent one must not overwrite a good stored value with nothing.
+func TestProvisionFromSubjectIgnoresAClaimThatDidNotArrive(t *testing.T) {
+	known := account.User{UUID: uuid.New(), Subject: "subject-a", Email: "a@example.com", DisplayName: "A"}
+	repo := &stubRepo{user: known}
+	svc := NewAccountService(repo, "", metrics.NoopAccountProbe{})
+
+	user, err := svc.ProvisionFromSubject(context.Background(), account.Identity{Subject: "subject-a"})
+	if err != nil {
+		t.Fatalf("ProvisionFromSubject: %v", err)
+	}
+	if len(repo.refreshed) != 0 {
+		t.Errorf("an identity carrying no claims triggered a refresh")
+	}
+	if user.Email != known.Email || user.DisplayName != known.DisplayName {
+		t.Errorf("returned %q / %q, want the stored %q / %q", user.Email, user.DisplayName, known.Email, known.DisplayName)
+	}
+}
+
+// A profile one request out of date is not a reason to refuse the request.
+func TestProvisionFromSubjectSurvivesAFailedRefresh(t *testing.T) {
+	known := account.User{UUID: uuid.New(), Subject: "subject-a", Email: "old@example.com"}
+	repo := &stubRepo{user: known, refreshProfErr: errors.New("boom")}
+	svc := NewAccountService(repo, "", metrics.NoopAccountProbe{})
+
+	user, err := svc.ProvisionFromSubject(context.Background(), account.Identity{
+		Subject: "subject-a",
+		Email:   "new@example.com",
+	})
+	if err != nil {
+		t.Fatalf("ProvisionFromSubject: %v", err)
+	}
+	if user.UUID != known.UUID || user.Email != known.Email {
+		t.Errorf("returned %s / %q, want the stored %s / %q", user.UUID, user.Email, known.UUID, known.Email)
 	}
 }
 

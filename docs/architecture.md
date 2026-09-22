@@ -62,7 +62,10 @@ user and a home on the request context, provisioning both the first time a subje
 appears. A request without the header is 401; `/health` and `/metrics` sit outside it.
 The edge also forwards the `email` and `name` claims as `X-User-Email` and `X-User-Name`,
 and a new home is named after the email's local part — both headers are optional, and a
-home provisioned without them is called "My Book". `FOUNDER_SUBJECT` names the one subject
+home provisioned without them is called "My Book". They arrive on every request, so a
+changed email or name is written back on the next one and housemates see it in the member
+list; a header that stops arriving leaves the stored value alone rather than blanking it.
+`FOUNDER_SUBJECT` names the one subject
 that joins the home holding the collection that predates all this, rather than an empty
 one.
 

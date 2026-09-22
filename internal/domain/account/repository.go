@@ -43,6 +43,11 @@ type Repository interface {
 	// one subject settle on the same pair.
 	ProvisionUser(ctx context.Context, id Identity, target HomeTarget) (User, Home, error)
 
+	// RefreshProfile brings a user's email and display name level with what the
+	// provider now asserts, returning ErrUserNotFound if the subject has none.
+	// An empty value in the identity leaves what is stored.
+	RefreshProfile(ctx context.Context, id Identity) (User, error)
+
 	// FindRole returns the caller's standing in a home, or ErrForbidden when
 	// they have none.
 	FindRole(ctx context.Context, homeID, userID uuid.UUID) (Role, error)

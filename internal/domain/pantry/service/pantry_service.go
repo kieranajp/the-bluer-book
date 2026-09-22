@@ -20,6 +20,9 @@ type PantryService interface {
 	// RemoveFromPantry is the inverse, and reports the same not-found error.
 	// Removing an ingredient that isn't in the pantry is a no-op, not an error.
 	RemoveFromPantry(ctx context.Context, ingredient string) error
+	// SetStaple marks an ingredient as always in the cupboard — salt, oil,
+	// water — so it stops cluttering every shopping list. Same not-found error.
+	SetStaple(ctx context.Context, ingredient string, staple bool) error
 	ListPantry(ctx context.Context) ([]pantry.PantryItem, error)
 	// ShoppingList returns everything to buy: the ingredients a planned recipe
 	// needs but the pantry lacks, plus any free-text custom items.
@@ -66,6 +69,23 @@ func (s *pantryService) RemoveFromPantry(ctx context.Context, ingredient string)
 		return err
 	}
 	s.probe.PantryChanged("remove", ingredient)
+	return nil
+}
+
+func (s *pantryService) SetStaple(ctx context.Context, ingredient string, staple bool) error {
+	ingredient = strings.TrimSpace(ingredient)
+	if ingredient == "" {
+		return fmt.Errorf("ingredient name is required")
+	}
+	action := "unset_staple"
+	if staple {
+		action = "set_staple"
+	}
+	if err := s.repo.SetStaple(ctx, ingredient, staple); err != nil {
+		s.observeFailure(action, ingredient, err)
+		return err
+	}
+	s.probe.PantryChanged(action, ingredient)
 	return nil
 }
 

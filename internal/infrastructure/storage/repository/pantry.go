@@ -17,6 +17,10 @@ type PantryRepository interface {
 	ListPantry(ctx context.Context) ([]pantry.PantryItem, error)
 	ShoppingList(ctx context.Context) ([]string, error)
 
+	// SetStaple marks an ingredient as always-in-the-cupboard, keeping it off
+	// the shopping list and treating it as present for "what can I cook".
+	SetStaple(ctx context.Context, ingredient string, staple bool) error
+
 	// Custom (free-text) shopping list items, kept separate from the
 	// meal-plan-derived shortfall.
 	AddCustomShoppingItem(ctx context.Context, name string) error
@@ -44,19 +48,29 @@ func (r *pantryRepository) AddToPantry(ctx context.Context, ingredient string) e
 }
 
 func (r *pantryRepository) RemoveFromPantry(ctx context.Context, ingredient string) error {
-	// Resolve first purely to validate the name: an unknown ingredient is worth
-	// reporting rather than passing off as a successful removal. The delete
-	// itself works by name so it clears every casing variant.
 	return InHomeTx(ctx, r.sqlDB, func(q *db.Queries) error {
-		if _, err := r.resolveIngredient(ctx, q, ingredient); err != nil {
+		id, err := r.resolveIngredient(ctx, q, ingredient)
+		if err != nil {
 			return err
 		}
-		return q.RemoveFromPantry(ctx, ingredient)
+		return q.RemoveFromPantry(ctx, id)
+	})
+}
+
+// SetStaple marks an ingredient as always-in-the-cupboard, keeping it off the
+// shopping list and treating it as present for "what can I cook".
+func (r *pantryRepository) SetStaple(ctx context.Context, ingredient string, staple bool) error {
+	return InHomeTx(ctx, r.sqlDB, func(q *db.Queries) error {
+		id, err := r.resolveIngredient(ctx, q, ingredient)
+		if err != nil {
+			return err
+		}
+		return q.SetIngredientStaple(ctx, db.SetIngredientStapleParams{Uuid: id, IsStaple: staple})
 	})
 }
 
 // resolveIngredient maps a free-text ingredient name onto a known ingredient,
-// tolerating casing and surrounding whitespace. A name that matches nothing is
+// via canonical name and then the alias table. A name that matches nothing is
 // an error: pantry entries are foreign keys into the ingredients table, so
 // there is no row to create, and reporting success would leave the caller
 // believing the pantry changed when it didn't.
@@ -83,6 +97,7 @@ func (r *pantryRepository) ListPantry(ctx context.Context) ([]pantry.PantryItem,
 		for i, row := range rows {
 			items[i] = pantry.PantryItem{
 				Ingredient: row.Name,
+				Canonical:  row.CanonicalName,
 				AddedAt:    row.AddedAt,
 			}
 		}

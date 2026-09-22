@@ -3,10 +3,15 @@ package pantry
 import "time"
 
 // PantryItem records that the user currently has a given ingredient at home.
-// Presence-only (v1): the ingredient is identified by its name, which is
-// unique in the ingredients table.
+// Presence-only (v1).
+//
+// Ingredient is the display name; Canonical is what clients should match on
+// when deciding whether a recipe's ingredient is in stock. Matching on the
+// display name is what made "Salt" in the pantry fail to tick the "salt" row
+// in a recipe.
 type PantryItem struct {
 	Ingredient string    `json:"ingredient"`
+	Canonical  string    `json:"canonical"`
 	AddedAt    time.Time `json:"addedAt,omitempty"`
 }
 

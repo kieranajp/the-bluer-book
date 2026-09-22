@@ -174,7 +174,7 @@ func TestHomeScoping(t *testing.T) {
 		for _, home := range []uuid.UUID{homeA, homeB} {
 			// No INSERT names a home: each row takes the one the transaction set.
 			if err := inTestHome(sqlDB, home, func(tx *sql.Tx) error {
-				_, err := tx.Exec(`INSERT INTO ingredients (name) VALUES ($1)`, shared)
+				_, err := tx.Exec(`INSERT INTO ingredients (name, canonical_name) VALUES ($1, lower(btrim($1::text)))`, shared)
 				return err
 			}); err != nil {
 				t.Fatalf("insert into %s: %v", home, err)

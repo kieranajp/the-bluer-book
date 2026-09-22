@@ -107,6 +107,29 @@ func (h *RecipeMCPHandler) RemoveFromShoppingList(ctx context.Context, req mcpli
 	return successResult(fmt.Sprintf("Removed '%s' from the shopping list", name), "name", name)
 }
 
+func (h *RecipeMCPHandler) SetIngredientStaple(ctx context.Context, req mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
+	ingredient, err := requiredTrimmedString(req, "ingredient")
+	if err != nil {
+		return nil, err
+	}
+	staple := req.GetBool("staple", true)
+
+	if err := h.pantryService.SetStaple(ctx, ingredient, staple); err != nil {
+		if errors.Is(err, pantry.ErrIngredientNotFound) {
+			h.logger.Warn().Str("ingredient", ingredient).Msg("Unknown ingredient for staple toggle via MCP")
+			return unknownIngredientResult(ingredient), nil
+		}
+		h.logger.Error().Err(err).Str("ingredient", ingredient).Msg("Failed to set ingredient staple via MCP")
+		return nil, fmt.Errorf("failed to set ingredient staple: %w", err)
+	}
+
+	message := fmt.Sprintf("Marked '%s' as a staple — it won't appear on shopping lists", ingredient)
+	if !staple {
+		message = fmt.Sprintf("'%s' is no longer a staple", ingredient)
+	}
+	return successResult(message, "ingredient", ingredient)
+}
+
 // unknownIngredientResult tells the caller the pantry didn't change and why.
 // It's a tool error rather than a transport error so the model reads the text
 // and can correct itself — the usual fix is a name lifted from a recipe, or

@@ -104,11 +104,13 @@ run_suite() {
     exit 1
   fi
   echo "$output"
-  if printf '%s' "$output" | grep -q -- '--- SKIP'; then
+  # Reading to the end, not stopping at the match: -q would leave printf
+  # writing into a closed pipe, which pipefail reports as a failure of its own.
+  if printf '%s' "$output" | grep -- '--- SKIP' >/dev/null; then
     echo "FAIL: ${label} skipped a case. A suite that skips proves nothing." >&2
     exit 1
   fi
-  if ! printf '%s' "$output" | grep -q -- '--- PASS'; then
+  if ! printf '%s' "$output" | grep -- '--- PASS' >/dev/null; then
     echo "FAIL: ${label} ran no tests at all." >&2
     exit 1
   fi
@@ -123,7 +125,7 @@ if owner_output=$(BLUER_BOOK_TEST_DSN="$OWNER_DSN" go test "$PKG" -run TestIsola
   exit 1
 fi
 # A compile error fails too, and would otherwise read as the guard working.
-if ! printf '%s' "$owner_output" | grep -q 'which holds SUPERUSER or BYPASSRLS'; then
+if ! printf '%s' "$owner_output" | grep 'which holds SUPERUSER or BYPASSRLS' >/dev/null; then
   echo "$owner_output" >&2
   echo "FAIL: the suite failed as ${OWNER_USER}, but not because the role guard fired." >&2
   exit 1

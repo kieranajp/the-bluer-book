@@ -47,10 +47,8 @@ func Middleware(resolver UserResolver, log logger.Logger) func(http.Handler) htt
 			session, err := resolver.Resolve(r.Context(), caller)
 			if errors.Is(err, ErrHomeForbidden) {
 				log.Warn().Str("subject", caller.Subject).Str("home", home.String()).Msg("Caller named a home they are not in")
-				// Its own status and code, because the client answers 401 by
-				// refreshing its token and replaying: a session that is fine
-				// would burn a refresh and surface an auth error. The home the
-				// client is holding is what has to go.
+				// Its own status, because the client answers 401 by refreshing
+				// and replaying — a valid session burnt on a stale home.
 				writeError(w, http.StatusForbidden, "home_forbidden", "Caller is not a member of the requested home")
 				return
 			}

@@ -65,9 +65,8 @@ and a new home is named after the email's local part — both headers are option
 home provisioned without them is called "My Book". They arrive on every request, so a
 changed email or name is written back on the next one and housemates see it in the member
 list; a header that stops arriving leaves the stored value alone rather than blanking it.
-`FOUNDER_SUBJECT` names the one subject
-that joins the home holding the collection that predates all this, rather than an empty
-one.
+`FOUNDER_SUBJECT` names the one subject that joins the home holding the collection that
+predates all this, rather than an empty one.
 
 A caller in more than one home picks between them with an `X-Home` header. That one comes
 from the client rather than the edge, so it is a request and not a fact: the middleware
@@ -123,8 +122,9 @@ superuser in the deployed chart. So the server connects instead as `bluer_book_a
 that owns no table and holds neither SUPERUSER nor BYPASSRLS. There is deliberately no
 fallback from `APP_DB_USER` to `DB_USER`, and the server checks the connected role's
 privileges at startup, and the tables' `FORCE` flags and policies, refusing to serve on
-anything that wouldn't bind. Ingredient lookup by name and a label's `uses` count are
-scoped per home by the same policy.
+anything that wouldn't bind. Ingredient lookup by name is scoped per home by the same
+policy. `labels` is not, being global, so `ListLabels` keeps its listing inside the home by
+dropping any label this home has never applied.
 
 Uniqueness and foreign keys are checked with row security switched off, so a policy cannot
 stop one home writing a row that *references* another home's. Keys carry `home_id` for that

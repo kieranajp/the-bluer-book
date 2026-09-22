@@ -6,9 +6,9 @@ import (
 	"fmt"
 )
 
-// TenantTables are the tables home isolation covers. units and labels carry no
-// home; users, homes, home_members and invitations answer which home a request
-// acts on, which is a question that cannot be asked from inside the answer.
+// TenantTables are the tables home isolation covers. units, labels, users,
+// homes, home_members and invitations are excluded: they decide which home a
+// request acts on.
 var TenantTables = []string{
 	"recipes", "steps", "recipe_ingredient", "recipe_label", "photos",
 	"meal_plan_recipes", "ingredients", "pantry_items", "shopping_list_items",
@@ -17,11 +17,9 @@ var TenantTables = []string{
 // CheckIsolation reports the connected role, and refuses a connection that
 // would read and write every home while every request still looked right.
 //
-// There are two ways to end up there and no symptom for either. The role can
-// escape the policies — a superuser and a role holding BYPASSRLS both do, and
-// so does a table's owner unless FORCE is set. Or the policies can be missing:
-// rolled back, never applied, or dropped from one table by a later migration.
-// Boot is the only honest place to find out.
+// Two failure modes give no symptom otherwise: the role escapes the policies
+// (superuser, BYPASSRLS, or an unforced table owner), or a policy is missing —
+// rolled back, never applied, or dropped later. Boot is the only place to catch either.
 func CheckIsolation(ctx context.Context, sqlDB *sql.DB) (string, error) {
 	var role string
 	var super, bypass bool

@@ -119,10 +119,9 @@ var (
 	}
 )
 
-// checkFounderHome reports a founder subject whose requests already resolve
-// somewhere other than the founder home. That happens when the subject is
-// configured only after its owner has signed in once, and it is worth shouting
-// about: the collection stays in the founder home while its owner does not.
+// checkFounderHome warns when FOUNDER_SUBJECT's requests already resolve to a
+// home other than the founder home — the subject was configured after its
+// owner's first sign-in, so the collection and its owner are now split.
 func checkFounderHome(ctx context.Context, repo account.Repository, subject string, log logger.Logger) {
 	user, err := repo.FindUserBySubject(ctx, subject)
 	if errors.Is(err, account.ErrUserNotFound) {
@@ -148,7 +147,6 @@ func run(c *cli.Context) error {
 	listenAddr := cfg.ListenAddr
 	mcpAddr := cfg.MCPAddr
 
-	// Initialize logger
 	log := logger.New(logger.LogLevelInfo)
 
 	mcpHomeID, err := uuid.Parse(cfg.MCPHomeID)
@@ -168,7 +166,6 @@ func run(c *cli.Context) error {
 	}
 	defer sqlDB.Close()
 
-	// Test database connection
 	if err := sqlDB.Ping(); err != nil {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
@@ -179,9 +176,8 @@ func run(c *cli.Context) error {
 	}
 	log.Info().Str("role", role).Msg("Database connection is subject to row-level security")
 
-	// A home that does not exist would give every MCP tool call empty reads and
-	// a foreign-key failure on write, one call at a time and never at startup.
-	// Refuse here instead.
+	// A missing MCP home would otherwise mean every tool call sees empty reads
+	// and fails writes, one call at a time and never caught at startup.
 	var mcpHomeExists bool
 	if err := sqlDB.QueryRow(`SELECT EXISTS (SELECT 1 FROM homes WHERE uuid = $1)`, mcpHomeID).Scan(&mcpHomeExists); err != nil {
 		return fmt.Errorf("failed to check MCP home %s: %w", mcpHomeID, err)
@@ -194,22 +190,18 @@ func run(c *cli.Context) error {
 	// recorded by the instrumented DBTX below.
 	metrics.RegisterDBStats(sqlDB)
 
-	// Initialize dependencies. Wrapping the pool in an instrumented DBTX times
-	// every sqlc query without the repository needing to know about metrics.
-	// The identity tables resolve a request before any home is known, so the
-	// account repository keeps the plain pool. Everything tenant-scoped goes
-	// through InHomeTx instead and takes the pool itself.
+	// Metrics wrap the pool once here, timing every sqlc query without the
+	// repository knowing about it. Identity tables resolve before any home is
+	// known, so the account repo keeps the plain pool; tenant code uses InHomeTx.
 	queries := db.New(metrics.NewInstrumentedDBTX(sqlDB))
 	repo := repository.NewRecipeRepository(sqlDB, log)
 	pantryRepo := repository.NewPantryRepository(sqlDB, log)
 	accountRepo := repository.NewAccountRepository(queries, sqlDB, log)
 
-	// Create probes
 	recipeProbe := metrics.NewRecipeProbe(log)
 	pantryProbe := metrics.NewPantryProbe(log)
 	chatProbe := metrics.NewChatProbe(log)
 
-	// Initialize services
 	recipeService := service.NewRecipeService(repo, recipeProbe)
 	pantryService := pantryservice.NewPantryService(pantryRepo, pantryProbe)
 	accountService := accountservice.NewAccountService(accountRepo, cfg.FounderSubject, metrics.NewAccountProbe(log))
@@ -223,10 +215,8 @@ func run(c *cli.Context) error {
 	// acts on, provisioning both on a first login.
 	resolver := identity.NewResolver(accountService)
 
-	// Create MCP handler
 	mcpHandler := mcp.NewRecipeMCPHandler(recipeService, pantryService, log)
 
-	// Create MCP server
 	mcpServer := server.NewMCPServer("Recipe Management Server", "1.0.0",
 		server.WithToolCapabilities(true),
 	)
@@ -237,10 +227,8 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on MCP address %s: %w", mcpAddr, err)
 	}
-	// Nothing identifies an MCP caller: the route carries no auth and the tools
-	// take no caller argument. Every call therefore acts on one configured
-	// home, stamped here so the repositories find one where a request's
-	// middleware would normally have put it.
+	// No MCP call carries auth or a caller argument, so every call acts on one
+	// configured home, stamped here where middleware would normally have put it.
 	httpMCPServer := server.NewStreamableHTTPServer(mcpServer,
 		server.WithHTTPContextFunc(func(ctx context.Context, _ *http.Request) context.Context {
 			return auth.WithHome(ctx, mcpHomeID)

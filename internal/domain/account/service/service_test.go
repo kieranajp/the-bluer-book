@@ -443,9 +443,8 @@ func TestResolveActiveHomeSurfacesLookupFailures(t *testing.T) {
 	}
 }
 
-// A requested home must be settled by FindHomeForUser alone: falling through
-// to the most-recent-home lookup or to provisioning would answer a question
-// nobody asked, for a home the caller may have no business in.
+// This suite pins that a requested home is settled by FindHomeForUser alone,
+// never by falling through to most-recent or provisioning a fresh one.
 func TestResolveActiveHomeWithARequestedHomeNeverFallsBack(t *testing.T) {
 	requested := uuid.New()
 	home := account.Home{UUID: requested, Name: "Someone Else's Book"}

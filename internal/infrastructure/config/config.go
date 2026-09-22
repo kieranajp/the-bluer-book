@@ -21,10 +21,8 @@ type Config struct {
 	DBHost string
 	DBPort string
 
-	// AppDBUser and AppDBPass are the non-owner role the server connects as.
-	// FORCE ROW LEVEL SECURITY does not bind a superuser or a table owner, and
-	// DB_USER is both, so connecting as it would leave every policy inert while
-	// everything still appeared to work.
+	// AppDBUser and AppDBPass are the non-owner role the server connects as;
+	// DB_USER owns every table, so FORCE ROW LEVEL SECURITY does not bind it.
 	AppDBUser string
 	AppDBPass string
 
@@ -32,13 +30,11 @@ type Config struct {
 	GeminiModel  string
 
 	// FounderSubject is the token subject whose first login attaches to the
-	// founder home rather than to a fresh one. Empty means nobody gets that
-	// treatment, and the founder home stays unclaimed.
+	// founder home; empty leaves that home unclaimed.
 	FounderSubject string
 
-	// MCPHomeID is the home every MCP tool call acts on. The MCP server has no
-	// caller to resolve, so it serves one fixed home and the chat assistant
-	// reaches the same one through it.
+	// MCPHomeID is the home every MCP tool call acts on: the MCP server has no
+	// caller to resolve, so it and the chat assistant serve one fixed home.
 	MCPHomeID string
 }
 
@@ -62,9 +58,8 @@ func New(c *cli.Context) Config {
 	}
 }
 
-// DBDSN returns the Postgres connection string for the owning role. Migrations
-// and the sweep commands use it: they act on every home at once, which no
-// policy-bound role can do.
+// DBDSN returns the connection string for the owning role, used by migrations
+// and sweep commands that act on every home at once.
 func (c Config) DBDSN() string {
 	return c.dsn(c.DBUser, c.DBPass)
 }
@@ -73,10 +68,9 @@ func (c Config) DBDSN() string {
 // connect as.
 var ErrNoAppDBUser = errors.New("config: APP_DB_USER is not set")
 
-// AppDBDSN returns the connection string for the role the request path uses.
-// It has no fallback to DB_USER on purpose. The owner bypasses every isolation
-// policy in the schema, so a fallback would answer every request correctly
-// while enforcing nothing, and there is no symptom to notice.
+// AppDBDSN returns the connection string for the request path's role. It has
+// no fallback to DB_USER: that role bypasses row-level security, so a
+// fallback would look correct while enforcing nothing.
 func (c Config) AppDBDSN() (string, error) {
 	if c.AppDBUser == "" {
 		return "", ErrNoAppDBUser

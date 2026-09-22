@@ -36,9 +36,8 @@ func (r *provisioningResolver) Resolve(ctx context.Context, caller auth.Caller) 
 
 	home, err := r.svc.ResolveActiveHome(ctx, user, caller.Home)
 	if err != nil {
-		// A caller who named a home and is not in it gets that answer and no
-		// other. Every other home-not-found here is a fault, because the
-		// no-preference path provisions a home rather than failing to find one.
+		// A named home the caller isn't in returns that specific refusal; any
+		// other not-found is a fault, since asking for no home always provisions one.
 		if caller.Home != uuid.Nil && errors.Is(err, account.ErrHomeNotFound) {
 			return auth.Session{}, auth.ErrHomeForbidden
 		}

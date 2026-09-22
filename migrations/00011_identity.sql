@@ -1,8 +1,7 @@
 -- +goose Up
 -- Identity and tenancy tables: who is calling, which homes exist, and who
--- belongs to which. These run before a home is known for a request, so they
--- stay outside the per-home row-level security that later migrations put on the
--- tenant tables.
+-- belongs to which. They run before a home is known, so stay outside the
+-- row-level security later migrations put on the tenant tables.
 
 CREATE TABLE users (
   uuid         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -46,10 +45,8 @@ CREATE TABLE invitations (
 
 CREATE INDEX idx_invitations_home ON invitations(home_id);
 
--- The founder home exists from here on so that the operator's first login
--- attaches to it. Every recipe already in the book is later stamped with this
--- id; provision the operator into a fresh home instead and they would see none
--- of it.
+-- The founder home exists from here so the operator's first login attaches to
+-- this id, not a fresh home — where the pre-existing recipes get stamped.
 INSERT INTO homes (uuid, name) VALUES ('00000000-0000-0000-0000-000000000001', 'Founder');
 
 -- +goose Down

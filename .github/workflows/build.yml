@@ -56,16 +56,14 @@ jobs:
 
       - run: go mod tidy && go test -v ./...
 
-      # Home isolation is the one property unit tests cannot demonstrate: it
-      # lives in the database, and only shows up on a connection the policies
-      # bind. The script builds a throwaway postgres with both roles and runs
-      # the suite against each — including the run that has to fail.
+      # Home isolation only shows up on a real connection the policies bind, so
+      # unit tests can't prove it; the script runs the suite as both roles,
+      # including the run that has to fail.
       - name: Home isolation
         run: ./scripts/rls-test.sh
 
-      # The layer above the policies: who an invitation admits, and whether
-      # X-Home names a home or takes one. Needs a server, so it cannot be a
-      # unit test either.
+      # The layer above the policies — who an invitation admits, whether X-Home
+      # names a home or takes one — needs a live server, so isn't a unit test either.
       - name: Home membership
         run: ./scripts/membership-test.sh
 

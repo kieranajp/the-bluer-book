@@ -480,10 +480,8 @@ func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec r
 	now := time.Now()
 
 	err := InHomeTx(ctx, r.sqlDB, func(q *db.Queries) error {
-		// Resolve the main photo. We reuse the existing photo row when the URL is
-		// unchanged (the common case — editing a recipe must not drop or duplicate
-		// its photo) and only create a new row for a genuinely new URL. A nil
-		// MainPhoto clears the association.
+		// Reuses the existing photo row when the URL is unchanged, so editing a
+		// recipe doesn't drop or duplicate its photo; a nil MainPhoto clears it.
 		var mainPhotoID *uuid.UUID
 		if rec.MainPhoto != nil && rec.MainPhoto.URL != "" {
 			existing, err := q.GetPhotoByUrlAndEntity(ctx, db.GetPhotoByUrlAndEntityParams{

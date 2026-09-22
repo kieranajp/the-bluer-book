@@ -39,15 +39,13 @@ func queryName(query string) string {
 	return "unknown"
 }
 
-// InstrumentedDBTX wraps a db.DBTX so every sqlc-generated query records its
-// duration and error count. db.New takes a DBTX, so one wrapper covers every
-// query underneath it — the same "domain says what, infrastructure decides how"
-// split as HTTPMetrics.
+// InstrumentedDBTX wraps a db.DBTX so every sqlc query records its duration
+// and error count; db.New takes a DBTX, so one wrapper covers everything
+// underneath it.
 //
-// Both the pool and each home-scoped transaction are wrapped. Account
-// provisioning is the exception — it runs its own transaction on the raw
-// *sql.Tx and is not timed. Connection use shows up separately in the go_sql_*
-// pool stats registered by RegisterDBStats.
+// Account provisioning runs its own *sql.Tx and isn't wrapped, so it's not
+// timed here; connection use itself shows up separately in the go_sql_* pool
+// stats from RegisterDBStats.
 type InstrumentedDBTX struct {
 	inner db.DBTX
 }

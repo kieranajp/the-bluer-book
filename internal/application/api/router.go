@@ -88,9 +88,8 @@ func NewRouter(recipeService service.RecipeService, pantryService pantryservice.
 	apiMux.HandleFunc("GET /api/homes/{id}/members", accountHandler.ListMembers)
 	apiMux.HandleFunc("DELETE /api/homes/{id}/members/{userID}", accountHandler.RemoveMember)
 
-	// Everything under /api acts on somebody's home, so the whole subtree hangs
-	// off one nested mux behind the identity middleware. /health and /metrics
-	// stay on the outer mux, where no caller is needed.
+	// Everything under /api acts on somebody's home, so the subtree hangs off
+	// one nested mux behind the identity middleware; /health and /metrics need no caller.
 	mux.Handle("/api/", auth.Middleware(resolver, logger)(apiMux))
 
 	return metrics.HTTPMetrics(middleware.AccessLog(logger, mux))

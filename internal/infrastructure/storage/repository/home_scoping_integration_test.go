@@ -36,10 +36,9 @@ func openTestDB(t *testing.T) *sql.DB {
 	return sqlDB
 }
 
-// skipUnlessUnrestricted leaves this suite to the owning role. Its assertions
-// read tenant tables on the bare pool, outside any transaction, which is
-// exactly what the isolation policies stop. TestIsolation is the suite that
-// wants the bound connection, and it refuses to run without one.
+// skipUnlessUnrestricted leaves this suite to the owning role: its assertions
+// read tenant tables on the bare pool, outside any transaction, which the
+// isolation policies would otherwise stop. TestIsolation wants the bound connection.
 func skipUnlessUnrestricted(t *testing.T, sqlDB *sql.DB) {
 	t.Helper()
 
@@ -164,10 +163,9 @@ func TestHomeScoping(t *testing.T) {
 		}
 	})
 
-	// The constraint is tested directly rather than through SaveRecipe: on this
-	// unbound connection ingredient lookup by name sees every home, so a save in
-	// home B would find home A's row and reuse it. The policies are what stop
-	// that, and TestIsolation is where that is asserted.
+	// Tested directly rather than through SaveRecipe: on this unbound
+	// connection, ingredient lookup by name sees every home, so a save in home B
+	// would find and reuse home A's row. TestIsolation asserts the policy that stops it.
 	t.Run("two homes each hold an ingredient of the same name", func(t *testing.T) {
 		const shared = "scoping shared ingredient"
 

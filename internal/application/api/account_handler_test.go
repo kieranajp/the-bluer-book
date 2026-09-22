@@ -468,10 +468,9 @@ func TestRemoveMember_MalformedTargetIDNeverReachesTheService(t *testing.T) {
 
 // --- Error mapping ---
 //
-// One table, one row per mapped error, so changing a status or a code fails
-// here rather than reaching a client. It cannot notice a sentinel that was
-// never added to it. ListMembers is the vehicle: it passes any service error
-// straight through with no branching of its own.
+// One table, one row per mapped error, so a wrong status or code fails here
+// rather than reaching a client; it can't catch a sentinel never added to it.
+// ListMembers is the vehicle, passing any service error straight through.
 
 func TestAccountErrorMapping(t *testing.T) {
 	cases := []struct {

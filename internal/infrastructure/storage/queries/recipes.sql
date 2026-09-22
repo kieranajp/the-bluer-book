@@ -43,6 +43,15 @@ SELECT * FROM ingredients WHERE name = $1;
 -- name: ListIngredients :many
 SELECT * FROM ingredients ORDER BY name ASC;
 
+-- name: DeleteOrphanedIngredients :exec
+-- UpdateRecipe deletes and recreates a recipe's ingredient links, so correcting
+-- a typo in the editor strands the old ingredient row for good. Nothing else
+-- points at ingredients, so a row with no recipe link and no pantry entry is
+-- dead weight — and, left alone, clutter in the autocomplete.
+DELETE FROM ingredients i
+WHERE NOT EXISTS (SELECT 1 FROM recipe_ingredient ri WHERE ri.ingredient_id = i.uuid)
+  AND NOT EXISTS (SELECT 1 FROM pantry_items p WHERE p.ingredient_id = i.uuid);
+
 -- name: CreateUnit :one
 INSERT INTO units (
     uuid,

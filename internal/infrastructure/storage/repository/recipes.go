@@ -371,17 +371,11 @@ func (r *recipeRepository) writeRecipeIngredients(ctx context.Context, q *db.Que
 		if err != nil {
 			return err
 		}
-		if qualifier != "" {
-			if strings.TrimSpace(ri.Preparation) == "" {
-				// The name carried a count qualifier ("garlic cloves"): it
-				// lives on the recipe line, not in the ingredient's identity.
-				ri.Preparation = qualifier
-			}
-			if ri.Unit.Name == "" {
-				// The qualifier was also the unit: "garlic cloves" measures
-				// in cloves. resolveUnit stores its singular.
-				ri.Unit.Name = qualifier
-			}
+		if qualifier != "" && strings.TrimSpace(ri.Unit.Name) == "" {
+			// The name carried a count qualifier ("garlic cloves"): that is
+			// the unit, and it measures in cloves. resolveUnit stores the
+			// singular; preparation is left to the recipe to state.
+			ri.Unit.Name = qualifier
 		}
 
 		key := ingredientKey{id: ingredientID, component: ri.Component}

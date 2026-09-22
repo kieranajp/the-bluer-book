@@ -74,8 +74,9 @@ returns the named home only to a member of it, and answers a non-member with a 4
 code `home_forbidden`. That is deliberately not the 401 an unauthenticated caller gets,
 because the client refreshes its token and replays on a 401 — a user removed from a home
 their client still names would burn a refresh on a session that is perfectly good. The 403
-tells them to drop the home instead. Absent, a request acts on the home its caller most
-recently joined — which accepting an invitation makes the new one.
+is there for a client to drop the stale home on; none does yet, because none sets `X-Home`
+in the first place. Absent, a request acts on the home its caller most recently joined —
+which accepting an invitation makes the new one.
 
 Locally there is no auth in front of the binary; it talks to a local Postgres. A local
 `X-User` nobody has seen before is provisioned a home of its own, which the chat gate then

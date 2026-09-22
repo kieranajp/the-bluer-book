@@ -193,6 +193,43 @@ func TestHomeScoping(t *testing.T) {
 		}
 	})
 
+	// The photo upload is two writes that have to happen together, and the
+	// handler no longer owns either of them.
+	t.Run("a main photo lands in the home it was uploaded from", func(t *testing.T) {
+		const url = "https://example.invalid/scoping-main.jpg"
+
+		saved, err := repo.SaveRecipe(auth.WithHome(context.Background(), homeA), testRecipe("Scoped Photo", "scoped photo ingredient"))
+		if err != nil {
+			t.Fatalf("save: %v", err)
+		}
+		if err := repo.SetMainPhoto(auth.WithHome(context.Background(), homeA), saved.UUID, url); err != nil {
+			t.Fatalf("set main photo: %v", err)
+		}
+
+		var photoID, photoHome uuid.UUID
+		var entityType string
+		if err := sqlDB.QueryRow(
+			`SELECT uuid, home_id, entity_type FROM photos WHERE url = $1 AND entity_id = $2`,
+			url, saved.UUID,
+		).Scan(&photoID, &photoHome, &entityType); err != nil {
+			t.Fatalf("read back the photo: %v", err)
+		}
+		if photoHome != homeA {
+			t.Errorf("photo landed in home %s, want %s", photoHome, homeA)
+		}
+		if entityType != "recipe" {
+			t.Errorf("photo attached to a %q, want a recipe", entityType)
+		}
+
+		var mainPhoto uuid.NullUUID
+		if err := sqlDB.QueryRow(`SELECT main_photo_id FROM recipes WHERE uuid = $1`, saved.UUID).Scan(&mainPhoto); err != nil {
+			t.Fatalf("read back main_photo_id: %v", err)
+		}
+		if !mainPhoto.Valid || mainPhoto.UUID != photoID {
+			t.Errorf("recipe points at %v, want the photo %s", mainPhoto, photoID)
+		}
+	})
+
 	t.Run("no home in context reaches no database", func(t *testing.T) {
 		ctx := context.Background()
 

@@ -173,7 +173,7 @@ stored=$(docker exec "$CONTAINER" psql --username "$OWNER_USER" --dbname "$DB_NA
 expect "$(printf '%s' "$TOKEN" | sha256sum | cut -d' ' -f1)" "$stored" "the stored hash"
 
 echo "==> Naming a home you are not in is refused, not served"
-expect 401 "$(HOME_HEADER="$HOME_A" status subject-b GET /api/recipes)" \
+expect 403 "$(HOME_HEADER="$HOME_A" status subject-b GET /api/recipes)" \
   "subject-b naming home A before accepting"
 
 echo "==> Accepting admits exactly once"
@@ -192,7 +192,7 @@ expect 0 "$(HOME_HEADER="$HOME_B" recipe_count subject-b)" "recipes subject-b se
 expect 1 "$(HOME_HEADER="$HOME_A" recipe_count subject-b)" "recipes subject-b sees in home A"
 
 echo "==> A stranger gets nothing, whichever home they name"
-expect 401 "$(HOME_HEADER="$HOME_A" status subject-c GET /api/recipes)" "subject-c naming home A"
+expect 403 "$(HOME_HEADER="$HOME_A" status subject-c GET /api/recipes)" "subject-c naming home A"
 expect 0 "$(recipe_count subject-c)" "recipes subject-c sees at all"
 
 echo "==> An unusable X-Home is refused before anybody is resolved"
@@ -212,7 +212,7 @@ expect 409 "$(status subject-a DELETE "/api/homes/${HOME_A}/members/${OWNER_ID}"
   "the last owner removing itself"
 expect 204 "$(status subject-a DELETE "/api/homes/${HOME_A}/members/${MEMBER_ID}")" \
   "the owner removing the member"
-expect 401 "$(HOME_HEADER="$HOME_A" status subject-b GET /api/recipes)" \
+expect 403 "$(HOME_HEADER="$HOME_A" status subject-b GET /api/recipes)" \
   "subject-b naming home A once removed"
 
 # The console writer colours its fields, so the role and its label are not

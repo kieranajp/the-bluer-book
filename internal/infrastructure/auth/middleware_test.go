@@ -233,8 +233,9 @@ func TestTheRequestedHomeReachesTheResolver(t *testing.T) {
 	}
 }
 
-// The resolver decides membership; the middleware only has to refuse without
-// saying whether the home exists, and without letting the request through.
+// The resolver decides membership; the middleware refuses with a code of its
+// own, so a client can drop the home it is holding rather than read the answer
+// as an expired session.
 func TestNamingAHomeYouAreNotInIsRefused(t *testing.T) {
 	home := uuid.New()
 	resolver := &stubResolver{
@@ -247,8 +248,8 @@ func TestNamingAHomeYouAreNotInIsRefused(t *testing.T) {
 		HeaderHome: home.String(),
 	})
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Errorf("status %d, want 401", rec.Code)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status %d, want 403", rec.Code)
 	}
 	if reached {
 		t.Error("a request naming somebody else's home reached the handler")
@@ -260,8 +261,8 @@ func TestNamingAHomeYouAreNotInIsRefused(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 		t.Fatalf("decoding the error body: %v", err)
 	}
-	if body.Error.Code != "unauthenticated" {
-		t.Errorf("error code %q, want unauthenticated", body.Error.Code)
+	if body.Error.Code != "home_forbidden" {
+		t.Errorf("error code %q, want home_forbidden", body.Error.Code)
 	}
 	if strings.Contains(body.Error.Message, home.String()) {
 		t.Errorf("the refusal repeats the home id back: %q", body.Error.Message)

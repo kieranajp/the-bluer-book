@@ -32,12 +32,62 @@ CREATE TEMP TABLE semantic_merge (
 ) ON COMMIT DROP;
 
 -- ---------------------------------------------------------------------------
--- Reviewed merges go here, canonical names only. Examples of the two shapes:
+-- Reviewed merges, canonical names only. Reviewed against the live book on
+-- 2026-09-22 (Edele-approved); the same mapping was applied to the live data
+-- first, so every line below is a no-op there and the aliases still seed.
+-- Always map to the FINAL canonical — a from_name that is also another line's
+-- to_name forms a chain this migration does not follow (one-hop remaps leave
+-- the middle row referenced, which the final DELETE then trips over).
 --
 -- INSERT INTO semantic_merge (from_name, to_name, preparation) VALUES
 --   ('onions',        'onion',  ''),        -- plural of the same item
 --   ('garlic cloves', 'garlic', 'cloves');  -- qualifier moves to the recipe line
 -- ---------------------------------------------------------------------------
+
+INSERT INTO semantic_merge (from_name, to_name, preparation) VALUES
+  -- garlic family: the name is the ingredient; the count lives on the line
+  ('garlic clove',                   'garlic', ''),
+  ('garlic cloves',                  'garlic', 'cloves'),
+  ('garlic cloves, thinly sliced',   'garlic', 'thinly sliced'),
+  ('fresh garlic',                   'garlic', ''),
+  -- plurals -> singular (quantity drives display plural in the app)
+  ('onions',                         'onion', ''),
+  ('red onions',                     'red onion', ''),
+  ('white onions',                   'white onion', ''),
+  ('carrots',                        'carrot', ''),
+  ('eggs',                           'egg', ''),
+  ('large eggs',                     'large egg', ''),
+  ('free-range eggs',                'free-range egg', ''),
+  ('egg yolks',                      'egg yolk', ''),
+  ('tomatoes',                       'tomato', ''),
+  ('potatoes',                       'potato', ''),
+  ('lemons',                         'lemon', ''),
+  ('leeks',                          'leek', ''),
+  ('shallots',                       'shallot', ''),
+  ('apples',                         'apple', ''),
+  ('pita breads',                    'pita bread', ''),
+  ('chicken breasts',                'chicken breast', ''),
+  ('bell peppers',                   'bell pepper', ''),
+  ('red bell peppers',               'red bell pepper', ''),
+  ('red peppers',                    'red pepper', ''),
+  ('serrano peppers',                'serrano pepper', ''),
+  ('spring onions',                  'spring onion', ''),
+  ('courgettes',                     'courgette', ''),
+  -- synonyms: one shopping item, whatever it is called
+  ('scallions',                      'spring onion', ''),
+  ('green onion',                    'spring onion', ''),
+  ('cilantro',                       'coriander', ''),
+  ('fresh cilantro',                 'fresh coriander', ''),
+  ('eggplants',                      'aubergine', ''),
+  ('eggplant',                       'aubergine', ''),
+  ('zucchini',                       'courgette', ''),
+  ('small zucchinis',                'small zucchini', ''),
+  ('greek yogurt',                   'greek yoghurt', ''),
+  ('tomato purée',                   'tomato paste', ''),
+  ('tomato puree',                   'tomato paste', ''),
+  ('chilli flakes',                  'chili flakes', ''),
+  ('chopped tomatoes',               'tinned chopped tomatoes', ''),
+  ('tinned tomatoes',                'tinned chopped tomatoes', '');
 
 -- Resolve names to rows, dropping any line whose ingredients no longer exist so
 -- a stale mapping degrades to a no-op instead of failing the deploy.

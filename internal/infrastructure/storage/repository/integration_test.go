@@ -75,6 +75,16 @@ func testCtx(t *testing.T, sqlDB *sql.DB) (context.Context, uuid.UUID) {
 	return auth.WithHome(context.Background(), home), home
 }
 
+// scopedRepo pairs the suite's handle with one fresh home: the common shape of
+// a qualifier test is "save in this home, read back in this home".
+func scopedRepo(t *testing.T) (context.Context, RecipeRepository) {
+	t.Helper()
+	sqlDB, _ := testDB(t)
+	log := logger.New(logger.LogLevelError)
+	ctx, _ := testCtx(t, sqlDB)
+	return ctx, NewRecipeRepository(sqlDB, log)
+}
+
 func ingredientLine(name, unit, component string, qty float64) recipe.RecipeIngredient {
 	return recipe.RecipeIngredient{
 		Ingredient: recipe.Ingredient{Name: name},

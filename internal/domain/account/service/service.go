@@ -94,9 +94,7 @@ func (s *accountService) ProvisionFromSubject(ctx context.Context, id account.Id
 }
 
 // refreshed keeps the stored email and display name level with the claims the
-// edge is forwarding, which is what the rest of a home sees in the member list.
-// A failed refresh is not worth failing the request over: the caller resolves
-// either way and their profile stays a request behind.
+// edge forwards. A failure is dropped: the caller resolves either way.
 func (s *accountService) refreshed(ctx context.Context, user account.User, id account.Identity) account.User {
 	if !profileMoved(user, id) {
 		return user

@@ -77,7 +77,9 @@ their client still names would burn a refresh on a session that is perfectly goo
 tells them to drop the home instead. Absent, a request acts on the home its caller most
 recently joined — which accepting an invitation makes the new one.
 
-Locally there is no auth in front of the binary; it talks to a local Postgres.
+Locally there is no auth in front of the binary; it talks to a local Postgres. A local
+`X-User` nobody has seen before is provisioned a home of its own, which the chat gate then
+refuses — set `FOUNDER_SUBJECT` to that subject, or `MCP_HOME_ID` to the home it landed in.
 
 ## Homes, members and invitations
 

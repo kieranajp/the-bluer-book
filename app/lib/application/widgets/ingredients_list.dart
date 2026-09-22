@@ -23,12 +23,14 @@ class IngredientsList extends ConsumerWidget {
       (i) => i.component != null && i.component!.isNotEmpty,
     );
     final checkedCount =
-        ingredients.where((i) => pantry.contains(i.detail.name)).length;
+        ingredients.where((i) => pantry.contains(i.detail.key)).length;
 
-    Future<void> toggle(String name) async {
+    Future<void> toggle(IngredientDetail detail) async {
       final messenger = ScaffoldMessenger.of(context);
       try {
-        await ref.read(pantryProvider.notifier).toggle(name);
+        await ref
+            .read(pantryProvider.notifier)
+            .toggle(detail.name, key: detail.key);
       } catch (e) {
         messenger.showSnackBar(
           SnackBar(
@@ -55,19 +57,20 @@ class IngredientsList extends ConsumerWidget {
     );
   }
 
-  List<Widget> _flat(Set<String> pantry, Future<void> Function(String) toggle) {
+  List<Widget> _flat(
+      Set<String> pantry, Future<void> Function(IngredientDetail) toggle) {
     return [
       for (final ingredient in ingredients)
         IngredientRow(
           ingredient: ingredient,
-          checked: pantry.contains(ingredient.detail.name),
-          onTap: () => toggle(ingredient.detail.name),
+          checked: pantry.contains(ingredient.detail.key),
+          onTap: () => toggle(ingredient.detail),
         ),
     ];
   }
 
   List<Widget> _grouped(
-      Set<String> pantry, Future<void> Function(String) toggle) {
+      Set<String> pantry, Future<void> Function(IngredientDetail) toggle) {
     final groups = <String, List<Ingredient>>{};
     for (final ingredient in ingredients) {
       final key = ingredient.component ?? '';
@@ -98,8 +101,8 @@ class IngredientsList extends ConsumerWidget {
         for (final ingredient in groups[key]!)
           IngredientRow(
             ingredient: ingredient,
-            checked: pantry.contains(ingredient.detail.name),
-            onTap: () => toggle(ingredient.detail.name),
+            checked: pantry.contains(ingredient.detail.key),
+            onTap: () => toggle(ingredient.detail),
           ),
       ],
     ];

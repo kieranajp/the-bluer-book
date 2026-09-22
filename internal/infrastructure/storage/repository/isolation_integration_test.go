@@ -271,6 +271,41 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
+	// labels carries no policy, on purpose: it is a shared taxonomy. Only the
+	// uses count is scoped, so a label with no uses here is one another home
+	// applied, and the listing has to leave it out on that basis alone.
+	t.Run("a label only another home has used stays out of this home's list", func(t *testing.T) {
+		if _, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Label", "isolation label ingredient")); err != nil {
+			t.Fatalf("save as A: %v", err)
+		}
+
+		listedB, err := recipes.ListLabels(ctxB)
+		if err != nil {
+			t.Fatalf("list labels as B: %v", err)
+		}
+		for _, label := range listedB {
+			if label.Type == testLabelType && label.Name == testLabelName {
+				t.Errorf("B was handed A's %s/%s at %d uses", label.Type, label.Name, label.Uses)
+			}
+		}
+
+		// Without this the assertion above would hold for a listing that
+		// returned nothing at all.
+		listedA, err := recipes.ListLabels(ctxA)
+		if err != nil {
+			t.Fatalf("list labels as A: %v", err)
+		}
+		var found bool
+		for _, label := range listedA {
+			if label.Type == testLabelType && label.Name == testLabelName {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("A cannot see the label it applied itself")
+		}
+	})
+
 	// Every read above reaches its table through a join to another one, so a
 	// table whose policy went missing would still come back empty and look
 	// isolated. This asks each of the nine directly, and asks home A first so

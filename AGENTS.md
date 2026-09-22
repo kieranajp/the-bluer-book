@@ -64,12 +64,21 @@ the obvious stuff.
   mirroring the backend's `recipe.go`. Keep files small (a couple hundred lines; past
   ~300 is a split smell — a guideline, not a gate). Go follows its own idioms here.
   See `docs/frontend.md`.
+- **Comments: read the `comment-discipline` skill before writing or reviewing one.**
+  Default is no comment. A comment states what IS, never the journey that got there;
+  it earns its size; it reads plainly first time or it goes. Godoc on an exported
+  identifier is no exception — restating the signature fails the test. The three
+  always-wrong shapes (runs over 2 lines, journey narration, path pointers) are
+  enforced by `tool/commentlint` in CI, over Go and Dart alike — `go run
+  ./tool/commentlint` before you push. Whether a comment earns its place at all is
+  still the reviewer's call.
 
 ## Build & test
 
 ```bash
 go build ./... && go test ./...          # backend (run sqlc generate first in a fresh clone)
 cd app && flutter test                   # frontend (includes alchemist goldens)
+go run ./tool/commentlint                # comment discipline, Go and Dart alike
 ```
 
 Widget rendering is pinned with **alchemist golden tests** (`app/test/golden/`). They diff

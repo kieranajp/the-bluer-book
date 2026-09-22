@@ -124,10 +124,8 @@ func (s *accountService) FindUser(ctx context.Context, userID uuid.UUID) (accoun
 }
 
 func (s *accountService) ResolveActiveHome(ctx context.Context, user account.User, requested uuid.UUID) (account.Home, error) {
-	// A client naming a home is naming one it may have no business in, so this
-	// branch falls back to nothing. Dropping through to the most recent home
-	// would answer a different question than the one asked, and provisioning a
-	// fresh one would hand a stranger a 200 and an empty book.
+	// requested is honoured only for a home the caller belongs to; anything else
+	// returns not-found rather than another home or a freshly provisioned one.
 	if requested != uuid.Nil {
 		home, err := s.repo.FindHomeForUser(ctx, user.UUID, requested)
 		if err != nil && !errors.Is(err, account.ErrHomeNotFound) {
@@ -209,9 +207,8 @@ func (s *accountService) AcceptInvitation(ctx context.Context, userID uuid.UUID,
 		return account.Home{}, "", account.ErrInvitationNotFound
 	}
 
-	// Expiry and single use are the database's to decide, in the one statement
-	// that spends the token. Deciding either here would mean reading the row
-	// first, and two requests reading it together would both be allowed in.
+	// Expiry and single use are enforced by the database in the one statement
+	// that spends the token, so two concurrent redeems can't both get through.
 	home, role, err := s.repo.RedeemInvitation(ctx, account.HashInvitationToken(token), userID)
 	switch {
 	case err == nil:
@@ -246,9 +243,8 @@ func (s *accountService) RemoveMember(ctx context.Context, actorID, homeID, targ
 		return err
 	}
 
-	// Whether this is the last owner is settled inside the repository, under a
-	// lock on the home. Asking here and acting on the answer would let two
-	// owners be removed at once, each counting the other.
+	// Last-owner protection is enforced by the repository under a lock on the
+	// home, so two concurrent removals can't each pass by counting the other.
 	if err := s.repo.RemoveMember(ctx, homeID, targetID); err != nil {
 		if !errors.Is(err, account.ErrLastOwner) && !errors.Is(err, account.ErrMemberNotFound) {
 			s.probe.AccountError("remove_member", err)

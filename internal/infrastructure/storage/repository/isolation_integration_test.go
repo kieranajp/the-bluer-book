@@ -1,14 +1,12 @@
 package repository
 
 // Proof that PostgreSQL, not the query text, is what keeps one home out of
-// another's data. Every assertion below runs through the ordinary repositories
-// against a real database, on a connection the isolation policies bind.
+// another's data. Every assertion runs through the ordinary repositories
+// against a real database on a connection the isolation policies bind.
 //
-// The suite is worthless on a privileged connection: a superuser and a role
-// holding BYPASSRLS both ignore every policy, and the table owner ignores any
-// policy that is not FORCE'd. So it does not merely prefer the restricted role,
-// it fails outright on any other. scripts/rls-test.sh builds both roles and
-// points each suite at the one it needs.
+// The suite fails outright on a privileged connection — superuser, BYPASSRLS,
+// or an un-FORCE'd table owner all ignore the policies. scripts/rls-test.sh
+// builds both roles and points each suite at the one it needs.
 
 import (
 	"context"
@@ -26,14 +24,12 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 )
 
-// unpolicedHomeTables carry a home_id and stay outside the policies on purpose.
-// They answer the question of which home a request acts on, so they are read
-// before an answer exists.
+// unpolicedHomeTables carry a home_id but stay outside the policies on
+// purpose: they decide which home a request acts on, so are read before an answer exists.
 var unpolicedHomeTables = []string{"home_members", "invitations"}
 
-// requireEveryHomeTableAccountedFor fails on a table that carries a home_id and
-// appears in neither list. A new one would inherit this role's default DML
-// privileges with nothing scoping it, and read every home.
+// requireEveryHomeTableAccountedFor fails on a table with a home_id in neither
+// list: a new one would inherit this role's DML privileges unscoped.
 func requireEveryHomeTableAccountedFor(t *testing.T, sqlDB *sql.DB) {
 	t.Helper()
 
@@ -110,10 +106,9 @@ func rlsBinds(t *testing.T, sqlDB *sql.DB) (role string, bound bool) {
 	return role, forced || !owned
 }
 
-// requireRestrictedRole is the reason to believe anything this file asserts.
-// It fails — never skips — when the connection could satisfy the assertions
-// below without a single policy being consulted: a superuser, a role holding
-// BYPASSRLS, or an owner of a table that is not FORCE'd.
+// requireRestrictedRole is the reason to believe anything this file asserts:
+// it fails, never skips, if the connection could pass below without a policy
+// being consulted — a superuser, BYPASSRLS, or an owner of an un-FORCE'd table.
 func requireRestrictedRole(t *testing.T, sqlDB *sql.DB) {
 	t.Helper()
 
@@ -271,9 +266,8 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
-	// labels carries no policy, on purpose: it is a shared taxonomy. Only the
-	// uses count is scoped, so a label with no uses here is one another home
-	// applied, and the listing has to leave it out on that basis alone.
+	// labels carries no policy on purpose — shared taxonomy. Only the uses
+	// count is scoped, so a label with no uses here is one another home applied.
 	t.Run("a label only another home has used stays out of this home's list", func(t *testing.T) {
 		if _, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Label", "isolation label ingredient")); err != nil {
 			t.Fatalf("save as A: %v", err)
@@ -306,10 +300,9 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
-	// Every read above reaches its table through a join to another one, so a
-	// table whose policy went missing would still come back empty and look
-	// isolated. This asks each of the nine directly, and asks home A first so
-	// that "B sees none" cannot mean "there were none".
+	// A read reaching its table only through a join would look isolated even
+	// with a missing policy. This checks each of the nine directly, home A
+	// first, so "B sees none" can't mean "there were none".
 	t.Run("no table hands a row to another home", func(t *testing.T) {
 		saved, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Census", "isolation census ingredient"))
 		if err != nil {
@@ -412,10 +405,9 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
-	// The regression the policies are written around. app.home_id is
-	// transaction-local, and a custom GUC reverts to the empty string rather
-	// than to NULL once a session has set it, so the connection this returns to
-	// the pool carries ''. Casting that to uuid raises; NULLIF filters instead.
+	// The regression this guards: a custom GUC reverts to '' rather than NULL
+	// once set, so a pooled connection returns with app.home_id = ''. Casting
+	// that to uuid raises; NULLIF filters instead.
 	t.Run("a pooled connection between transactions reads nothing", func(t *testing.T) {
 		ctx := context.Background()
 
@@ -559,8 +551,7 @@ func TestIsolation(t *testing.T) {
 	})
 
 	// Ingredient resolution reads by name alone, so without the policy a second
-	// home's save would reuse the first home's row and its recipe_ingredient
-	// would point outside its own home.
+	// home's save would reuse the first home's row and point outside its own home.
 	t.Run("an ingredient another home named resolves to this home's own row", func(t *testing.T) {
 		const shared = "isolation resolved ingredient"
 
@@ -591,11 +582,9 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
-	// Uniqueness and foreign keys are checked with row security off, so a home
-	// naming another home's recipe id still writes a meal plan row against it.
-	// The row is inert — every read joins recipes — but while the key was
-	// recipe_id alone it occupied the slot, and the owning home's own add hit
-	// ON CONFLICT DO NOTHING against a row it cannot see.
+	// Row security is off for uniqueness and FK checks, so naming another
+	// home's recipe id still writes a row against it. Inert since reads join
+	// recipes, but it occupied the key the owning home's own add then collided on.
 	t.Run("another home cannot take a meal plan slot", func(t *testing.T) {
 		saved, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Slot", "isolation slot ingredient"))
 		if err != nil {
@@ -638,9 +627,8 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
-	// The pantry resolves a name to an ingredient before it writes. That lookup
-	// is now scoped, so a name only another home owns is an error rather than a
-	// write against somebody else's row.
+	// The pantry resolves a name to an ingredient before writing; that lookup is
+	// now scoped, so a name only another home owns errors rather than writing to it.
 	t.Run("stocking an ingredient only another home owns is refused", func(t *testing.T) {
 		const onlyA = "isolation private ingredient"
 

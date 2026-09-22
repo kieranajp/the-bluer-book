@@ -1,10 +1,9 @@
 package repository
 
 // ProvisionUser is the only place a subject becomes a user and lands in a
-// home, and a cold start can fire two or three requests for the same subject
-// at once. LockSubject (pg_advisory_xact_lock(hashtext(subject))) exists to
-// stop each of those from creating its own home; nothing here proves that
-// without going through a real database, so these tests do.
+// home, and a cold start can fire several requests for the same subject at
+// once. LockSubject exists to stop each from creating its own home; these
+// tests prove that against a real database.
 
 import (
 	"context"
@@ -36,11 +35,9 @@ func uniqueSubject(label string) string {
 	return "provision-test-" + label + "-" + uuid.New().String()
 }
 
-// cleanupProvisioned removes everything ProvisionUser wrote for one user: its
-// membership row (including, if the subject was a founder subject, the one it
-// added to the founder home), the home itself when that home isn't the
-// founder home, and the user row. home_members cascades from homes, so this
-// only deletes home_members explicitly for the founder-home case.
+// cleanupProvisioned removes everything ProvisionUser wrote for one user:
+// membership, its home unless that's the founder home, and the user row.
+// home_members cascades from homes, so only the founder case needs an explicit delete.
 func cleanupProvisioned(t *testing.T, sqlDB *sql.DB, userID, homeID uuid.UUID) {
 	t.Helper()
 	t.Cleanup(func() {
@@ -58,12 +55,10 @@ func cleanupProvisioned(t *testing.T, sqlDB *sql.DB, userID, homeID uuid.UUID) {
 	})
 }
 
-// TestProvisionConcurrentSameSubject is the scenario LockSubject exists for: a
-// cold start fires several requests for one subject at once. Without the
-// advisory lock, each would find no user, race past that check, and create
-// its own home, leaving the caller a member of several. Every goroutine below
-// waits on a closed channel so they genuinely race into ProvisionUser
-// together.
+// TestProvisionConcurrentSameSubject is the scenario LockSubject exists for:
+// without it, several concurrent requests for one subject would each find no
+// user and create their own home. Every goroutine waits on a closed channel so
+// they genuinely race into ProvisionUser together.
 func TestProvisionConcurrentSameSubject(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)

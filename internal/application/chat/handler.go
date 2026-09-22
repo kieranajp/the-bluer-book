@@ -110,9 +110,8 @@ When creating or updating recipes, confirm the details with the user before proc
 	}, nil
 }
 
-// HandleChat refuses a caller whose home is not the one the MCP server is
-// pinned to: the agent reaches its tools through that server, so every tool
-// call acts on that home whoever asked.
+// HandleChat refuses a caller whose home isn't the one the MCP server is
+// pinned to, since every tool call acts on that home whoever asked.
 func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 	home, ok := auth.HomeID(r.Context())
 	if !ok || home != h.mcpHomeID {

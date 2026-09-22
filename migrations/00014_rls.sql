@@ -1,28 +1,12 @@
 -- +goose Up
--- The database starts enforcing. Every tenant table gets one policy keyed on
--- the same per-transaction app.home_id GUC that already fills home_id, so a
--- statement that forgets a home reads nothing and writes nothing rather than
--- crossing a boundary. Nothing in the query layer changes: the policy is the
--- predicate, applied to every statement the planner builds.
---
--- NULLIF is load-bearing. A custom GUC reverts to the empty string, not to
--- NULL, once a session has set it even once, so casting current_setting
--- straight to uuid raises 'invalid input syntax for type uuid: ""' on a pooled
--- connection whose transaction has ended. Folding '' to NULL makes the
--- comparison NULL instead, and a NULL qual excludes the row. Fail closed.
---
--- FORCE is what makes the policy mean anything: without it the table owner is
--- exempt, and the owner is exactly who a careless deploy connects as. FORCE
--- still does not bind a superuser or a role holding BYPASSRLS, which is why
--- this migration also creates bluer_book_app for the server to connect as.
---
--- units and labels carry no home and stay outside this. So do users, homes,
--- home_members and invitations: they are read to decide which home a request
--- acts on, which is a question that cannot be answered from inside the answer.
 
 ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
+-- FORCE also binds the table owner, which a careless deploy otherwise
+-- connects as; it still does not bind a superuser or role with BYPASSRLS.
 ALTER TABLE recipes FORCE  ROW LEVEL SECURITY;
 CREATE POLICY home_isolation ON recipes
+  -- current_setting returns '' once a session has set and cleared app.home_id;
+  -- NULLIF folds that to NULL so a missing home fails closed, not a cast error.
   USING      (home_id = NULLIF(current_setting('app.home_id', true), '')::uuid)
   WITH CHECK (home_id = NULLIF(current_setting('app.home_id', true), '')::uuid);
 
@@ -74,13 +58,13 @@ CREATE POLICY home_isolation ON shopping_list_items
   USING      (home_id = NULLIF(current_setting('app.home_id', true), '')::uuid)
   WITH CHECK (home_id = NULLIF(current_setting('app.home_id', true), '')::uuid);
 
--- The role the server connects as. It owns no table and holds neither
--- SUPERUSER nor BYPASSRLS, so the policies above bind it. The ALTER runs
--- whether or not the CREATE did: a role left over from an earlier cluster with
--- either attribute would silently turn every policy above into decoration.
---
--- No password here. The migrate command sets it from APP_DB_PASS on every run,
--- so the secret stays out of a file that ships in the image.
+-- units, labels, users, homes, home_members and invitations carry no home_id
+-- and stay outside RLS: they decide which home a request acts on.
+
+-- bluer_book_app owns no table and holds neither SUPERUSER nor BYPASSRLS, so
+-- the policies above bind it; the ALTER re-asserts that for a role carried
+-- over from an earlier cluster. The migrate command sets its password from
+-- APP_DB_PASS on every run rather than storing it here.
 -- +goose StatementBegin
 DO $$
 BEGIN
@@ -95,14 +79,12 @@ ALTER ROLE bluer_book_app WITH LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATE
 GRANT USAGE ON SCHEMA public TO bluer_book_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO bluer_book_app;
 
--- Future tables and sequences are granted as they are created, so a later
--- migration does not have to remember. This binds to the role running right
--- now, which is the role every migration runs as.
+-- Applies to tables and sequences created later too, scoped to whichever
+-- role runs this migration, which is the role every migration runs as.
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO bluer_book_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO bluer_book_app;
 
--- The blanket grant above caught goose's own bookkeeping table. Migration
--- history is not the application's to edit, and nothing it does needs it.
+-- Excludes goose's own bookkeeping tables, which are not the app's to edit.
 -- +goose StatementBegin
 DO $$
 BEGIN

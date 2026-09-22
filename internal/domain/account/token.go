@@ -22,12 +22,10 @@ func NewInvitationToken() (token, hash string, err error) {
 
 // HashInvitationToken maps a token onto the value stored against it.
 //
-// A plain SHA-256 is the right hash here, where it would be wrong for a
-// password: the token is 256 bits from crypto/rand, so there is no guessing
-// attack for a work factor to slow down and no reused secret for a salt to
-// separate. What the hash buys is that reading the invitations table — which
-// sits outside row-level security, because a token is looked up before either
-// party's home is known — does not let anybody redeem anything.
+// The token is 256 bits from crypto/rand, so no work-factor hash is needed to
+// slow down guessing. Hashing it means reading the invitations table — outside
+// row-level security, since a token is looked up before either party's home is
+// known — does not let anybody redeem it.
 func HashInvitationToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])

@@ -1,12 +1,10 @@
 -- +goose Up
--- The pantry and the shopping list land under the same model as the rest of the
--- book: a home_id that fills itself from the app.home_id GUC, backfilled to the
--- founder home for everything that predates it.
---
--- 00012's guard covers the recipes and ingredients it could see, not these two
--- tables, so a database holding only a pantry is backfilled unguarded. That is
--- the same bet 00012 makes on a first deploy, and the pantry is cheap to rebuild
--- in a way the recipe collection is not.
+-- Pantry and shopping list get the same home_id-from-GUC model as the rest of
+-- the book, backfilled to the founder home for pre-existing rows.
+
+-- Unlike 00012, this backfill is unguarded: a database holding only a pantry
+-- has nothing for 00012's guard to see. Same bet as a first deploy, and the
+-- pantry is cheap to rebuild where the recipe collection isn't.
 
 ALTER TABLE pantry_items         ADD COLUMN home_id UUID REFERENCES homes(uuid) ON DELETE CASCADE;
 ALTER TABLE shopping_list_items  ADD COLUMN home_id UUID REFERENCES homes(uuid) ON DELETE CASCADE;

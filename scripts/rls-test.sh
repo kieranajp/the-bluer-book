@@ -1,24 +1,8 @@
 #!/usr/bin/env bash
-#
-# Proves home isolation is real, on a database built from the migrations.
-#
-# A throwaway postgres is created with the same role shape as the deployed one:
-# DB_USER is the superuser that owns every table and runs the migrations, and
-# bluer_book_app is the non-owner role the server connects as. The suites then
-# run against the role each one needs, and the second run is the point:
-#
-#   TestIsolation as bluer_book_app  — must pass.
-#   TestIsolation as the owner       — must FAIL, on the role guard. A pass
-#     there means the guard is broken and every other result is worthless.
-#   TestHomeScoping as the owner     — must pass. Those assertions read rows out
-#     of band, which only an unbound connection can do.
-#   TestProvision as bluer_book_app  — must pass. No policy covers the identity
-#     tables, so the role makes no difference; the repeats are for the
-#     concurrency case.
-#   TestMembership as bluer_book_app — must pass. Invitations and the
-#     last-owner rule, including their concurrency cases.
-#
-# Everything it creates is removed on exit, including on failure.
+# Proves home isolation on a database built from the migrations, running each
+# suite as the role it needs: DB_USER, the superuser that owns every table and
+# runs migrations, and bluer_book_app, the non-owner role the server connects
+# as. Everything created here is removed on exit, including on failure.
 
 set -euo pipefail
 
@@ -64,10 +48,8 @@ echo "==> Generating query stubs"
 sqlc generate
 
 # 00001 to 00006 predate goose and carry none of its annotations, so goose
-# refuses to parse them and `migrate` cannot build a database from nothing.
-# Applying them by hand leaves exactly what the real database looks like — a
-# schema with no goose bookkeeping — which `migrate` then recognises and seeds
-# before running 00007 onwards. The path under test is the deployed one.
+# can't parse them; applying them by hand leaves the schema goose then
+# recognises and seeds before running 00007 onwards, matching the deployed path.
 echo "==> Applying the pre-goose schema"
 for file in migrations/0000[1-6]_*.sql; do
   docker exec --interactive "$CONTAINER" \
@@ -136,16 +118,9 @@ run_suite "TestHomeScoping as ${OWNER_USER} (must pass)" "$OWNER_DSN" \
 
 run_suite "TestProvision as ${APP_USER} (must pass)" "$APP_DSN" -run TestProvision -count=3
 
-# Proves an invitation token is stored only as a hash, is spent exactly once
-# however many callers present it together, and that a home never loses its last
-# owner — including when two owners leave at once.
-#
-# As ${APP_USER}, not the owner: the identity tables are deliberately outside
-# row-level security, because a token is looked up before either party's home is
-# known. Running as the role the server actually connects as is what proves that
-# claim, and would catch a policy creeping onto invitations or home_members that
-# an unbound owner connection would sail straight through.
-# The repeats are for the two concurrency cases, as with TestProvision.
+# As ${APP_USER}, not the owner: identity tables carry no RLS policy since a
+# token is looked up before either party's home is known, so this is what
+# would catch one creeping onto invitations or home_members.
 run_suite "TestMembership as ${APP_USER} (must pass)" "$APP_DSN" -run TestMembership -count=3
 
 echo "==> Home isolation holds."

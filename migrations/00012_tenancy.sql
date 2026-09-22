@@ -1,29 +1,20 @@
 -- +goose Up
--- Every recipe row gains the home it belongs to. home_id is denormalised onto
--- each table rather than reached through a join, so the isolation policies that
--- follow are one predicate per table.
---
--- The column fills itself from the per-transaction app.home_id GUC. An INSERT
--- that never mentions home_id still lands in the caller's home, and one that
--- runs with no GUC set fails the NOT NULL check instead of writing a row nobody
--- owns. Queries therefore pass no home and carry no home predicate.
---
--- units and labels stay global: they are shared vocabulary, not anybody's data.
+-- home_id is denormalised onto each table so the RLS policies that follow are
+-- one predicate per table. It defaults from the per-transaction app.home_id
+-- GUC, so an INSERT that omits it still lands in the caller's home, and one
+-- with no GUC set fails NOT NULL instead of writing an orphan row.
+
+-- units and labels stay global: shared vocabulary, not anybody's data.
 
 -- Everything in the book today predates multitenancy, so it all belongs to the
--- founder home that 00011 created.
---
--- This refuses the backfill in one specific case: somebody has already signed
--- in, and none of them is in the founder home. Provisioning asks whether a user
--- has a home, not whether they are in that one, so a person who signed in before
--- FOUNDER_SUBJECT was configured keeps the home they were given, and stamping
--- the collection onto a home with no members hides it from its only owner.
---
--- It cannot cover a database where nobody has signed in yet, which is the
--- ordinary first deploy. Whether the collection ends up reachable then depends
--- on FOUNDER_SUBJECT being right at the first login — configuration this
--- migration cannot see. cmd/server warns at boot when it is unset, and reports
--- a subject that resolves to some other home.
+-- founder home 00011 created.
+
+-- Refuses to backfill if a user exists outside the founder home: that user
+-- could be the collection's real owner, signed in before FOUNDER_SUBJECT was
+-- configured, and stamping the collection onto an empty home would hide it
+-- from them. It can't catch an ordinary first deploy where nobody has signed
+-- in yet — reachability there depends on FOUNDER_SUBJECT being right at the
+-- first login; cmd/server warns at boot when it's unset or resolves elsewhere.
 -- +goose StatementBegin
 DO $$
 DECLARE stranded bigint;
@@ -77,9 +68,8 @@ ALTER TABLE photos             ALTER COLUMN home_id SET DEFAULT NULLIF(current_s
 ALTER TABLE meal_plan_recipes  ALTER COLUMN home_id SET DEFAULT NULLIF(current_setting('app.home_id', true), '')::uuid;
 ALTER TABLE ingredients        ALTER COLUMN home_id SET DEFAULT NULLIF(current_setting('app.home_id', true), '')::uuid;
 
--- Ingredient names were globally unique (00002 auto-named that constraint
--- ingredients_name_key). They become unique per home, so two households can
--- each own a "milk", and the index leads on home_id to serve the scoped reads.
+-- ingredients_name_key (00002) was globally unique; this makes it unique per
+-- home, so two households can each own a "milk", with home_id leading the index.
 ALTER TABLE ingredients DROP CONSTRAINT ingredients_name_key;
 ALTER TABLE ingredients ADD CONSTRAINT ingredients_home_name_unique UNIQUE (home_id, name);
 

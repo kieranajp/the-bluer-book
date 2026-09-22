@@ -12,16 +12,13 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
 )
 
-// InHomeTx runs fn against the caller's home. It opens a transaction, publishes
-// the home as app.home_id, and commits when fn returns nil; any other outcome,
-// including a panic, rolls back.
+// InHomeTx runs fn in a transaction scoped to the caller's home: it publishes
+// the home as the transaction-local app.home_id GUC, commits on a nil return,
+// and rolls back on anything else, including a panic. Every home_id column
+// defaults from that GUC and is NOT NULL, so code that bypasses this helper
+// reads and writes nothing rather than crossing a home.
 //
-// The GUC is transaction-local, so a connection handed back to the pool carries
-// nothing: work that forgets this helper reads no tenant rows and writes none,
-// because every home_id defaults from that setting and is NOT NULL. That is why
-// no query names a home and no caller passes one.
-//
-// fn's error comes back untouched. Callers still compare against sql.ErrNoRows
+// fn's error returns untouched; callers still compare it against sql.ErrNoRows
 // and their own domain errors.
 func InHomeTx(ctx context.Context, sqlDB *sql.DB, fn func(q *db.Queries) error) error {
 	homeID, ok := auth.HomeID(ctx)

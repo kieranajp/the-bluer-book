@@ -85,9 +85,6 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to set dialect: %w", err)
 	}
 
-	// Seed goose's version table for databases that pre-date goose adoption.
-	// If the schema already exists but goose has never run, mark the original
-	// migrations as applied so they aren't re-executed.
 	if err := seedExistingMigrations(db, log); err != nil {
 		return fmt.Errorf("failed to seed migration history: %w", err)
 	}
@@ -104,15 +101,11 @@ func run(c *cli.Context) error {
 	return nil
 }
 
-// setAppRolePassword gives the server's role the password the server will use.
-// The migration creates the role without one, so the secret never lands in a
-// file that ships inside the image; this runs as the owner, which is the only
-// connection that could set it.
+// setAppRolePassword sets the password the server will use; the migration
+// creates the role without one so the secret never ships in the image, and
+// this runs as the owner, the only connection that can set it.
 //
-// ALTER ROLE takes no bind parameters, so both halves are quoted into the
-// statement. A role that does not exist is an error worth failing the deploy
-// for: the server would come up unable to connect and there would be nothing in
-// the migration log saying why.
+// ALTER ROLE takes no bind parameters, so both halves are quoted in below.
 func setAppRolePassword(db *sql.DB, role, password string, log logger.Logger) error {
 	if password == "" {
 		log.Warn().Str("role", role).Msg("APP_DB_PASS not set — leaving the application role's password alone")
@@ -131,13 +124,10 @@ func setAppRolePassword(db *sql.DB, role, password string, log logger.Logger) er
 	return nil
 }
 
-// seedExistingMigrations detects databases that were set up before goose was
-// adopted and marks the pre-existing migrations as already applied. It checks
-// whether the schema exists (recipes table) but goose hasn't tracked anything
-// yet, then inserts version rows with ON CONFLICT DO NOTHING so it's safe to
-// run repeatedly.
+// seedExistingMigrations detects a database set up before goose was adopted
+// (recipes exists, goose_db_version doesn't) and marks the original migrations
+// applied, with ON CONFLICT DO NOTHING so it's safe to run repeatedly.
 func seedExistingMigrations(db *sql.DB, log logger.Logger) error {
-	// Check if this is a pre-goose database: schema exists but no goose table.
 	var hasRecipes bool
 	err := db.QueryRow(`SELECT EXISTS (
 		SELECT 1 FROM information_schema.tables
@@ -164,7 +154,6 @@ func seedExistingMigrations(db *sql.DB, log logger.Logger) error {
 
 	log.Info().Msg("Detected pre-goose database, seeding migration history...")
 
-	// Create goose's version table and mark all original migrations as applied.
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS goose_db_version (
 			id SERIAL PRIMARY KEY,

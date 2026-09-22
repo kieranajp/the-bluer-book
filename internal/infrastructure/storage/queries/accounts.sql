@@ -1,9 +1,6 @@
 -- name: LockSubject :exec
--- Serialises provisioning for one subject. Two cold-start requests arriving
--- together would otherwise both find no user and both create a home, leaving
--- the caller a member of two. The lock is transaction-scoped, so it releases on
--- commit or rollback; hashtext maps the opaque subject onto the integer key the
--- lock takes.
+-- Serialises provisioning per subject so two concurrent requests can't each
+-- create a home for it; transaction-scoped, so it releases on commit or rollback.
 SELECT pg_advisory_xact_lock(hashtext(@subject::text));
 
 -- name: GetUserBySubject :one
@@ -73,9 +70,8 @@ WHERE m.user_id = @user_id
 ORDER BY m.created_at DESC, h.name ASC;
 
 -- name: LockHome :one
--- Held for the length of a membership change. Counting owners and then deleting
--- one is otherwise a race: two owners removed at once each count two and each
--- proceed, leaving the home with none.
+-- Held for the length of a membership change, so counting owners then deleting
+-- one can't race: two concurrent removals could otherwise both see two and proceed.
 SELECT uuid FROM homes WHERE uuid = @home_id FOR UPDATE;
 
 -- name: CountHomeOwners :one
@@ -90,9 +86,8 @@ VALUES (@home_id, @email, @token_hash, @role, @invited_by, @expires_at)
 RETURNING *;
 
 -- name: RedeemInvitation :one
--- Spends an invitation in the statement that finds it, so a token is good once.
--- Reading the row, deciding in Go and writing it back would let two requests
--- arriving together both pass the check and both join.
+-- Spends the invitation in the statement that finds it, so a token is good
+-- once; two concurrent redemptions can't both pass a check-then-write race.
 UPDATE invitations
 SET accepted_at = now()
 WHERE token_hash = @token_hash

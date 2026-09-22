@@ -1,18 +1,11 @@
 #!/usr/bin/env bash
-#
-# Proves who can reach a home, over HTTP, against a database that is enforcing.
-#
-# scripts/rls-test.sh proves the policies; this proves the layer above them —
-# that an invitation admits exactly one person to exactly one home, that X-Home
-# names a home rather than taking one, and that a stranger naming somebody
-# else's home is refused rather than served. The server runs as bluer_book_app,
-# so every read below is bound by the policies as the deployed one is.
-#
-# The recipe in home A is what makes the reads mean anything: without it every
-# call returns an empty list and every assertion holds for no reason. The run
-# stops if it is missing.
-#
-# Everything it creates is removed on exit, including on failure.
+# Proves who can reach a home over HTTP against an enforcing database: an
+# invitation admits one person to one home, X-Home names a home rather than
+# taking one, and a stranger naming another home is refused. Runs as
+# bluer_book_app, so every read is bound by the policies as deployed.
+
+# Requires a recipe already in home A — the run stops if it's missing, since
+# an empty result would make every assertion trivially true.
 
 set -euo pipefail
 
@@ -91,9 +84,8 @@ DB_HOST=127.0.0.1 DB_PORT="$PORT" DB_NAME="$DB_NAME" \
   go run . migrate >/dev/null
 
 echo "==> Serving as ${APP_USER}"
-# Built rather than `go run`, which leaves its compiled child listening when the
-# wrapper is killed. GOOGLE_API_KEY is only needed to build the chat handler at
-# boot; nothing here calls it.
+# Built rather than `go run`, which leaves its compiled child listening when
+# the wrapper is killed. GOOGLE_API_KEY only needs to build; nothing here calls it.
 go build -o "${BUILD_DIR}/server" .
 DB_HOST=127.0.0.1 DB_PORT="$PORT" DB_NAME="$DB_NAME" \
   DB_USER="$OWNER_USER" DB_PASS="$OWNER_PASS" \
@@ -223,10 +215,9 @@ expect 204 "$(status subject-a DELETE "/api/homes/${HOME_A}/members/${MEMBER_ID}
 expect 403 "$(HOME_HEADER="$HOME_A" status subject-b GET /api/recipes)" \
   "subject-b naming home A once removed"
 
-# The console writer colours its fields, so the role and its label are not
-# adjacent in the bytes. grep reads to the end rather than stopping at the
-# match, because --quiet leaves sed writing into a closed pipe and pipefail
-# reports that as the check failing.
+# Strips ANSI colour first, since the console writer separates the role from
+# its label in the bytes. grep reads to the end, not --quiet, since sed writing
+# into a closed pipe would otherwise report as pipefail failing the check.
 sed 's/\x1b\[[0-9;]*m//g' "$SERVER_LOG" | grep "role=${APP_USER}" >/dev/null \
   || fail "the server did not report connecting as ${APP_USER}"
 

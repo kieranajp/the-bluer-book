@@ -119,16 +119,14 @@ func countRows(t *testing.T, sqlDB *sql.DB, query string, args ...any) int {
 	return n
 }
 
-// holdRowLock opens a transaction holding a row lock and hands back the release.
-// Releasing rolls back, so the lock changes nothing — it exists only to park
-// every racer on one row at once.
+// holdRowLock opens a transaction holding a row lock and returns the release,
+// which rolls back so the lock changes nothing; it exists only to park every
+// racer on one row at once.
 //
-// Simply releasing goroutines together does not reproduce a race here: each
-// one's first statement costs a connection handshake, so the leader routinely
-// commits before the rest have read anything, and a read-then-write redemption
-// then passes. Parking them on a lock the test releases collapses that
-// staggering, and the interleaving under test happens every run rather than
-// occasionally.
+// Releasing goroutines together doesn't reproduce the race: a connection
+// handshake staggers their first statement, so the leader usually commits
+// before the rest read anything. Parking them on this lock first makes the
+// interleaving happen every run.
 func holdRowLock(t *testing.T, sqlDB *sql.DB, query string, args ...any) (release func()) {
 	t.Helper()
 
@@ -172,10 +170,9 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Fatalf("timed out waiting for %s", what)
 }
 
-// TestMembershipInvitationTokenIsHashed proves the invitations table cannot
-// admit anybody to a home on its own. Redemption works from a hash either way,
-// so every behavioural test in this file passes against a schema that also
-// keeps the plaintext beside it; only reading the row back catches that.
+// TestMembershipInvitationTokenIsHashed proves the table can't admit anybody
+// on its own: redemption works from the hash either way, so only reading the
+// row back catches a schema that also kept the plaintext.
 func TestMembershipInvitationTokenIsHashed(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -353,20 +350,16 @@ func TestMembershipRedemptionIsAtomic(t *testing.T) {
 	}
 }
 
-// TestMembershipConcurrentRedemption is the case the conditional UPDATE exists
-// for. A read-then-check-then-mark redemption passes every sequential test
-// above: each transaction reads the invitation as unaccepted, and the one that
-// marks it last still wins its own admission, so the whole queue gets in.
+// TestMembershipConcurrentRedemption catches what a read-then-check-then-mark
+// redemption would still pass sequentially: each transaction reads the
+// invitation unaccepted, and whichever marks it last still admits itself.
 //
-// Every racer is parked on the invitation row before any of them may write it,
-// which is what makes the interleaving happen on every run. The conditional
-// UPDATE re-checks accepted_at as it takes the row, so the losers match
-// nothing; an UPDATE keyed on the invitation's id, decided in Go beforehand,
-// matches regardless of what the winner just wrote.
+// Racers are parked on the row before any may write it, forcing the
+// interleaving every run; the conditional UPDATE re-checks accepted_at as it
+// takes the row, so losers match nothing that a Go-side decision would have.
 //
-// The racers are distinct users on purpose: with one user repeated,
-// AddHomeMember's ON CONFLICT DO NOTHING collapses several admissions into one
-// row and hides the breach.
+// Racers are distinct users: one user repeated would let ON CONFLICT DO
+// NOTHING collapse several admissions into one row and hide the breach.
 func TestMembershipConcurrentRedemption(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -508,19 +501,15 @@ func TestMembershipNonOwnerRemovable(t *testing.T) {
 	}
 }
 
-// TestMembershipConcurrentOwnerRemoval is the case LockHome exists for. The
-// last-owner rule is a statement about the whole membership, so counting owners
-// and then deleting one is only safe while nobody else is deleting: two owners
-// leaving at once each count two and each proceed, leaving a home nobody can
-// administer. Every other last-owner test here is sequential and passes either
-// way.
+// TestMembershipConcurrentOwnerRemoval is the case LockHome exists for: the
+// last-owner rule needs the whole membership counted, so deleting one is only
+// safe while nobody else is deleting too. Every other last-owner test here is
+// sequential and passes either way.
 //
-// The test holds both membership rows, so neither removal can commit until both
-// racers have arrived. Holding only one lets the other finish first and see an
-// honest count, which makes the race intermittent. Under LockHome the second
-// removal never reaches its DELETE at all: it waits on the home, then finds one
-// owner. Without it, both removals read two owners, both delete, and the home
-// has none.
+// The test holds both membership rows so neither removal can commit until both
+// racers arrive; holding only one would make the race intermittent. Under
+// LockHome the second removal waits on the home and then finds one owner;
+// without it, both read two owners and both delete, leaving none.
 func TestMembershipConcurrentOwnerRemoval(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)

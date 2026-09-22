@@ -68,8 +68,11 @@ one.
 
 A caller in more than one home picks between them with an `X-Home` header. That one comes
 from the client rather than the edge, so it is a request and not a fact: the middleware
-returns the named home only to a member of it, and answers a non-member with the same 401
-it gives an unauthenticated caller. Absent, a request acts on the home its caller most
+returns the named home only to a member of it, and answers a non-member with a 403 and the
+code `home_forbidden`. That is deliberately not the 401 an unauthenticated caller gets,
+because the client refreshes its token and replays on a 401 — a user removed from a home
+their client still names would burn a refresh on a session that is perfectly good. The 403
+tells them to drop the home instead. Absent, a request acts on the home its caller most
 recently joined — which accepting an invitation makes the new one.
 
 Locally there is no auth in front of the binary; it talks to a local Postgres.

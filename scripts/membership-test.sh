@@ -195,6 +195,14 @@ echo "==> A stranger gets nothing, whichever home they name"
 expect 403 "$(HOME_HEADER="$HOME_A" status subject-c GET /api/recipes)" "subject-c naming home A"
 expect 0 "$(recipe_count subject-c)" "recipes subject-c sees at all"
 
+# The assistant reaches its tools through an MCP server pinned to one home, so
+# it answers for that home whoever asks. Only its own home may reach it.
+echo "==> The assistant is reachable only from the home it acts on"
+expect 403 "$(status subject-c POST /api/chat '{"message": "what is in my book?"}')" \
+  "subject-c reaching the assistant from their own home"
+expect 403 "$(HOME_HEADER="$HOME_B" status subject-b POST /api/chat '{"message": "what is in my book?"}')" \
+  "subject-b reaching the assistant from their own home"
+
 echo "==> An unusable X-Home is refused before anybody is resolved"
 expect 400 "$(HOME_HEADER='not-a-uuid' status subject-a GET /api/recipes)" "a home id that does not parse"
 expect 400 "$(HOME_HEADER='00000000-0000-0000-0000-000000000000' status subject-a GET /api/recipes)" "the nil home id"

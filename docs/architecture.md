@@ -133,7 +133,10 @@ so such a row lands in the writer's own home and cannot occupy the other's slot.
 
 The MCP server has no caller to resolve — its route carries no auth and its tools take no
 caller argument — so every tool call acts on the home named by `MCP_HOME_ID`, which defaults
-to the founder home. The chat agent reaches the same home through it.
+to the founder home. The chat agent reaches the same home through it, which is why
+`POST /api/chat` refuses any caller whose resolved home is not `MCP_HOME_ID`, with a 403 and
+the code `chat_unavailable_for_home`. That gate is a stopgap, not the fix: the assistant
+stays unavailable to every other home until MCP can carry the caller and the pin comes out.
 
 `cmd/tag` and `cmd/fetchimages` still connect as `DB_USER`, not `bluer_book_app`, because
 they sweep every home at once; so they name `home_id` explicitly, taking it from the recipe

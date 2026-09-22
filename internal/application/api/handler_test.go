@@ -47,8 +47,9 @@ func (s *stubRecipeService) RestoreRecipe(_ context.Context, _ uuid.UUID) (*reci
 func (s *stubRecipeService) ListArchivedRecipes(_ context.Context, _, _ int) ([]*recipe.Recipe, int, error) {
 	return nil, 0, nil
 }
-func (s *stubRecipeService) AddToMealPlan(_ context.Context, _ uuid.UUID) error    { return nil }
-func (s *stubRecipeService) RemoveFromMealPlan(_ context.Context, _ uuid.UUID) error { return nil }
+func (s *stubRecipeService) SetMainPhoto(_ context.Context, _ uuid.UUID, _ string) error { return nil }
+func (s *stubRecipeService) AddToMealPlan(_ context.Context, _ uuid.UUID) error          { return nil }
+func (s *stubRecipeService) RemoveFromMealPlan(_ context.Context, _ uuid.UUID) error     { return nil }
 func (s *stubRecipeService) ListMealPlanRecipes(_ context.Context) ([]*recipe.Recipe, error) {
 	return nil, nil
 }

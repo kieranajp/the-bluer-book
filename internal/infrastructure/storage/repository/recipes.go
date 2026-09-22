@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 
@@ -20,6 +21,9 @@ type RecipeRepository interface {
 	ArchiveRecipe(ctx context.Context, id uuid.UUID) error
 	RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
 	ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error)
+
+	// Photos
+	SetMainPhoto(ctx context.Context, recipeID uuid.UUID, url string) error
 
 	// Meal planning methods
 	AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error
@@ -777,6 +781,34 @@ func (r *recipeRepository) ListArchivedRecipes(ctx context.Context, limit, offse
 		return nil, 0, err
 	}
 	return outRecipes, outCount, nil
+}
+
+func (r *recipeRepository) SetMainPhoto(ctx context.Context, recipeID uuid.UUID, url string) error {
+	return InHomeTx(ctx, r.sqlDB, func(q *db.Queries) error {
+		now := time.Now()
+		photoID := uuid.New()
+
+		if _, err := q.CreatePhoto(ctx, db.CreatePhotoParams{
+			Uuid:       photoID,
+			Url:        url,
+			EntityType: "recipe",
+			EntityID:   recipeID,
+			CreatedAt:  now,
+			UpdatedAt:  now,
+		}); err != nil {
+			return fmt.Errorf("storing the photo: %w", err)
+		}
+
+		if err := q.SetRecipeMainPhoto(ctx, db.SetRecipeMainPhotoParams{
+			Uuid:        recipeID,
+			MainPhotoID: uuid.NullUUID{UUID: photoID, Valid: true},
+			UpdatedAt:   now,
+		}); err != nil {
+			return fmt.Errorf("pointing the recipe at it: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (r *recipeRepository) AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error {

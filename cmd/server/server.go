@@ -285,7 +285,7 @@ func run(c *cli.Context) error {
 			c.String("r2-public-url"),
 			log,
 		)
-		photoHandler = api.NewPhotoHandler(r2, sqlDB, log)
+		photoHandler = api.NewPhotoHandler(r2, recipeService, log)
 		log.Info().Msg("R2 photo upload enabled")
 	} else {
 		log.Warn().Msg("R2 not configured — photo upload endpoint disabled")

@@ -19,6 +19,10 @@ type RecipeService interface {
 	RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
 	ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error)
 
+	// SetMainPhoto stores an already-uploaded photo against a recipe and makes
+	// it the one the recipe shows.
+	SetMainPhoto(ctx context.Context, recipeID uuid.UUID, url string) error
+
 	// Meal planning methods
 	AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error
 	RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error
@@ -119,6 +123,14 @@ func (s *recipeService) RestoreRecipe(ctx context.Context, id uuid.UUID) (*recip
 
 func (s *recipeService) ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error) {
 	return s.repo.ListArchivedRecipes(ctx, limit, offset)
+}
+
+func (s *recipeService) SetMainPhoto(ctx context.Context, recipeID uuid.UUID, url string) error {
+	if err := s.repo.SetMainPhoto(ctx, recipeID, url); err != nil {
+		s.probe.RecipeError("photo", err)
+		return err
+	}
+	return nil
 }
 
 func (s *recipeService) AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error {

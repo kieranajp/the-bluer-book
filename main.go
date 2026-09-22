@@ -5,6 +5,7 @@ import (
 
 	fetchimages "github.com/kieranajp/the-bluer-book/cmd/fetchimages"
 	"github.com/kieranajp/the-bluer-book/cmd/migrate"
+	"github.com/kieranajp/the-bluer-book/cmd/proposemerges"
 	"github.com/kieranajp/the-bluer-book/cmd/server"
 	"github.com/kieranajp/the-bluer-book/cmd/tag"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
@@ -34,6 +35,11 @@ func main() {
 			migrate.Command,
 			tag.Command,
 			fetchimages.Command,
+			// Dev-only. Unlike tag-recipes it is deliberately absent from the
+			// Helm initContainer chain — it proposes destructive, one-way
+			// ingredient merges that a human reviews before they reach a
+			// migration.
+			proposemerges.Command,
 		},
 	}
 

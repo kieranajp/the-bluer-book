@@ -18,6 +18,7 @@ sql:
       - "migrations/00016_invitation_tokens.sql"
       - "migrations/00017_recipe_ingredient_component_key.sql"
       - "migrations/00018_ingredient_canonical.sql"
+      - "migrations/00019_ingredient_semantic_merge.sql"
     queries: "internal/infrastructure/storage/queries"
     gen:
       go:

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -11,16 +12,21 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/urfave/cli/v2"
 
 	"github.com/kieranajp/the-bluer-book/internal/application/api"
 	"github.com/kieranajp/the-bluer-book/internal/application/chat"
+	"github.com/kieranajp/the-bluer-book/internal/application/identity"
 	"github.com/kieranajp/the-bluer-book/internal/application/mcp"
+	"github.com/kieranajp/the-bluer-book/internal/domain/account"
+	accountservice "github.com/kieranajp/the-bluer-book/internal/domain/account/service"
 	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/ai"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
@@ -71,6 +77,16 @@ var (
 				EnvVars: []string{"DB_PORT"},
 			},
 			&cli.StringFlag{
+				Name:    "app-db-user",
+				Usage:   "Non-owner database role the request path connects as, so the isolation policies bind it",
+				EnvVars: []string{"APP_DB_USER"},
+			},
+			&cli.StringFlag{
+				Name:    "app-db-pass",
+				Usage:   "Password for APP_DB_USER",
+				EnvVars: []string{"APP_DB_PASS"},
+			},
+			&cli.StringFlag{
 				Name:    "google-api-key",
 				Usage:   "Google AI Studio API key",
 				EnvVars: []string{"GOOGLE_API_KEY"},
@@ -80,6 +96,17 @@ var (
 				Usage:   "Gemini model used by the chat handler",
 				EnvVars: []string{"GEMINI_MODEL"},
 				Value:   "gemini-3.5-flash",
+			},
+			&cli.StringFlag{
+				Name:    "founder-subject",
+				Usage:   "Token subject that owns the founder home, and so the recipes that predate multitenancy",
+				EnvVars: []string{"FOUNDER_SUBJECT"},
+			},
+			&cli.StringFlag{
+				Name:    "mcp-home-id",
+				Usage:   "Home that every MCP tool call acts on, the MCP server having no caller to resolve",
+				EnvVars: []string{"MCP_HOME_ID"},
+				Value:   account.FounderHomeID.String(),
 			},
 			&cli.StringFlag{Name: "r2-account-id", EnvVars: []string{"R2_ACCOUNT_ID"}},
 			&cli.StringFlag{Name: "r2-jurisdiction", EnvVars: []string{"R2_JURISDICTION"}},
@@ -92,49 +119,102 @@ var (
 	}
 )
 
+// checkFounderHome warns when FOUNDER_SUBJECT resolves outside the founder
+// home: it was configured after its owner's first sign-in.
+func checkFounderHome(ctx context.Context, repo account.Repository, subject string, log logger.Logger) {
+	user, err := repo.FindUserBySubject(ctx, subject)
+	if errors.Is(err, account.ErrUserNotFound) {
+		return
+	}
+	if err == nil {
+		var home account.Home
+		home, err = repo.FindMostRecentHome(ctx, user.UUID)
+		if err == nil && home.UUID != account.FounderHomeID {
+			log.Error().
+				Str("home", home.UUID.String()).
+				Str("home_name", home.Name).
+				Msg("FOUNDER_SUBJECT resolves to another home — that user signed in before the subject was configured, and their requests will not reach the founder home")
+		}
+	}
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not check which home FOUNDER_SUBJECT resolves to")
+	}
+}
+
 func run(c *cli.Context) error {
 	cfg := config.New(c)
 	listenAddr := cfg.ListenAddr
 	mcpAddr := cfg.MCPAddr
 
-	// Initialize logger
 	log := logger.New(logger.LogLevelInfo)
 
-	// Set up database
-	sqlDB, err := sql.Open("postgres", cfg.DBDSN())
+	mcpHomeID, err := uuid.Parse(cfg.MCPHomeID)
+	if err != nil {
+		return fmt.Errorf("MCP_HOME_ID %q is not a uuid: %w", cfg.MCPHomeID, err)
+	}
+
+	// Set up database. The server connects as the policy-bound role, never as
+	// the owner the migrations run as.
+	dsn, err := cfg.AppDBDSN()
+	if err != nil {
+		return err
+	}
+	sqlDB, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 	defer sqlDB.Close()
 
-	// Test database connection
 	if err := sqlDB.Ping(); err != nil {
 		return fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	role, err := repository.CheckIsolation(context.Background(), sqlDB)
+	if err != nil {
+		return err
+	}
+	log.Info().Str("role", role).Msg("Database connection is subject to row-level security")
+
+	// A missing MCP home would otherwise mean every tool call sees empty reads
+	// and fails writes, one call at a time and never caught at startup.
+	var mcpHomeExists bool
+	if err := sqlDB.QueryRow(`SELECT EXISTS (SELECT 1 FROM homes WHERE uuid = $1)`, mcpHomeID).Scan(&mcpHomeExists); err != nil {
+		return fmt.Errorf("failed to check MCP home %s: %w", mcpHomeID, err)
+	}
+	if !mcpHomeExists {
+		return fmt.Errorf("MCP_HOME_ID %s is not a home in this database", mcpHomeID)
 	}
 
 	// Expose connection-pool stats (go_sql_*) alongside the per-query metrics
 	// recorded by the instrumented DBTX below.
 	metrics.RegisterDBStats(sqlDB)
 
-	// Initialize dependencies. Wrapping the pool in an instrumented DBTX times
-	// every sqlc query without the repository needing to know about metrics.
+	// The account repo keeps the plain pool since identity resolves before
+	// any home is known; tenant code uses InHomeTx instead.
 	queries := db.New(metrics.NewInstrumentedDBTX(sqlDB))
-	repo := repository.NewRecipeRepository(queries, sqlDB, log)
-	pantryRepo := repository.NewPantryRepository(queries, log)
+	repo := repository.NewRecipeRepository(sqlDB, log)
+	pantryRepo := repository.NewPantryRepository(sqlDB, log)
+	accountRepo := repository.NewAccountRepository(queries, sqlDB, log)
 
-	// Create probes
 	recipeProbe := metrics.NewRecipeProbe(log)
 	pantryProbe := metrics.NewPantryProbe(log)
 	chatProbe := metrics.NewChatProbe(log)
 
-	// Initialize services
 	recipeService := service.NewRecipeService(repo, recipeProbe)
 	pantryService := pantryservice.NewPantryService(pantryRepo, pantryProbe)
+	accountService := accountservice.NewAccountService(accountRepo, cfg.FounderSubject, metrics.NewAccountProbe(log))
+	if cfg.FounderSubject == "" {
+		log.Warn().Msg("FOUNDER_SUBJECT not set — the first user to sign in gets a new empty home, not the existing recipes")
+	} else {
+		checkFounderHome(context.Background(), accountRepo, cfg.FounderSubject, log)
+	}
 
-	// Create MCP handler
+	// Turns the edge's X-User header into the caller and the home their request
+	// acts on, provisioning both on a first login.
+	resolver := identity.NewResolver(accountService)
+
 	mcpHandler := mcp.NewRecipeMCPHandler(recipeService, pantryService, log)
 
-	// Create MCP server
 	mcpServer := server.NewMCPServer("Recipe Management Server", "1.0.0",
 		server.WithToolCapabilities(true),
 	)
@@ -145,7 +225,13 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on MCP address %s: %w", mcpAddr, err)
 	}
-	httpMCPServer := server.NewStreamableHTTPServer(mcpServer)
+	// No MCP call carries auth or a caller argument, so every call acts on one
+	// configured home, stamped here where middleware would normally have put it.
+	httpMCPServer := server.NewStreamableHTTPServer(mcpServer,
+		server.WithHTTPContextFunc(func(ctx context.Context, _ *http.Request) context.Context {
+			return auth.WithHome(ctx, mcpHomeID)
+		}),
+	)
 	go func() {
 		log.Info().Str("address", mcpAddr).Msg("Starting MCP server")
 		if err := http.Serve(mcpListener, httpMCPServer); err != nil && err != http.ErrServerClosed {
@@ -155,7 +241,7 @@ func run(c *cli.Context) error {
 	}()
 
 	// Create chat handler — MCP server is guaranteed to be listening
-	chatHandler, err := chat.NewHandler(cfg, log, chatProbe)
+	chatHandler, err := chat.NewHandler(cfg, mcpHomeID, log, chatProbe)
 	if err != nil {
 		return fmt.Errorf("failed to create chat handler: %w", err)
 	}
@@ -185,14 +271,14 @@ func run(c *cli.Context) error {
 			c.String("r2-public-url"),
 			log,
 		)
-		photoHandler = api.NewPhotoHandler(r2, queries, sqlDB, log)
+		photoHandler = api.NewPhotoHandler(r2, recipeService, log)
 		log.Info().Msg("R2 photo upload enabled")
 	} else {
 		log.Warn().Msg("R2 not configured — photo upload endpoint disabled")
 	}
 
 	// Create API router
-	router := api.NewRouter(recipeService, pantryService, scanner, chatHandler, photoHandler, log)
+	router := api.NewRouter(recipeService, pantryService, accountService, scanner, chatHandler, photoHandler, resolver, log)
 
 	// Create HTTP server
 	httpServer := &http.Server{

@@ -14,12 +14,15 @@ spec:
       services:
         - name: {{ .Release.Name }}-mcp
           port: {{ .Values.mcp.service.port }}
-    # API routes — JWT bearer auth (for mobile/programmatic clients).
-    # auth-token = traefik-jwt-plugin, validating the Authentik RS256 token
-    # against the-bluer-book's JWKS and injecting X-User (the JWT sub).
+    # auth-token validates the Authentik RS256 token against the provider's
+    # signing cert and injects X-User (the JWT sub).
     - kind: Rule
       match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/api`)
       middlewares:
+        # Strip must run before auth-token: the jwt plugin appends rather than
+        # replaces, so a forged X-User would otherwise survive alongside it.
+        - name: strip-identity-headers
+          namespace: auth
         - name: auth-token
           namespace: auth
       services:

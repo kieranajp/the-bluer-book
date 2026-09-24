@@ -21,14 +21,11 @@ class PantryAddIngredientField extends ConsumerWidget {
         optionsBuilder: (value) {
           final query = value.text.trim().toLowerCase();
           if (query.isEmpty) return const Iterable<IngredientDetail>.empty();
-          final pantry = ref.read(pantryProvider).value ?? const <String>{};
-          // The two halves of this test used to disagree: the filter lowercased
-          // but the exclusion compared display names, so an ingredient already
-          // in the pantry under different casing kept being suggested.
+          final pantry = ref.read(pantryProvider).value ?? const <String, String>{};
           return ingredients
               .where((i) =>
                   i.name.toLowerCase().contains(query) &&
-                  !pantry.contains(i.key))
+                  !pantry.containsKey(i.key))
               .take(8);
         },
         onSelected: (selection) {

@@ -24,8 +24,8 @@ class RecipeRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colours;
     final totalTime = recipe.preparationTime + recipe.cookingTime;
-    final pantry = ref.watch(pantryProvider).value ?? const <String>{};
-    final cook = cookabilityOf(recipe, pantry);
+    final pantry = ref.watch(pantryProvider).value ?? const <String, String>{};
+    final cook = cookabilityOf(recipe, pantry.keys);
     // Only meaningful once the pantry has something in it.
     final showCookSeal = pantry.isNotEmpty && cook.total > 0;
 

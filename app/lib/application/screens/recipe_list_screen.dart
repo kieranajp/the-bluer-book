@@ -53,11 +53,11 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
   List<Recipe> _sortForDisplay(
     List<Recipe> recipes,
     RecipeSort sort,
-    Set<String> pantry,
+    Map<String, String> pantry,
   ) {
     if (sort != RecipeSort.cookable) return recipes;
     final missing = {
-      for (final r in recipes) r.uuid: cookabilityOf(r, pantry).missing,
+      for (final r in recipes) r.uuid: cookabilityOf(r, pantry.keys).missing,
     };
     return [...recipes]..sort((a, b) {
         final cmp = missing[a.uuid]!.compareTo(missing[b.uuid]!);
@@ -94,7 +94,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     final notifier = ref.read(recipeListProvider.notifier);
     final activeLabels = ref.watch(recipeListProvider.notifier).activeLabels;
     // Watched so "Cook now" re-sorts live as the pantry changes.
-    final pantry = ref.watch(pantryProvider).value ?? const <String>{};
+    final pantry = ref.watch(pantryProvider).value ?? const <String, String>{};
 
     ref.listen<AsyncValue<List<Recipe>>>(filteredRecipesProvider, (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {

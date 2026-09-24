@@ -40,7 +40,7 @@ void main() {
             brightness: brightness,
             child: ProviderScope(
               overrides: [
-                pantryProvider.overrideWith(() => FixedPantry(const {'ripe tomatoes', 'onion'})),
+                pantryProvider.overrideWith(() => FixedPantry(const {'ripe tomatoes': 'ripe tomatoes', 'onion': 'onion'})),
                 recipeListProvider.overrideWith(() => _FixedRecipeList([recipe])),
               ],
               child: _phone(RecipeDetailsScreen(recipe: recipe)),

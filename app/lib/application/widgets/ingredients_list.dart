@@ -18,12 +18,13 @@ class IngredientsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pantry = ref.watch(pantryProvider).value ?? const <String>{};
+    final pantry = ref.watch(pantryProvider).value ?? const <String, String>{};
     final hasComponents = ingredients.any(
       (i) => i.component != null && i.component!.isNotEmpty,
     );
-    final checkedCount =
-        ingredients.where((i) => pantry.contains(i.detail.key)).length;
+    final checkedCount = ingredients
+        .where((i) => i.detail.isStaple || pantry.containsKey(i.detail.key))
+        .length;
 
     Future<void> toggle(IngredientDetail detail) async {
       final messenger = ScaffoldMessenger.of(context);
@@ -57,20 +58,21 @@ class IngredientsList extends ConsumerWidget {
     );
   }
 
-  List<Widget> _flat(
-      Set<String> pantry, Future<void> Function(IngredientDetail) toggle) {
+  List<Widget> _flat(Map<String, String> pantry,
+      Future<void> Function(IngredientDetail) toggle) {
     return [
       for (final ingredient in ingredients)
         IngredientRow(
           ingredient: ingredient,
-          checked: pantry.contains(ingredient.detail.key),
+          checked: ingredient.detail.isStaple ||
+              pantry.containsKey(ingredient.detail.key),
           onTap: () => toggle(ingredient.detail),
         ),
     ];
   }
 
-  List<Widget> _grouped(
-      Set<String> pantry, Future<void> Function(IngredientDetail) toggle) {
+  List<Widget> _grouped(Map<String, String> pantry,
+      Future<void> Function(IngredientDetail) toggle) {
     final groups = <String, List<Ingredient>>{};
     for (final ingredient in ingredients) {
       final key = ingredient.component ?? '';
@@ -101,7 +103,8 @@ class IngredientsList extends ConsumerWidget {
         for (final ingredient in groups[key]!)
           IngredientRow(
             ingredient: ingredient,
-            checked: pantry.contains(ingredient.detail.key),
+            checked: ingredient.detail.isStaple ||
+                pantry.containsKey(ingredient.detail.key),
             onTap: () => toggle(ingredient.detail),
           ),
       ],

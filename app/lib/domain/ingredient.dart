@@ -19,9 +19,6 @@ abstract class Ingredient with _$Ingredient {
 /// Derives the matching key for an ingredient name, mirroring the backend's
 /// `canonical_name` (`lower(btrim(name))`). Only a fallback: prefer the
 /// `canonical` the API sends, which is authoritative.
-///
-/// Matching on the display name is what used to make "Salt" in the pantry fail
-/// to tick the "salt" row in a recipe.
 String ingredientKey(String name) => name.trim().toLowerCase();
 
 @freezed

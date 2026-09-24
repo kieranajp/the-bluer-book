@@ -22,14 +22,8 @@ class PantryScreen extends ConsumerWidget {
     final pantryAsync = ref.watch(pantryProvider);
     final allIngredients = ref.watch(ingredientsProvider).value ??
         const <IngredientDetail>[];
-    // The pantry is a set of canonical keys; chips show the name as written.
-    // The ingredient list is already loaded for the autocomplete, so it doubles
-    // as the key -> display lookup rather than needing its own fetch.
-    final displayNames = {
-      for (final ingredient in allIngredients) ingredient.key: ingredient.name
-    };
 
-    ref.listen<AsyncValue<Set<String>>>(pantryProvider, (prev, next) {
+    ref.listen<AsyncValue<Map<String, String>>>(pantryProvider, (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {
         final message =
             errorMessage(next.error, fallback: 'Failed to load pantry');
@@ -60,8 +54,8 @@ class PantryScreen extends ConsumerWidget {
                 child: PantryAddIngredientField(ingredients: allIngredients),
               ),
               pantryAsync.when(
-                data: (keys) {
-                  if (keys.isEmpty) {
+                data: (names) {
+                  if (names.isEmpty) {
                     return const SliverFillRemaining(
                       hasScrollBody: false,
                       child: EmptyState(
@@ -72,7 +66,7 @@ class PantryScreen extends ConsumerWidget {
                       ),
                     );
                   }
-                  final sorted = keys.toList()..sort();
+                  final sorted = names.keys.toList()..sort();
                   return SliverPadding(
                     padding: const EdgeInsets.all(Spacing.m),
                     sliver: SliverToBoxAdapter(
@@ -82,7 +76,7 @@ class PantryScreen extends ConsumerWidget {
                         children: [
                           for (final key in sorted)
                             PantryChip(
-                              name: displayNames[key] ?? key,
+                              name: names[key] ?? key,
                               canonical: key,
                             ),
                         ],

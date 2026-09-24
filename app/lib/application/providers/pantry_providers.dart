@@ -11,16 +11,14 @@ final pantryRepositoryProvider = Provider<PantryRepository>((ref) {
   return PantryRepository(ref.watch(apiClientProvider));
 });
 
-/// Holds the set of ingredient *keys* currently in the pantry — the canonical
-/// name, not the display name. Membership is all the "have / don't-have" model
-/// needs, but it has to be membership of the same thing on both sides: this set
-/// used to hold display names, so "Salt" in the pantry never matched the "salt"
-/// a recipe asked for. Compare with [IngredientDetail.key].
-class PantryNotifier extends Notifier<AsyncValue<Set<String>>> {
+/// Holds the pantry as a map of ingredient key -> display name. Keys are
+/// canonical (compare with [IngredientDetail.key]); the API sends the display
+/// name alongside, so chips render without a second lookup.
+class PantryNotifier extends Notifier<AsyncValue<Map<String, String>>> {
   PantryRepository get _repository => ref.read(pantryRepositoryProvider);
 
   @override
-  AsyncValue<Set<String>> build() {
+  AsyncValue<Map<String, String>> build() {
     Future.microtask(load);
     return const AsyncValue.loading();
   }
@@ -29,7 +27,9 @@ class PantryNotifier extends Notifier<AsyncValue<Set<String>>> {
     state = const AsyncValue.loading();
     try {
       final items = await _repository.getPantry();
-      state = AsyncValue.data(items.map((e) => e.key).toSet());
+      state = AsyncValue.data({
+        for (final item in items) item.key: item.ingredient,
+      });
     } catch (e, stack) {
       dev.log('Failed to load pantry', name: 'PantryNotifier', error: e, stackTrace: stack);
       state = AsyncValue.error(e, stack);
@@ -37,7 +37,7 @@ class PantryNotifier extends Notifier<AsyncValue<Set<String>>> {
   }
 
   bool has(String ingredient, {String? key}) =>
-      state.value?.contains(key ?? ingredientKey(ingredient)) ?? false;
+      state.value?.containsKey(key ?? ingredientKey(ingredient)) ?? false;
 
   /// Flip whether [ingredient] is in the pantry, optimistically updating local
   /// state and reverting if the API call fails.
@@ -48,14 +48,14 @@ class PantryNotifier extends Notifier<AsyncValue<Set<String>>> {
   /// otherwise it's derived from the name.
   Future<void> toggle(String ingredient, {String? key}) async {
     final k = key ?? ingredientKey(ingredient);
-    final current = state.value ?? const <String>{};
-    final wasIn = current.contains(k);
+    final current = state.value ?? const <String, String>{};
+    final wasIn = current.containsKey(k);
 
     final next = {...current};
     if (wasIn) {
       next.remove(k);
     } else {
-      next.add(k);
+      next[k] = ingredient;
     }
     state = AsyncValue.data(next);
 
@@ -85,7 +85,7 @@ class PantryNotifier extends Notifier<AsyncValue<Set<String>>> {
 }
 
 final pantryProvider =
-    NotifierProvider<PantryNotifier, AsyncValue<Set<String>>>(
+    NotifierProvider<PantryNotifier, AsyncValue<Map<String, String>>>(
         PantryNotifier.new);
 
 /// The shopping list: meal-plan ingredients that aren't in the pantry, plus any

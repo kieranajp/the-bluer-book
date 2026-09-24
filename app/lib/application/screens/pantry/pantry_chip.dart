@@ -4,10 +4,7 @@ import '../../providers/pantry_providers.dart';
 import '../../styles/colours.dart';
 
 /// A single removable ingredient chip in the [PantryScreen] inventory.
-///
-/// [name] is what's shown; [canonical] is what the pantry is keyed by. They
-/// differ whenever an ingredient is stored with capitals — "Black pepper" is
-/// displayed, "black pepper" is matched.
+/// [name] is what's shown; [canonical] is what the pantry is keyed by.
 class PantryChip extends ConsumerWidget {
   final String name;
   final String canonical;

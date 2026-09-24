@@ -15,7 +15,14 @@ WHERE r.archived_at IS NULL
            SELECT 1 FROM recipe_ingredient ri
            INNER JOIN ingredients i ON i.uuid = ri.ingredient_id
            WHERE ri.recipe_id = r.uuid
-             AND i.canonical_name LIKE '%' || lower(btrim(sqlc.narg('search')::text)) || '%'
+             AND strpos(i.canonical_name, lower(btrim(sqlc.narg('search')::text))) > 0
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM recipe_ingredient ri
+           INNER JOIN ingredient_aliases a ON a.ingredient_id = ri.ingredient_id
+           WHERE ri.recipe_id = r.uuid
+             AND a.alias = lower(btrim(sqlc.narg('search')::text))
          ))
     AND (
         sqlc.arg('label_keys')::text[] IS NULL
@@ -42,7 +49,14 @@ WHERE r.archived_at IS NULL
            SELECT 1 FROM recipe_ingredient ri
            INNER JOIN ingredients i ON i.uuid = ri.ingredient_id
            WHERE ri.recipe_id = r.uuid
-             AND i.canonical_name LIKE '%' || lower(btrim(sqlc.narg('search')::text)) || '%'
+             AND strpos(i.canonical_name, lower(btrim(sqlc.narg('search')::text))) > 0
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM recipe_ingredient ri
+           INNER JOIN ingredient_aliases a ON a.ingredient_id = ri.ingredient_id
+           WHERE ri.recipe_id = r.uuid
+             AND a.alias = lower(btrim(sqlc.narg('search')::text))
          ))
     AND (
         sqlc.arg('label_keys')::text[] IS NULL

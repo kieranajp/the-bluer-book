@@ -33,10 +33,10 @@ func (h *RecipeMCPHandler) RegisterTools(s *server.MCPServer) {
 				mcp.Items(map[string]any{
 					"type": "object",
 					"properties": map[string]any{
-						"name":        map[string]any{"type": "string", "description": "Ingredient name"},
+						"name":        map[string]any{"type": "string", "description": "Ingredient name. Use the bare ingredient as you would buy it, and reuse the spelling the book already has (call list_ingredients if unsure) rather than inventing a variant. Keep the form — 'ground cumin' and 'cumin seeds' are different ingredients — but leave size, count and prep out of the name: 'garlic', not 'Garlic cloves'."},
 						"quantity":    map[string]any{"type": "number", "description": "Amount"},
-						"unit":        map[string]any{"type": "string", "description": "Unit of measurement"},
-						"preparation": map[string]any{"type": "string", "description": "Preparation notes"},
+						"unit":        map[string]any{"type": "string", "description": "Unit of measurement, singular: a real measure (g, ml, tbsp, tsp) or the count noun the ingredient is measured in ('clove' for 3 cloves of garlic). Sizes like 'large' and instructions like 'to taste' belong in preparation."},
+						"preparation": map[string]any{"type": "string", "description": "Preparation notes — how the ingredient is cut or cooked, and sizes like 'large' or instructions like 'to taste'. Count never goes here: '3 cloves of garlic' is quantity 3, unit 'clove', empty preparation."},
 						"component":   map[string]any{"type": "string", "description": "Component this ingredient belongs to, e.g. 'sauce', 'batter', 'filling'"},
 					},
 					"required": []string{"name"},
@@ -99,10 +99,10 @@ func (h *RecipeMCPHandler) RegisterTools(s *server.MCPServer) {
 				mcp.Items(map[string]any{
 					"type": "object",
 					"properties": map[string]any{
-						"name":        map[string]any{"type": "string", "description": "Ingredient name"},
+						"name":        map[string]any{"type": "string", "description": "Ingredient name. Use the bare ingredient as you would buy it, and reuse the spelling the book already has (call list_ingredients if unsure) rather than inventing a variant. Keep the form — 'ground cumin' and 'cumin seeds' are different ingredients — but leave size, count and prep out of the name: 'garlic', not 'Garlic cloves'."},
 						"quantity":    map[string]any{"type": "number", "description": "Amount"},
-						"unit":        map[string]any{"type": "string", "description": "Unit of measurement"},
-						"preparation": map[string]any{"type": "string", "description": "Preparation notes"},
+						"unit":        map[string]any{"type": "string", "description": "Unit of measurement, singular: a real measure (g, ml, tbsp, tsp) or the count noun the ingredient is measured in ('clove' for 3 cloves of garlic). Sizes like 'large' and instructions like 'to taste' belong in preparation."},
+						"preparation": map[string]any{"type": "string", "description": "Preparation notes — how the ingredient is cut or cooked, and sizes like 'large' or instructions like 'to taste'. Count never goes here: '3 cloves of garlic' is quantity 3, unit 'clove', empty preparation."},
 						"component":   map[string]any{"type": "string", "description": "Component this ingredient belongs to, e.g. 'sauce', 'batter', 'filling'"},
 					},
 					"required": []string{"name"},

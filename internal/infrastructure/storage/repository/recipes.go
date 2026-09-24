@@ -209,20 +209,41 @@ func normalizeUnitName(name string) string {
 	return strings.ToLower(strings.TrimSpace(name))
 }
 
-// resolveIngredient finds the ingredient a free-text name refers to, creating
-// it only when nothing matches. Matching ignores case and surrounding
-// whitespace, so a recipe saved with "Fresh Ginger" reuses the existing
-// "fresh ginger" instead of minting a near-duplicate.
-//
-// The display name is stored as the caller wrote it — ingredient names carry
-// proper nouns ("MSG", "BIR base gravy") that lowercasing would mangle.
-func (r *recipeRepository) resolveIngredient(ctx context.Context, q *db.Queries, name string, now time.Time) (uuid.UUID, error) {
+// resolveIngredient maps a free-text ingredient name to its row, minting a
+// new one only when nothing matches. The second return is a count qualifier
+// stripped from the name on the way ("garlic cloves" -> "cloves", resolved to
+// garlic); the caller moves it onto the recipe line. Empty when the name
+// resolved whole or nothing was stripped.
+func (r *recipeRepository) resolveIngredient(ctx context.Context, q *db.Queries, name string, now time.Time) (uuid.UUID, string, error) {
 	match, err := q.FindIngredientByName(ctx, name)
 	switch {
 	case err == nil:
-		return match.Uuid, nil
+		return match.Uuid, "", nil
 	case !errors.Is(err, sql.ErrNoRows):
-		return uuid.Nil, err
+		return uuid.Nil, "", err
+	}
+
+	// A free-text name can carry a count qualifier the book stores on the
+	// recipe line instead — "garlic cloves" is garlic. Strip a trailing
+	// qualifier noun and create the base whenever the whole name matches
+	// nothing, so the outcome does not depend on what the home happens to
+	// have: "garlic cloves" resolves to garlic whether or not a bare "garlic"
+	// row already exists. Only a closed list of count nouns is stripped, so
+	// ordinary multi-word ingredients are never mangled — "onions" is a real
+	// name and resolves before any splitting is attempted.
+	base, qualifier := splitIngredientQualifier(name)
+	if qualifier != "" {
+		created, err := q.CreateIngredient(ctx, db.CreateIngredientParams{
+			Uuid:      uuid.New(),
+			Name:      strings.TrimSpace(base),
+			CreatedAt: now,
+			UpdatedAt: now,
+		})
+		if err != nil {
+			return uuid.Nil, "", err
+		}
+		r.logger.Info().Msgf("Inserted new ingredient: %s (UUID: %s)", created.Name, created.Uuid)
+		return created.Uuid, qualifier, nil
 	}
 
 	created, err := q.CreateIngredient(ctx, db.CreateIngredientParams{
@@ -232,10 +253,53 @@ func (r *recipeRepository) resolveIngredient(ctx context.Context, q *db.Queries,
 		UpdatedAt: now,
 	})
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, "", err
 	}
 	r.logger.Info().Msgf("Inserted new ingredient: %s (UUID: %s)", created.Name, created.Uuid)
-	return created.Uuid, nil
+	return created.Uuid, "", nil
+}
+
+// ingredientQualifierWords are pure count/measure nouns that never stand alone
+// as an ingredient in this book: when a name ENDS with one (optionally
+// pluralised), the noun is a qualifier for whatever precedes it. Deliberately
+// narrow — "leaf", "stick", "rib", "fillet", "pod", "head" and "stalk" are
+// forms, not counts ("lime leaves", "cinnamon stick", "beef ribs" are real
+// ingredients), so they resolve per home and any stray spelling gets an alias.
+var ingredientQualifierWords = map[string]bool{
+	"clove": true, "sprig": true, "bunch": true, "handful": true,
+	"knob": true, "slice": true, "wedge": true,
+}
+
+// splitIngredientQualifier separates a trailing count qualifier from an
+// ingredient name: "garlic cloves" -> ("garlic", "cloves"). Only the final
+// whitespace-separated word is considered, and only when the name has at
+// least two words — single words ("cloves" alone) are left untouched.
+func splitIngredientQualifier(name string) (string, string) {
+	trimmed := strings.TrimSpace(name)
+	words := strings.Fields(trimmed)
+	if len(words) < 2 {
+		return trimmed, ""
+	}
+	last := strings.ToLower(words[len(words)-1])
+	if isQualifierWord(last) {
+		return strings.TrimSpace(strings.Join(words[:len(words)-1], " ")), last
+	}
+	return trimmed, ""
+}
+
+// isQualifierWord reports whether w is a count qualifier noun in singular or
+// plural form.
+func isQualifierWord(w string) bool {
+	if ingredientQualifierWords[w] {
+		return true
+	}
+	if s := strings.TrimSuffix(w, "s"); ingredientQualifierWords[s] {
+		return true
+	}
+	if s := strings.TrimSuffix(w, "es"); ingredientQualifierWords[s] {
+		return true
+	}
+	return false
 }
 
 // resolveUnit is the same idea for units, which were already normalised on
@@ -245,6 +309,22 @@ func (r *recipeRepository) resolveUnit(ctx context.Context, q *db.Queries, u rec
 	name := normalizeUnitName(u.Name)
 	if name == "" {
 		return uuid.NullUUID{}, nil
+	}
+
+	// Plural forms are display concerns, not new units: when someone types
+	// "cloves" or "tablespoons", prefer the singular whenever it exists —
+	// checked first so a stale plural row can't keep winning. The quantity
+	// already carries the count.
+	if strings.HasSuffix(name, "s") {
+		if singular := strings.TrimSuffix(name, "s"); singular != "" {
+			singularRow, singularErr := q.GetUnitByName(ctx, singular)
+			switch {
+			case singularErr == nil:
+				return uuidToNullUUID(&singularRow.Uuid), nil
+			case !errors.Is(singularErr, sql.ErrNoRows):
+				return uuid.NullUUID{}, singularErr
+			}
+		}
 	}
 
 	unitRow, err := q.GetUnitByName(ctx, name)
@@ -282,7 +362,7 @@ func (r *recipeRepository) writeRecipeIngredients(ctx context.Context, q *db.Que
 	seen := make(map[ingredientKey]bool, len(ingredients))
 
 	for _, ri := range ingredients {
-		ingredientID, err := r.resolveIngredient(ctx, q, ri.Ingredient.Name, now)
+		ingredientID, qualifier, err := r.resolveIngredient(ctx, q, ri.Ingredient.Name, now)
 		if err != nil {
 			return err
 		}
@@ -297,6 +377,13 @@ func (r *recipeRepository) writeRecipeIngredients(ctx context.Context, q *db.Que
 			continue
 		}
 		seen[key] = true
+
+		if qualifier != "" && strings.TrimSpace(ri.Unit.Name) == "" {
+			// The name carried a count qualifier ("garlic cloves"): that is
+			// the unit, and it measures in cloves. resolveUnit stores the
+			// singular; preparation is left to the recipe to state.
+			ri.Unit.Name = qualifier
+		}
 
 		unitID, err := r.resolveUnit(ctx, q, ri.Unit, now)
 		if err != nil {

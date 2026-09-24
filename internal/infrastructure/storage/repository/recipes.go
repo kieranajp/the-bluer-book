@@ -224,21 +224,26 @@ func (r *recipeRepository) resolveIngredient(ctx context.Context, q *db.Queries,
 	}
 
 	// A free-text name can carry a count qualifier the book stores on the
-	// recipe line instead — "garlic cloves" is garlic. Split a trailing
-	// qualifier noun off and retry: if the remainder resolves to a known
-	// ingredient, the qualifier moves out of the name rather than minting a
-	// near-duplicate row. Only a closed list of qualifier nouns is stripped,
-	// so ordinary multi-word ingredients are never mangled — "onions" is a
-	// real name and resolves before any splitting is attempted.
+	// recipe line instead — "garlic cloves" is garlic. Strip a trailing
+	// qualifier noun and create the base whenever the whole name matches
+	// nothing, so the outcome does not depend on what the home happens to
+	// have: "garlic cloves" resolves to garlic whether or not a bare "garlic"
+	// row already exists. Only a closed list of count nouns is stripped, so
+	// ordinary multi-word ingredients are never mangled — "onions" is a real
+	// name and resolves before any splitting is attempted.
 	base, qualifier := splitIngredientQualifier(name)
 	if qualifier != "" {
-		match, err = q.FindIngredientByName(ctx, base)
-		switch {
-		case err == nil:
-			return match.Uuid, qualifier, nil
-		case !errors.Is(err, sql.ErrNoRows):
+		created, err := q.CreateIngredient(ctx, db.CreateIngredientParams{
+			Uuid:      uuid.New(),
+			Name:      strings.TrimSpace(base),
+			CreatedAt: now,
+			UpdatedAt: now,
+		})
+		if err != nil {
 			return uuid.Nil, "", err
 		}
+		r.logger.Info().Msgf("Inserted new ingredient: %s (UUID: %s)", created.Name, created.Uuid)
+		return created.Uuid, qualifier, nil
 	}
 
 	created, err := q.CreateIngredient(ctx, db.CreateIngredientParams{
@@ -254,14 +259,15 @@ func (r *recipeRepository) resolveIngredient(ctx context.Context, q *db.Queries,
 	return created.Uuid, "", nil
 }
 
-// ingredientQualifierWords are count nouns that never stand alone as an
-// ingredient in this book: when a name ENDS with one (optionally pluralised),
-// the noun is a qualifier for whatever precedes it.
+// ingredientQualifierWords are pure count/measure nouns that never stand alone
+// as an ingredient in this book: when a name ENDS with one (optionally
+// pluralised), the noun is a qualifier for whatever precedes it. Deliberately
+// narrow — "leaf", "stick", "rib", "fillet", "pod", "head" and "stalk" are
+// forms, not counts ("lime leaves", "cinnamon stick", "beef ribs" are real
+// ingredients), so they resolve per home and any stray spelling gets an alias.
 var ingredientQualifierWords = map[string]bool{
-	"clove": true, "sprig": true, "leaf": true, "slice": true, "bunch": true,
-	"handful": true, "stick": true, "rib": true, "knob": true, "wedge": true,
-	"fillet": true, "stalk": true, "strip": true, "pod": true, "head": true,
-	"bulb": true,
+	"clove": true, "sprig": true, "bunch": true, "handful": true,
+	"knob": true, "slice": true, "wedge": true,
 }
 
 // splitIngredientQualifier separates a trailing count qualifier from an
@@ -282,7 +288,7 @@ func splitIngredientQualifier(name string) (string, string) {
 }
 
 // isQualifierWord reports whether w is a count qualifier noun in singular or
-// plural form, including the irregular plural "leaves".
+// plural form.
 func isQualifierWord(w string) bool {
 	if ingredientQualifierWords[w] {
 		return true
@@ -293,7 +299,7 @@ func isQualifierWord(w string) bool {
 	if s := strings.TrimSuffix(w, "es"); ingredientQualifierWords[s] {
 		return true
 	}
-	return w == "leaves" // plural of leaf
+	return false
 }
 
 // resolveUnit is the same idea for units, which were already normalised on

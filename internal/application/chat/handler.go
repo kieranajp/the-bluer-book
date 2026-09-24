@@ -87,12 +87,13 @@ When creating or updating recipes, confirm the details with the user before proc
 
 Ingredient names are shared across the whole book, so reuse the spelling it already
 has rather than inventing a variant — a new spelling becomes a new ingredient, and
-then the pantry and shopping list stop lining up. If you aren't sure what the book
-calls something, look at an existing recipe or the pantry first. Name the ingredient
-as you would buy it and put everything else in the preparation field: "garlic" with
-preparation "cloves", not "Garlic cloves"; "onion" with preparation "large", not a
-unit of "large". Form is part of the name though — "ground cumin", "cumin seeds" and
-"fresh coriander" are genuinely different ingredients, so don't flatten them.`,
+then the pantry and shopping list stop lining up. Call list_ingredients when you
+aren't sure what the book calls something. Name the ingredient as you would buy it;
+the count is the recipe line's unit: "3 cloves of garlic" is name "garlic", quantity
+3, unit "clove" — not name "Garlic cloves". Sizes and preparation go in the
+preparation field: "onion" with preparation "large", not a unit of "large". Form is
+part of the name though — "ground cumin", "cumin seeds" and "fresh coriander" are
+genuinely different ingredients, so don't flatten them.`,
 		Toolsets: []tool.Toolset{mcpTools},
 	})
 	if err != nil {

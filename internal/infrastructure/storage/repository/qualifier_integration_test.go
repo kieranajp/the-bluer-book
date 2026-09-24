@@ -4,16 +4,14 @@ import (
 	"testing"
 )
 
-// A free-text entry like "garlic cloves" should resolve to the garlic the
-// book already stocks, with the count qualifier becoming the unit — not mint
-// a second ingredient row.
+// A free-text entry like "garlic cloves" resolves to garlic, whether or not
+// the home already stocks a bare "garlic" — the qualifier becomes the unit,
+// and no "garlic cloves" row is minted either way.
 //
 // Assertions read the recipe back through GetRecipeByID: the in-memory
 // struct SaveRecipe returns is not re-read from the database after the
 // qualifier merge.
 func TestSaveRecipeSplitsQualifierFromName(t *testing.T) {
-	recipes, _, _ := newRepos(t)
-
 	ctx, recipes := scopedRepo(t)
 
 	saveRecipe(t, recipes, ctx, "First", ingredientLine("garlic", "clove", "", 1))
@@ -54,6 +52,32 @@ func TestSaveRecipeKeepsSpecifiedUnit(t *testing.T) {
 	}
 	if unit := got.Ingredients[0].Unit.Name; unit != "tbsp" {
 		t.Errorf("unit = %q, want the recipe's own unit kept", unit)
+	}
+}
+
+// Splitting must not depend on what the home already has: a home whose first
+// entry is "garlic cloves" gets a "garlic" row with the qualifier as unit,
+// not a "garlic cloves" row.
+func TestSaveRecipeSplitsQualifierIntoNewBase(t *testing.T) {
+	ctx, recipes := scopedRepo(t)
+
+	saved := saveRecipe(t, recipes, ctx, "First",
+		ingredientLine("garlic cloves", "", "", 2))
+
+	all, err := recipes.ListIngredients(ctx)
+	if err != nil {
+		t.Fatalf("ListIngredients: %v", err)
+	}
+	if len(all) != 1 || all[0].Name != "garlic" {
+		t.Fatalf("got %d ingredients (%+v), want one row: garlic", len(all), all)
+	}
+
+	got, err := recipes.GetRecipeByID(ctx, saved.UUID)
+	if err != nil {
+		t.Fatalf("GetRecipeByID: %v", err)
+	}
+	if unit := got.Ingredients[0].Unit.Name; unit != "clove" {
+		t.Errorf("unit = %q, want clove", unit)
 	}
 }
 

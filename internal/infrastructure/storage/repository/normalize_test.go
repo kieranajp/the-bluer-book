@@ -35,7 +35,7 @@ func TestSplitIngredientQualifier(t *testing.T) {
 		{"garlic cloves", "garlic", "cloves"},
 		{"garlic clove", "garlic", "clove"},
 		{"thyme sprigs", "thyme", "sprigs"},
-		{"basil leaves", "basil", "leaves"},
+		{"basil leaves", "basil leaves", ""},   // "leaf" is a form, not a count
 		{"fresh garlic", "fresh garlic", ""},   // "garlic" is not a qualifier noun
 		{"garlic", "garlic", ""},               // single word: never split
 		{"cloves", "cloves", ""},               // single word: never split
@@ -44,7 +44,10 @@ func TestSplitIngredientQualifier(t *testing.T) {
 		{"  garlic   cloves  ", "garlic", "cloves"},
 		{"chicken breasts", "chicken breasts", ""}, // "breast" is not a count qualifier
 		{"parsley sprigs", "parsley", "sprigs"},
-		{"garlic bulb", "garlic", "bulb"},
+		{"lime leaves", "lime leaves", ""},       // a real ingredient, not garlic-style
+		{"beef ribs", "beef ribs", ""},           // "rib" is a form, not a count
+		{"cinnamon stick", "cinnamon stick", ""}, // ditto "stick"
+		{"garlic bulb", "garlic bulb", ""},       // "bulb" is a form, not a count
 	}
 
 	for _, tt := range tests {

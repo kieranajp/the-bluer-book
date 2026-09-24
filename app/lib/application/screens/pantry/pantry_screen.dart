@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../domain/ingredient.dart';
 import '../../providers/pantry_providers.dart';
 import '../../providers/recipe_providers.dart';
 import '../../styles/colours.dart';
@@ -19,11 +20,10 @@ class PantryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pantryAsync = ref.watch(pantryProvider);
-    final allNames =
-        ref.watch(ingredientsProvider).value?.map((e) => e.name).toList() ??
-            const <String>[];
+    final allIngredients = ref.watch(ingredientsProvider).value ??
+        const <IngredientDetail>[];
 
-    ref.listen<AsyncValue<Set<String>>>(pantryProvider, (prev, next) {
+    ref.listen<AsyncValue<Map<String, String>>>(pantryProvider, (prev, next) {
       if (next.hasError && !(prev?.hasError ?? false)) {
         final message =
             errorMessage(next.error, fallback: 'Failed to load pantry');
@@ -51,7 +51,7 @@ class PantryScreen extends ConsumerWidget {
                 title: Text('Pantry', style: TextStyles.appBarTitle(context)),
               ),
               SliverToBoxAdapter(
-                child: PantryAddIngredientField(allNames: allNames),
+                child: PantryAddIngredientField(ingredients: allIngredients),
               ),
               pantryAsync.when(
                 data: (names) {
@@ -66,7 +66,7 @@ class PantryScreen extends ConsumerWidget {
                       ),
                     );
                   }
-                  final sorted = names.toList()..sort();
+                  final sorted = names.keys.toList()..sort();
                   return SliverPadding(
                     padding: const EdgeInsets.all(Spacing.m),
                     sliver: SliverToBoxAdapter(
@@ -74,7 +74,11 @@ class PantryScreen extends ConsumerWidget {
                         spacing: Spacing.xs,
                         runSpacing: Spacing.xs,
                         children: [
-                          for (final name in sorted) PantryChip(name: name),
+                          for (final key in sorted)
+                            PantryChip(
+                              name: names[key] ?? key,
+                              canonical: key,
+                            ),
                         ],
                       ),
                     ),

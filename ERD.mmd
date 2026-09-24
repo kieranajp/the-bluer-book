@@ -6,20 +6,31 @@ erDiagram
         integer cook_time
         integer prep_time
         smallint servings
+        uuid main_photo_id FK
+        varchar url
+        timestamp archived_at
         timestamp created_at
         timestamp updated_at
     }
 
     INGREDIENTS {
         uuid id PK
-        varchar name
+        varchar name "display, keeps its casing"
+        varchar canonical_name UK "identity: lower(btrim(name))"
+        boolean is_staple "assumed in the cupboard"
         timestamp created_at
         timestamp updated_at
     }
 
+    INGREDIENT_ALIASES {
+        varchar alias PK "retired spellings and synonyms"
+        uuid ingredient_id FK
+        timestamp created_at
+    }
+
     UNITS {
         uuid id PK
-        varchar name
+        varchar name UK
         varchar abbreviation
         timestamp created_at
         timestamp updated_at
@@ -27,7 +38,8 @@ erDiagram
 
     LABELS {
         uuid id PK
-        varchar nam
+        varchar type "course|cuisine|diet|method"
+        varchar name
         varchar color
         timestamp created_at
         timestamp updated_at
@@ -43,10 +55,12 @@ erDiagram
     }
 
     RECIPE_INGREDIENT {
-        uuid recipe_id FK
-        uuid ingredient_id FK
+        uuid recipe_id PK_FK
+        uuid ingredient_id PK_FK
+        text component PK "'' when the recipe has no sections"
         uuid unit_id FK
         double quantity
+        text preparation
         timestamp created_at
         timestamp updated_at
     }
@@ -58,11 +72,27 @@ erDiagram
         timestamp updated_at
     }
 
+    MEAL_PLAN_RECIPES {
+        uuid recipe_id PK_FK
+        timestamp added_at
+    }
+
+    PANTRY_ITEMS {
+        uuid ingredient_id PK_FK
+        timestamp added_at
+    }
+
+    SHOPPING_LIST_ITEMS {
+        uuid id PK
+        varchar name UK "free text, not a recipe ingredient"
+        timestamp created_at
+    }
+
     PHOTOS {
         uuid id PK
         varchar url
-        varchar entity_type
-        uuid entity_id FK
+        varchar entity_type "recipe|step|ingredient"
+        uuid entity_id "polymorphic, no FK"
         timestamp created_at
         timestamp updated_at
     }
@@ -70,8 +100,11 @@ erDiagram
     RECIPES ||--o{ STEPS : has
     RECIPES ||--o{ RECIPE_INGREDIENT : contains
     RECIPES ||--o{ RECIPE_LABEL : tagged_with
+    RECIPES ||--o| MEAL_PLAN_RECIPES : planned_as
     RECIPES ||--o{ PHOTOS : images
     INGREDIENTS ||--o{ RECIPE_INGREDIENT : used_in
+    INGREDIENTS ||--o{ INGREDIENT_ALIASES : also_known_as
+    INGREDIENTS ||--o| PANTRY_ITEMS : stocked_as
     UNITS ||--o{ RECIPE_INGREDIENT : measures
     LABELS ||--o{ RECIPE_LABEL : categorizes
     STEPS ||--o{ PHOTOS : illustrates

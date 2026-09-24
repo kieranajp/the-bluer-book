@@ -9,7 +9,21 @@ FROM recipes r
 LEFT JOIN meal_plan_recipes mp ON r.uuid = mp.recipe_id
 LEFT JOIN photos p ON r.main_photo_id = p.uuid
 WHERE r.archived_at IS NULL
-    AND (sqlc.narg('search')::text IS NULL OR r.name ILIKE '%' || sqlc.narg('search')::text || '%')
+    AND (sqlc.narg('search')::text IS NULL
+         OR r.name ILIKE '%' || sqlc.narg('search')::text || '%'
+         OR EXISTS (
+           SELECT 1 FROM recipe_ingredient ri
+           INNER JOIN ingredients i ON i.uuid = ri.ingredient_id
+           WHERE ri.recipe_id = r.uuid
+             AND strpos(i.canonical_name, lower(btrim(sqlc.narg('search')::text))) > 0
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM recipe_ingredient ri
+           INNER JOIN ingredient_aliases a ON a.ingredient_id = ri.ingredient_id
+           WHERE ri.recipe_id = r.uuid
+             AND a.alias = lower(btrim(sqlc.narg('search')::text))
+         ))
     AND (
         sqlc.arg('label_keys')::text[] IS NULL
         OR r.uuid IN (
@@ -29,7 +43,21 @@ OFFSET sqlc.arg('recipe_offset');
 SELECT COUNT(DISTINCT r.uuid)::int as count
 FROM recipes r
 WHERE r.archived_at IS NULL
-    AND (sqlc.narg('search')::text IS NULL OR r.name ILIKE '%' || sqlc.narg('search')::text || '%')
+    AND (sqlc.narg('search')::text IS NULL
+         OR r.name ILIKE '%' || sqlc.narg('search')::text || '%'
+         OR EXISTS (
+           SELECT 1 FROM recipe_ingredient ri
+           INNER JOIN ingredients i ON i.uuid = ri.ingredient_id
+           WHERE ri.recipe_id = r.uuid
+             AND strpos(i.canonical_name, lower(btrim(sqlc.narg('search')::text))) > 0
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM recipe_ingredient ri
+           INNER JOIN ingredient_aliases a ON a.ingredient_id = ri.ingredient_id
+           WHERE ri.recipe_id = r.uuid
+             AND a.alias = lower(btrim(sqlc.narg('search')::text))
+         ))
     AND (
         sqlc.arg('label_keys')::text[] IS NULL
         OR r.uuid IN (

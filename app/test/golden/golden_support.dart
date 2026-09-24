@@ -38,28 +38,33 @@ GoldenTestScenario themedScenario({
   );
 }
 
-/// A [PantryNotifier] pinned to a fixed set of ingredient names. Overriding
+/// A [PantryNotifier] pinned to a fixed key -> display-name map. Overriding
 /// [pantryProvider] with this keeps pantry-aware widgets (cookability seals,
 /// ingredient "have/missing" styling) deterministic and offline — no async
 /// microtask load, no network.
 class FixedPantry extends PantryNotifier {
   FixedPantry(this._items);
 
-  final Set<String> _items;
+  final Map<String, String> _items;
 
   @override
-  AsyncValue<Set<String>> build() => AsyncValue.data(_items);
+  AsyncValue<Map<String, String>> build() => AsyncValue.data(_items);
 }
 
-/// Wraps [child] in a [ProviderScope] whose pantry is the fixed [pantry] set,
-/// for goldens of widgets that read [pantryProvider]. Tests needing further
-/// overrides (e.g. a fixed recipe list) build their own [ProviderScope].
+/// Wraps [child] in a [ProviderScope] whose pantry holds the given keys
+/// (display names default to the key), for goldens of widgets that read
+/// [pantryProvider]. Tests needing further overrides (e.g. a fixed recipe
+/// list) build their own [ProviderScope].
 Widget pantryScope({
   Set<String> pantry = const <String>{},
   required Widget child,
 }) {
   return ProviderScope(
-    overrides: [pantryProvider.overrideWith(() => FixedPantry(pantry))],
+    overrides: [
+      pantryProvider.overrideWith(() => FixedPantry({
+            for (final key in pantry) key: key,
+          })),
+    ],
     child: child,
   );
 }

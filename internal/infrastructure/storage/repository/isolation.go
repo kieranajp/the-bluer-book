@@ -11,6 +11,7 @@ import (
 var TenantTables = []string{
 	"recipes", "steps", "recipe_ingredient", "recipe_label", "photos",
 	"meal_plan_recipes", "ingredients", "pantry_items", "shopping_list_items",
+	"ingredient_aliases",
 }
 
 // CheckIsolation refuses a connection that would read and write every home

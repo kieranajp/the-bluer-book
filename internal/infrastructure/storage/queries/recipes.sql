@@ -31,14 +31,23 @@ INSERT INTO steps (
 -- definition of what "the same ingredient" means and no call site can skip it.
 -- The conflict target is (home_id, canonical_name), not name: "Salt" must find
 -- the existing "salt" rather than mint a second row.
+-- is_staple applies the shared defaults at write time, so a home provisioned
+-- after 00018 still starts with salt and oil flagged; the migration's seed
+-- statement only backfills rows that already existed.
 INSERT INTO ingredients (
     uuid,
     name,
     canonical_name,
+    is_staple,
     created_at,
     updated_at
 ) VALUES (
-    @uuid, btrim(@name::varchar), lower(btrim(@name::varchar)), @created_at, @updated_at
+    @uuid,
+    btrim(@name::varchar),
+    lower(btrim(@name::varchar)),
+    EXISTS (SELECT 1 FROM staple_defaults WHERE canonical_name = lower(btrim(@name::varchar))),
+    @created_at,
+    @updated_at
 ) ON CONFLICT (home_id, canonical_name) DO UPDATE SET updated_at = EXCLUDED.updated_at
 RETURNING *;
 
@@ -53,10 +62,15 @@ SELECT * FROM ingredients ORDER BY canonical_name ASC;
 -- UpdateRecipe deletes and recreates a recipe's ingredient links, so correcting
 -- a typo in the editor strands the old ingredient row for good. Nothing else
 -- points at ingredients, so a row with no recipe link and no pantry entry is
--- dead weight — and, left alone, clutter in the autocomplete.
+-- dead weight — and, left alone, clutter in the autocomplete. Rows carrying
+-- state are kept: the staple flag survives a rename, and aliases (whose FK
+-- would cascade the row away) survive an alias-only ingredient going briefly
+-- unreferenced.
 DELETE FROM ingredients i
 WHERE NOT EXISTS (SELECT 1 FROM recipe_ingredient ri WHERE ri.ingredient_id = i.uuid)
-  AND NOT EXISTS (SELECT 1 FROM pantry_items p WHERE p.ingredient_id = i.uuid);
+  AND NOT EXISTS (SELECT 1 FROM pantry_items p WHERE p.ingredient_id = i.uuid)
+  AND NOT i.is_staple
+  AND NOT EXISTS (SELECT 1 FROM ingredient_aliases a WHERE a.ingredient_id = i.uuid);
 
 -- name: CreateUnit :one
 INSERT INTO units (

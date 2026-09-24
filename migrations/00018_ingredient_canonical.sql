@@ -121,21 +121,42 @@ CREATE UNIQUE INDEX idx_ingredients_home_canonical_name ON ingredients (home_id,
 -- the lowercased form of every name it retires is already the survivor's
 -- canonical_name, so seeding from it would just restate the canonical index.
 -- 00019 fills it, once the semantic merges have been reviewed.
+--
+-- A tenant table like any other (00012/00014): aliases are per home, because
+-- identity is. A globally unique alias would let the first home to mint one
+-- decide what every other home's "onions" resolves to.
 CREATE TABLE ingredient_aliases (
-  alias         VARCHAR PRIMARY KEY,
+  home_id       UUID NOT NULL DEFAULT NULLIF(current_setting('app.home_id', true), '')::uuid
+                REFERENCES homes(uuid) ON DELETE CASCADE,
+  alias         VARCHAR NOT NULL,
   ingredient_id UUID NOT NULL REFERENCES ingredients(uuid) ON DELETE CASCADE,
-  created_at    TIMESTAMP NOT NULL DEFAULT now()
+  created_at    TIMESTAMP NOT NULL DEFAULT now(),
+  PRIMARY KEY (home_id, alias)
 );
 
 CREATE INDEX idx_ingredient_aliases_ingredient_id ON ingredient_aliases (ingredient_id);
 
+ALTER TABLE ingredient_aliases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ingredient_aliases FORCE  ROW LEVEL SECURITY;
+CREATE POLICY home_isolation ON ingredient_aliases
+  USING      (home_id = NULLIF(current_setting('app.home_id', true), '')::uuid)
+  WITH CHECK (home_id = NULLIF(current_setting('app.home_id', true), '')::uuid);
+
 -- Things assumed always in the cupboard, so they stop cluttering every "missing
 -- ingredients" list (docs/pantry-inventory.md, open question 3). Toggle more
 -- later via the set_ingredient_staple MCP tool.
+--
+-- Kept as a table, not an UPDATE-and-forget list: homes provisioned after this
+-- migration (every invite) still get their staples. CreateIngredient applies
+-- the default at write time; this statement is the one-off backfill for rows
+-- that already exist.
+CREATE TABLE staple_defaults (canonical_name VARCHAR PRIMARY KEY);
+
+INSERT INTO staple_defaults (canonical_name) VALUES
+  ('salt'), ('sea salt'), ('table salt'),
+  ('pepper'), ('black pepper'), ('white pepper'),
+  ('water'), ('cold water'), ('boiling water'),
+  ('oil'), ('olive oil'), ('vegetable oil'), ('sunflower oil');
+
 UPDATE ingredients SET is_staple = true
-WHERE canonical_name IN (
-  'salt', 'sea salt', 'table salt',
-  'pepper', 'black pepper', 'white pepper',
-  'water', 'cold water', 'boiling water',
-  'oil', 'olive oil', 'vegetable oil', 'sunflower oil'
-);
+WHERE canonical_name IN (SELECT canonical_name FROM staple_defaults);

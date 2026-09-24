@@ -327,6 +327,21 @@ func TestIsolation(t *testing.T) {
 		}); err != nil {
 			t.Fatalf("give A a photo: %v", err)
 		}
+		// Nothing in this stack writes an alias except the reviewed-merge
+		// migration, which runs before any home exists. Seed one the way
+		// 00019's machinery would: home A's census ingredient gains a
+		// spelling that resolves to it.
+		if err := inTestHome(sqlDB, homeA, func(tx *sql.Tx) error {
+			_, err := tx.Exec(
+				`INSERT INTO ingredient_aliases (home_id, alias, ingredient_id)
+				 SELECT $1, 'isolation census alias', uuid FROM ingredients
+				 WHERE name = 'isolation census ingredient'`,
+				homeA,
+			)
+			return err
+		}); err != nil {
+			t.Fatalf("give A an alias: %v", err)
+		}
 
 		for _, table := range TenantTables {
 			count := `SELECT count(*) FROM ` + table + ` WHERE home_id = $1`

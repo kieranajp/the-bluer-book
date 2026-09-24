@@ -640,7 +640,9 @@ func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec r
 		}
 
 		// Sweep up anything the re-insert above left unreferenced — an ingredient
-		// renamed in the editor would otherwise linger forever.
+		// renamed in the editor would otherwise linger forever. Carried state
+		// (staple flag, aliases) pins a row: a spell-check fix must not lose
+		// either, or the next save flips salt back onto the shopping list.
 		if err := q.DeleteOrphanedIngredients(ctx); err != nil {
 			return err
 		}

@@ -36,8 +36,8 @@ SELECT merged.home_id, merged.uuid,
 FROM ingredients merged
 WHERE merged.canonical_name = 'tinned chopped tomatoes';
 
-INSERT INTO ingredients (uuid, name, canonical_name, created_at, updated_at)
-SELECT uuid_generate_v4(), 'tinned tomatoes', 'tinned tomatoes', now(), now()
+INSERT INTO ingredients (uuid, home_id, name, canonical_name, created_at, updated_at)
+SELECT uuid_generate_v4(), h.home_id, 'tinned tomatoes', 'tinned tomatoes', now(), now()
 FROM (
   SELECT DISTINCT home_id FROM tomato_fix WHERE target_uuid IS NULL
 ) h
@@ -50,24 +50,24 @@ WHERE f.target_uuid IS NULL
   AND t.home_id = f.home_id
   AND t.canonical_name = 'tinned tomatoes';
 
-UPDATE tomato_fix f
-SET target_uuid = t.uuid
-FROM ingredients t
-WHERE f.target_uuid IS NULL
-  AND t.home_id = f.home_id
-  AND t.canonical_name = 'tinned tomatoes';
-
 -- Dedupe-before-remap, same as 00019: recipe lines that would collide on
 -- (home, recipe, ingredient, component) once ids move.
+-- Dedupe-before-remap, 00019's shape: the partition sees lines on BOTH sides
+-- of the merge, so a recipe holding "tinned chopped tomatoes" and "tinned
+-- tomatoes" in one component survives with one row, the target's own row
+-- first, and the UPDATE below cannot trip the widened primary key.
 DELETE FROM recipe_ingredient ri
 USING (
   SELECT ri2.home_id, ri2.recipe_id, ri2.ingredient_id, ri2.component,
          row_number() OVER (
            PARTITION BY ri2.home_id, ri2.recipe_id, f.target_uuid, ri2.component
-           ORDER BY ri2.created_at ASC, ri2.ingredient_id ASC
+           ORDER BY (ri2.ingredient_id = f.target_uuid) DESC,
+                    ri2.created_at ASC, ri2.ingredient_id ASC
          ) AS rn
   FROM recipe_ingredient ri2
-  JOIN tomato_fix f ON f.merged_uuid = ri2.ingredient_id
+  JOIN tomato_fix f ON f.target_uuid IS NOT NULL
+                    AND (f.merged_uuid = ri2.ingredient_id
+                         OR f.target_uuid = ri2.ingredient_id)
 ) d
 WHERE ri.home_id = d.home_id
   AND ri.recipe_id = d.recipe_id
@@ -83,16 +83,41 @@ SET ingredient_id = f.target_uuid,
 FROM tomato_fix f
 WHERE ri.ingredient_id = f.merged_uuid;
 
--- The old alias "chopped tomatoes" → tinned chopped tomatoes pointed recipes
--- saying "chopped tomatoes" at the wrong item. It should retire into the
--- canonical the remap has established.
-DELETE FROM ingredient_aliases WHERE alias = 'chopped tomatoes';
-INSERT INTO ingredient_aliases (alias, ingredient_id)
-SELECT 'chopped tomatoes', f.target_uuid
-FROM tomato_fix f
-WHERE f.target_uuid IS NOT NULL
-ON CONFLICT (alias) DO NOTHING;
+-- Same collision, same fix for the pantry: dedupe per (home, target
+-- ingredient), preferring the row already pointing at it, then remap.
+DELETE FROM pantry_items p
+USING (
+  SELECT p2.home_id, p2.ingredient_id,
+         row_number() OVER (
+           PARTITION BY p2.home_id, f.target_uuid
+           ORDER BY (p2.ingredient_id = f.target_uuid) DESC,
+                    p2.added_at ASC, p2.ingredient_id ASC
+         ) AS rn
+  FROM pantry_items p2
+  JOIN tomato_fix f ON f.target_uuid IS NOT NULL
+                    AND (f.merged_uuid = p2.ingredient_id
+                         OR f.target_uuid = p2.ingredient_id)
+) d
+WHERE p.home_id = d.home_id
+  AND p.ingredient_id = d.ingredient_id
+  AND d.rn > 1;
 
+UPDATE pantry_items p
+SET ingredient_id = f.target_uuid
+FROM tomato_fix f
+WHERE p.ingredient_id = f.merged_uuid;
+
+UPDATE photos ph
+SET entity_id = f.target_uuid
+FROM tomato_fix f
+WHERE ph.entity_type = 'ingredient' AND ph.entity_id = f.merged_uuid;
+
+-- The old alias "chopped tomatoes" → tinned chopped tomatoes pointed recipes
+-- saying "chopped tomatoes" at the wrong item. Fresh vs tinned is a form
+-- split, so the alias retires and nothing repoints it: typing "chopped
+-- tomatoes" after this resolves nothing and the ingredient must be created
+-- (or added under its real name).
+DELETE FROM ingredient_aliases WHERE alias = 'chopped tomatoes';
 DELETE FROM ingredient_aliases WHERE alias = 'tinned tomatoes';
 
 DELETE FROM ingredients i
@@ -129,10 +154,10 @@ WHERE btrim(ri.preparation) = 'cloves'
 -- alias is simply deleted. No ingredient row named cilantro is created.
 -- ---------------------------------------------------------------------------
 DELETE FROM ingredient_aliases WHERE alias = 'cilantro';
-INSERT INTO ingredient_aliases (alias, ingredient_id)
-SELECT 'cilantro', i.uuid
+INSERT INTO ingredient_aliases (home_id, alias, ingredient_id)
+SELECT i.home_id, 'cilantro', i.uuid
 FROM ingredients i
 WHERE i.canonical_name = 'coriander'
-ON CONFLICT (alias) DO NOTHING;
+ON CONFLICT (home_id, alias) DO NOTHING;
 
 DELETE FROM ingredient_aliases WHERE alias = 'fresh cilantro';

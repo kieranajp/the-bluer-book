@@ -27,21 +27,50 @@ INSERT INTO steps (
 ) RETURNING *;
 
 -- name: CreateIngredient :one
+-- canonical_name is derived here rather than passed in, so there is exactly one
+-- definition of what "the same ingredient" means and no call site can skip it.
+-- The conflict target is (home_id, canonical_name), not name: "Salt" must find
+-- the existing "salt" rather than mint a second row.
+-- is_staple applies the shared defaults at write time, so a home provisioned
+-- after 00018 still starts with salt and oil flagged; the migration's seed
+-- statement only backfills rows that already existed.
 INSERT INTO ingredients (
     uuid,
     name,
+    canonical_name,
+    is_staple,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4
-) ON CONFLICT (home_id, name) DO UPDATE SET updated_at = EXCLUDED.updated_at
+    @uuid,
+    btrim(@name::varchar),
+    lower(btrim(@name::varchar)),
+    EXISTS (SELECT 1 FROM staple_defaults WHERE canonical_name = lower(btrim(@name::varchar))),
+    @created_at,
+    @updated_at
+) ON CONFLICT (home_id, canonical_name) DO UPDATE SET updated_at = EXCLUDED.updated_at
 RETURNING *;
 
 -- name: GetIngredientByName :one
 SELECT * FROM ingredients WHERE name = $1;
 
 -- name: ListIngredients :many
-SELECT * FROM ingredients ORDER BY name ASC;
+-- Ordered case-insensitively so "Onion" and "apple" sort sensibly together.
+SELECT * FROM ingredients ORDER BY canonical_name ASC;
+
+-- name: DeleteOrphanedIngredients :exec
+-- UpdateRecipe deletes and recreates a recipe's ingredient links, so correcting
+-- a typo in the editor strands the old ingredient row for good. Nothing else
+-- points at ingredients, so a row with no recipe link and no pantry entry is
+-- dead weight — and, left alone, clutter in the autocomplete. Rows carrying
+-- state are kept: the staple flag survives a rename, and aliases (whose FK
+-- would cascade the row away) survive an alias-only ingredient going briefly
+-- unreferenced.
+DELETE FROM ingredients i
+WHERE NOT EXISTS (SELECT 1 FROM recipe_ingredient ri WHERE ri.ingredient_id = i.uuid)
+  AND NOT EXISTS (SELECT 1 FROM pantry_items p WHERE p.ingredient_id = i.uuid)
+  AND NOT i.is_staple
+  AND NOT EXISTS (SELECT 1 FROM ingredient_aliases a WHERE a.ingredient_id = i.uuid);
 
 -- name: CreateUnit :one
 INSERT INTO units (
@@ -171,6 +200,8 @@ ORDER BY s.step_order ASC;
 SELECT
     ri.*,
     i.name as ingredient_name,
+    i.canonical_name as ingredient_canonical_name,
+    i.is_staple as ingredient_is_staple,
     u.name as unit_name,
     u.abbreviation as unit_abbreviation
 FROM recipe_ingredient ri
@@ -178,7 +209,7 @@ JOIN ingredients i ON ri.ingredient_id = i.uuid
 LEFT JOIN units u ON ri.unit_id = u.uuid
 INNER JOIN recipes r ON ri.recipe_id = r.uuid
 WHERE ri.recipe_id = $1 AND r.archived_at IS NULL
-ORDER BY ri.component NULLS FIRST, ri.created_at ASC;
+ORDER BY ri.component ASC, ri.created_at ASC;
 
 -- name: GetLabelsByRecipeID :many
 SELECT l.*

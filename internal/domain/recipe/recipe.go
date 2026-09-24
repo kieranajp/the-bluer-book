@@ -36,8 +36,15 @@ type Step struct {
 }
 
 // Ingredient is a value object representing an ingredient.
+//
+// Name is for display and keeps whatever casing it was written with — proper
+// nouns like "MSG" would not survive lowercasing. Canonical is the identity:
+// clients compare on it rather than on Name, because "Salt" in the pantry and
+// "salt" in a recipe are the same thing and used not to line up.
 type Ingredient struct {
 	Name      string    `json:"name"`
+	Canonical string    `json:"canonical,omitempty"`
+	IsStaple  bool      `json:"isStaple,omitempty"`
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	UpdatedAt time.Time `json:"updatedAt,omitempty"`
 }

@@ -327,6 +327,21 @@ func TestIsolation(t *testing.T) {
 		}); err != nil {
 			t.Fatalf("give A a photo: %v", err)
 		}
+		// Nothing in this stack writes an alias except the reviewed-merge
+		// migration, which runs before any home exists. Seed one the way
+		// 00019's machinery would: home A's census ingredient gains a
+		// spelling that resolves to it.
+		if err := inTestHome(sqlDB, homeA, func(tx *sql.Tx) error {
+			_, err := tx.Exec(
+				`INSERT INTO ingredient_aliases (home_id, alias, ingredient_id)
+				 SELECT $1, 'isolation census alias', uuid FROM ingredients
+				 WHERE name = 'isolation census ingredient'`,
+				homeA,
+			)
+			return err
+		}); err != nil {
+			t.Fatalf("give A an alias: %v", err)
+		}
 
 		for _, table := range TenantTables {
 			count := `SELECT count(*) FROM ` + table + ` WHERE home_id = $1`
@@ -449,7 +464,9 @@ func TestIsolation(t *testing.T) {
 
 		for _, home := range []uuid.UUID{homeA, homeB} {
 			if err := inTestHome(sqlDB, home, func(tx *sql.Tx) error {
-				_, err := tx.Exec(`INSERT INTO ingredients (name) VALUES ($1)`, shared)
+				// canonical_name mirrors what the repository's CreateIngredient
+				// derives; the raw insert has to do the same job.
+				_, err := tx.Exec(`INSERT INTO ingredients (name, canonical_name) VALUES ($1::text, lower(btrim($1::text)))`, shared)
 				return err
 			}); err != nil {
 				t.Fatalf("insert %q into %s: %v", shared, home, err)

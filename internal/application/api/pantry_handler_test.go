@@ -20,6 +20,7 @@ type stubPantryService struct {
 	err           error
 	added         []string
 	removed       []string
+	stapled       []string
 	customAdded   []string
 	customRemoved []string
 }
@@ -37,6 +38,14 @@ func (s *stubPantryService) RemoveFromPantry(_ context.Context, ingredient strin
 		return s.err
 	}
 	s.removed = append(s.removed, ingredient)
+	return nil
+}
+
+func (s *stubPantryService) SetStaple(_ context.Context, ingredient string, staple bool) error {
+	if s.err != nil {
+		return s.err
+	}
+	s.stapled = append(s.stapled, ingredient)
 	return nil
 }
 

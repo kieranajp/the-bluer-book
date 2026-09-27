@@ -51,9 +51,7 @@ type stubRepo struct {
 	refreshedUser  account.User
 	refreshProfErr error
 
-	// findMostRecentHomeCalls only counts calls: a test asserting the
-	// fallback never ran does not otherwise care what it would have
-	// returned.
+	// Counts calls only; a test asserting the fallback never ran doesn't care what it would return.
 	findMostRecentHomeCalls int
 
 	findHomeForUserCalls []findHomeForUserCall
@@ -489,9 +487,8 @@ func TestResolveActiveHomeWithARequestedHomeNeverFallsBack(t *testing.T) {
 	}
 }
 
-// This is the guard that stops an X-Home header naming somebody else's home
-// from quietly minting a fresh one: a requested home the caller cannot prove
-// membership of must come back as ErrHomeNotFound, not a brand new book.
+// Guards against a requested home naming somebody else's home quietly minting
+// a fresh one: the caller cannot prove membership, so it must fail as ErrHomeNotFound.
 func TestResolveActiveHomeRefusesARequestedHomeTheUserIsNotIn(t *testing.T) {
 	repo := &stubRepo{findHomeForUserErr: account.ErrHomeNotFound}
 	svc := NewAccountService(repo, "", metrics.NoopAccountProbe{})
@@ -667,9 +664,8 @@ func TestAcceptInvitationRefusesABlankTokenWithoutReachingTheRepository(t *testi
 	}
 }
 
-// Expiry and single use are enforced in SQL and covered by a separate
-// integration suite; this only pins that the service does not swallow or
-// remap what the repository decided.
+// Expiry and single use are enforced in SQL and tested separately; this only
+// checks the service doesn't swallow or remap what the repository decided.
 func TestAcceptInvitationSurfacesRepositoryErrorsUnchanged(t *testing.T) {
 	cases := map[string]error{
 		"expired": account.ErrInvitationExpired,

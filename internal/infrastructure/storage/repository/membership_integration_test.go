@@ -1,10 +1,7 @@
 package repository
 
-// Invitations and the last-owner rule are the two places where the account
-// repository decides something the database cannot be asked again afterwards:
-// a token is good once, and a home never loses its last owner. Both guards are
-// statements about concurrent callers, so both are proved here against a real
-// postgres rather than a mock.
+// A token is good once, and a home never loses its last owner: both are
+// statements about concurrent callers, so both are proved here against a real postgres.
 
 import (
 	"context"
@@ -20,9 +17,8 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/domain/account"
 )
 
-// membershipUser inserts a user row directly, because these suites care about
-// memberships rather than about how a user came to exist. home_members
-// cascades from users, so removing the user removes everything it joined.
+// Inserts a user row directly; these suites care about memberships, not how
+// a user came to exist. home_members cascades from users on removal.
 func membershipUser(t *testing.T, sqlDB *sql.DB, label string) account.User {
 	t.Helper()
 
@@ -119,14 +115,8 @@ func countRows(t *testing.T, sqlDB *sql.DB, query string, args ...any) int {
 	return n
 }
 
-// holdRowLock opens a transaction holding a row lock and returns the release,
-// which rolls back so the lock changes nothing; it exists only to park every
-// racer on one row at once.
-//
-// Releasing goroutines together doesn't reproduce the race: a connection
-// handshake staggers their first statement, so the leader usually commits
-// before the rest read anything. Parking them on this lock first makes the
-// interleaving happen every run.
+// Connection setup staggers goroutines released together, so racers park on
+// this lock first to force the interleaving on every run.
 func holdRowLock(t *testing.T, sqlDB *sql.DB, query string, args ...any) (release func()) {
 	t.Helper()
 
@@ -170,9 +160,8 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Fatalf("timed out waiting for %s", what)
 }
 
-// TestMembershipInvitationTokenIsHashed proves the table can't admit anybody
-// on its own: redemption works from the hash either way, so only reading the
-// row back catches a schema that also kept the plaintext.
+// Redemption works from the hash either way, so only reading the row back
+// catches a schema that also kept the plaintext.
 func TestMembershipInvitationTokenIsHashed(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -219,10 +208,8 @@ func TestMembershipInvitationTokenIsHashed(t *testing.T) {
 	})
 }
 
-// TestMembershipInvitationExpiresAtIsTimestamptz pins the column type. A naked
-// timestamp compares against now() differently depending on the session's
-// TimeZone, so a credential's lifetime would depend on who is asking — and
-// every expiry test here would still pass on a UTC session.
+// A naked timestamp compares against now() differently depending on the
+// session's TimeZone; every expiry test here would still pass on a UTC session.
 func TestMembershipInvitationExpiresAtIsTimestamptz(t *testing.T) {
 	sqlDB := openTestDB(t)
 
@@ -239,9 +226,8 @@ func TestMembershipInvitationExpiresAtIsTimestamptz(t *testing.T) {
 	}
 }
 
-// TestMembershipExpiredInvitationRefused proves the expiry is enforced where
-// the token is spent. An implementation that never compares expires_at admits
-// the holder and passes every other invitation test in this file.
+// An implementation that never compares expires_at admits the holder and
+// passes every other invitation test in this file.
 func TestMembershipExpiredInvitationRefused(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -308,10 +294,8 @@ func TestMembershipUnknownTokenRefused(t *testing.T) {
 	}
 }
 
-// TestMembershipRedemptionIsAtomic proves the two halves of a redemption land
-// together. Assertions read the database rather than the return value, because
-// a redemption that marks the invitation and then fails to add the member
-// returns exactly the same pair as one that did both.
+// Asserts on the database, not the return value: a half-done redemption
+// returns the same pair as a complete one.
 func TestMembershipRedemptionIsAtomic(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -350,16 +334,8 @@ func TestMembershipRedemptionIsAtomic(t *testing.T) {
 	}
 }
 
-// TestMembershipConcurrentRedemption catches what a read-then-check-then-mark
-// redemption would still pass sequentially: each transaction reads the
-// invitation unaccepted, and whichever marks it last still admits itself.
-//
-// Racers are parked on the row before any may write it, forcing the
-// interleaving every run; the conditional UPDATE re-checks accepted_at as it
-// takes the row, so losers match nothing that a Go-side decision would have.
-//
-// Racers are distinct users: one user repeated would let ON CONFLICT DO
-// NOTHING collapse several admissions into one row and hide the breach.
+// Racers are distinct users, so ON CONFLICT DO NOTHING cannot fold several
+// admissions into one row and hide a double redemption.
 func TestMembershipConcurrentRedemption(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -431,9 +407,7 @@ func TestMembershipConcurrentRedemption(t *testing.T) {
 	})
 }
 
-// TestMembershipLastOwnerSurvivesRemoval proves a home cannot be left with
-// nobody who can administer it. Removal is otherwise an ordinary DELETE and
-// succeeds happily.
+// Removal is otherwise an ordinary DELETE and succeeds happily.
 func TestMembershipLastOwnerSurvivesRemoval(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -501,15 +475,8 @@ func TestMembershipNonOwnerRemovable(t *testing.T) {
 	}
 }
 
-// TestMembershipConcurrentOwnerRemoval is the case LockHome exists for: the
-// last-owner rule needs the whole membership counted, so deleting one is only
-// safe while nobody else is deleting too. Every other last-owner test here is
-// sequential and passes either way.
-//
-// The test holds both membership rows so neither removal can commit until both
-// racers arrive; holding only one would make the race intermittent. Under
-// LockHome the second removal waits on the home and then finds one owner;
-// without it, both read two owners and both delete, leaving none.
+// Both rows are held until both racers arrive. Without LockHome each counts
+// two owners and deletes, leaving none.
 func TestMembershipConcurrentOwnerRemoval(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -563,9 +530,8 @@ func TestMembershipConcurrentOwnerRemoval(t *testing.T) {
 	}
 }
 
-// TestMembershipRemoveUnknownTargets proves the two ways a removal names
-// nothing are told apart, so a caller is not left reading "not a member" about
-// a home that never existed.
+// The two ways a removal names nothing are told apart, so a caller is not
+// left reading "not a member" about a home that never existed.
 func TestMembershipRemoveUnknownTargets(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -590,10 +556,8 @@ func TestMembershipRemoveUnknownTargets(t *testing.T) {
 	})
 }
 
-// TestMembershipFindHomeForUser is the guard that stops X-Home naming somebody
-// else's home. The negative uses a real second user and a real second home,
-// because a random uuid proves only that missing homes are missing — the
-// interesting failure is a home that exists and is not yours.
+// The negative uses a real second user and a real second home: a random uuid
+// proves only that missing homes are missing, not that an existing one isn't yours.
 func TestMembershipFindHomeForUser(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -623,9 +587,7 @@ func TestMembershipFindHomeForUser(t *testing.T) {
 	})
 }
 
-// TestMembershipFindRole proves the standing a request is authorised against
-// is the stored one, and that a non-member has none. Returning a default role
-// for a stranger would hand them a member's authority everywhere.
+// Returning a default role for a stranger would hand them a member's authority everywhere.
 func TestMembershipFindRole(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -668,10 +630,8 @@ func TestMembershipFindRole(t *testing.T) {
 	})
 }
 
-// TestMembershipListMembers proves the roster is the home's and only the
-// home's. A listing that forgot its home_id would still return everybody the
-// test put in it, so the second home's member is what makes this assertion
-// worth running.
+// A listing that forgot its home_id would still return everybody the test put
+// in it, so the second home's member is what makes this assertion worth running.
 func TestMembershipListMembers(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)

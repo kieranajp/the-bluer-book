@@ -1,9 +1,7 @@
 package repository
 
-// ProvisionUser is the only place a subject becomes a user and lands in a
-// home, and a cold start can fire several requests for the same subject at
-// once. LockSubject exists to stop each from creating its own home; these
-// tests prove that against a real database.
+// A cold start can fire several concurrent ProvisionUser calls for the same
+// subject; LockSubject stops each from creating its own home.
 
 import (
 	"context"
@@ -20,24 +18,20 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/db"
 )
 
-// newAccountRepo builds the repository under test on a plain pooled
-// connection. The identity tables it reads and writes carry no row-level
-// security, so this works whether BLUER_BOOK_TEST_DSN names the owner or the
-// restricted application role.
+// The identity tables here carry no row-level security, so this works whether
+// the test connection is the owner or the restricted application role.
 func newAccountRepo(sqlDB *sql.DB) account.Repository {
 	return NewAccountRepository(db.New(sqlDB), sqlDB, logger.New(logger.LogLevelError))
 }
 
-// uniqueSubject returns a subject distinctive enough that a leaked row is
-// obvious: every value this suite creates carries the provision-test prefix
-// plus a fresh UUID, so cleanup failures and real accounts never collide.
+// Distinctive enough that a leaked row is obvious: the prefix plus a fresh
+// UUID means cleanup failures and real accounts never collide.
 func uniqueSubject(label string) string {
 	return "provision-test-" + label + "-" + uuid.New().String()
 }
 
-// cleanupProvisioned removes everything ProvisionUser wrote for one user:
-// membership, its home unless that's the founder home, and the user row.
-// home_members cascades from homes, so only the founder case needs an explicit delete.
+// Deletes the home too, unless it's the shared founder home: home_members
+// cascades from homes, so only the founder case needs an explicit delete.
 func cleanupProvisioned(t *testing.T, sqlDB *sql.DB, userID, homeID uuid.UUID) {
 	t.Helper()
 	t.Cleanup(func() {
@@ -55,10 +49,8 @@ func cleanupProvisioned(t *testing.T, sqlDB *sql.DB, userID, homeID uuid.UUID) {
 	})
 }
 
-// TestProvisionConcurrentSameSubject is the scenario LockSubject exists for:
-// without it, several concurrent requests for one subject would each find no
-// user and create their own home. Every goroutine waits on a closed channel so
-// they genuinely race into ProvisionUser together.
+// Without LockSubject, concurrent requests for one subject each create a home.
+// The goroutines wait on one closed channel so they really do race.
 func TestProvisionConcurrentSameSubject(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -122,9 +114,6 @@ func TestProvisionConcurrentSameSubject(t *testing.T) {
 	})
 }
 
-// TestProvisionIdempotent covers the sequential case LockSubject's comment
-// calls out alongside the concurrent one: a subject that already has a user
-// and a home must get the same pair back, not a second home and membership.
 func TestProvisionIdempotent(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -172,10 +161,8 @@ func TestProvisionIdempotent(t *testing.T) {
 	})
 }
 
-// TestProvisionFounderSubject exercises AccountService's homeTarget branch: a
-// subject matching the service's configured founder subject attaches to
-// account.FounderHomeID (the home that predates multitenancy) instead of
-// getting a fresh one, and nobody else does.
+// A subject matching the configured founder subject attaches to the home
+// that predates multitenancy instead of getting a fresh one, and nobody else does.
 func TestProvisionFounderSubject(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -262,9 +249,6 @@ func TestProvisionFounderSubject(t *testing.T) {
 	})
 }
 
-// TestProvisionHomeNaming covers AccountService.homeName: a fresh home is
-// named after the local part of the caller's email, or "My Book" when there is
-// no usable email to build a name from.
 func TestProvisionHomeNaming(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)
@@ -310,9 +294,8 @@ func TestProvisionHomeNaming(t *testing.T) {
 	})
 }
 
-// TestProvisionRefreshesTheProfile covers what the member list shows a
-// housemate: an email changed at the provider has to reach the row, and a
-// claim the edge stopped forwarding must not blank the one already there.
+// An email changed at the provider has to reach the row, but a claim the
+// edge stopped forwarding must not blank the one already there.
 func TestProvisionRefreshesTheProfile(t *testing.T) {
 	sqlDB := openTestDB(t)
 	repo := newAccountRepo(sqlDB)

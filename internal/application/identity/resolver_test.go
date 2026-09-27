@@ -133,8 +133,7 @@ func TestResolveTurnsHomeNotFoundIntoForbiddenWhenAHomeWasRequested(t *testing.T
 }
 
 // With no home requested, ErrHomeNotFound means a known user lost their last
-// membership — a genuine fault, not a caller naming somebody else's home —
-// so it must reach the caller unchanged rather than becoming ErrHomeForbidden.
+// membership, a genuine fault, so it must reach the caller unchanged.
 func TestResolveLeavesHomeNotFoundUnchangedWhenNoHomeWasRequested(t *testing.T) {
 	svc := &stubService{user: account.User{UUID: uuid.New()}, homeErr: account.ErrHomeNotFound}
 

@@ -1,12 +1,7 @@
 package repository
 
-// Proof that PostgreSQL, not the query text, is what keeps one home out of
-// another's data. Every assertion runs through the ordinary repositories
-// against a real database on a connection the isolation policies bind.
-//
-// The suite fails outright on a privileged connection — superuser, BYPASSRLS,
-// or an un-FORCE'd table owner all ignore the policies. scripts/rls-test.sh
-// builds both roles and points each suite at the one it needs.
+// Proof that PostgreSQL, not the query text, keeps one home out of another's data.
+// It fails, never skips, on a connection the policies do not bind.
 
 import (
 	"context"
@@ -84,9 +79,6 @@ func bypassesRLS(t *testing.T, sqlDB *sql.DB) (role string, bypasses bool) {
 	return role, super || bypass
 }
 
-// rlsBinds reports whether the isolation policies apply to this connection at
-// all, so a suite that needs the other kind of connection can say so plainly
-// instead of failing on an empty read.
 func rlsBinds(t *testing.T, sqlDB *sql.DB) (role string, bound bool) {
 	t.Helper()
 
@@ -106,8 +98,7 @@ func rlsBinds(t *testing.T, sqlDB *sql.DB) (role string, bound bool) {
 	return role, forced || !owned
 }
 
-// requireRestrictedRole is the reason to believe anything this file asserts:
-// it fails, never skips, if the connection could pass below without a policy
+// Fails, never skips, if the connection could pass below without a policy
 // being consulted — a superuser, BYPASSRLS, or an owner of an un-FORCE'd table.
 func requireRestrictedRole(t *testing.T, sqlDB *sql.DB) {
 	t.Helper()
@@ -335,9 +326,8 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
-	// A read reaching its table only through a join would look isolated even
-	// with a missing policy. This checks each of the nine directly, home A
-	// first, so "B sees none" can't mean "there were none".
+	// A join could hide a missing policy, so each of the nine tables is checked
+	// directly, home A first, so "B sees none" can't mean "there were none".
 	t.Run("no table hands a row to another home", func(t *testing.T) {
 		saved, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Census", "isolation census ingredient"))
 		if err != nil {
@@ -440,9 +430,8 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
-	// The regression this guards: a custom GUC reverts to '' rather than NULL
-	// once set, so a pooled connection returns with app.home_id = ''. Casting
-	// that to uuid raises; NULLIF filters instead.
+	// A custom GUC reverts to '' rather than NULL once set, so a pooled connection
+	// returns with app.home_id = ''; casting that to uuid raises, so NULLIF filters it.
 	t.Run("a pooled connection between transactions reads nothing", func(t *testing.T) {
 		ctx := context.Background()
 
@@ -617,9 +606,8 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
-	// Row security is off for uniqueness and FK checks, so naming another
-	// home's recipe id still writes a row against it. Inert since reads join
-	// recipes, but it occupied the key the owning home's own add then collided on.
+	// Key checks ignore row security, so a raw insert naming A's recipe lands in B.
+	// It must not take the slot A's own add needs.
 	t.Run("another home cannot take a meal plan slot", func(t *testing.T) {
 		saved, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Slot", "isolation slot ingredient"))
 		if err != nil {

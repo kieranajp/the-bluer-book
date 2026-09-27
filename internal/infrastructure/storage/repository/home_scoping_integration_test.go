@@ -36,9 +36,7 @@ func openTestDB(t *testing.T) *sql.DB {
 	return sqlDB
 }
 
-// skipUnlessUnrestricted leaves this suite to the owning role: its assertions
-// read tenant tables on the bare pool, outside any transaction, which the
-// isolation policies would otherwise stop. TestIsolation wants the bound connection.
+// Skips on a bound connection; TestIsolation covers that case instead.
 func skipUnlessUnrestricted(t *testing.T, sqlDB *sql.DB) {
 	t.Helper()
 
@@ -64,9 +62,8 @@ func makeHome(t *testing.T, sqlDB *sql.DB, name string) uuid.UUID {
 	return id
 }
 
-// dropTestVocabulary removes the label and unit a saved recipe creates. Both
-// tables are global, so deleting the home does not cascade to them and a run
-// against a real database would otherwise leave them in every home's lists.
+// Labels and units are global tables; deleting the home does not cascade to
+// them, so a real run would otherwise leave them in every home's lists.
 func dropTestVocabulary(t *testing.T, sqlDB *sql.DB) {
 	t.Helper()
 
@@ -120,9 +117,8 @@ func testRecipe(name, ingredient string) recipe.Recipe {
 	}
 }
 
-// TestHomeScoping proves the column default does the work the queries no longer
-// do: a write lands in the home its context names, and a call with no home
-// reaches the database not at all.
+// The column default does the work the queries no longer do: a write lands
+// in the home its context names, and a call with no home reaches the database not at all.
 func TestHomeScoping(t *testing.T) {
 	sqlDB := openTestDB(t)
 	skipUnlessUnrestricted(t, sqlDB)
@@ -149,9 +145,8 @@ func TestHomeScoping(t *testing.T) {
 			t.Fatalf("save: %v", err)
 		}
 
-		// Read the stamp back outside the repository: nothing in the write path
-		// mentioned a home, so the column default is the only thing that could
-		// have set it.
+		// Read outside the repository: nothing in the write path named a home,
+		// so the column default is the only thing that could have set it.
 		var got uuid.UUID
 		if err := sqlDB.QueryRow(`SELECT home_id FROM recipes WHERE uuid = $1`, saved.UUID).Scan(&got); err != nil {
 			t.Fatalf("read back home_id: %v", err)
@@ -172,9 +167,8 @@ func TestHomeScoping(t *testing.T) {
 		}
 	})
 
-	// Tested directly rather than through SaveRecipe: on this unbound
-	// connection, ingredient lookup by name sees every home, so a save in home B
-	// would find and reuse home A's row. TestIsolation asserts the policy that stops it.
+	// The unique key includes home_id, so both inserts succeed even on this
+	// connection, which the policies do not bind.
 	t.Run("two homes each hold an ingredient of the same name", func(t *testing.T) {
 		const shared = "scoping shared ingredient"
 

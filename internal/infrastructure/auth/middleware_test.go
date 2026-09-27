@@ -233,9 +233,8 @@ func TestTheRequestedHomeReachesTheResolver(t *testing.T) {
 	}
 }
 
-// The resolver decides membership; the middleware refuses with a code of its
-// own, so a client can drop the home it is holding rather than read the answer
-// as an expired session.
+// The middleware refuses with its own code, so a client can tell this apart
+// from an expired session rather than dropping the home it is holding.
 func TestNamingAHomeYouAreNotInIsRefused(t *testing.T) {
 	home := uuid.New()
 	resolver := &stubResolver{

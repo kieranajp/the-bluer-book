@@ -19,9 +19,8 @@ func (s *stubResolver) Resolve(context.Context, auth.Caller) (auth.Session, erro
 	return s.session, nil
 }
 
-// testRouter builds the real router over stub services. The account service,
-// chat handler and photo handler are nil: no case here reaches their routes,
-// and registering them takes no dereference.
+// The account service, chat handler and photo handler are nil: no case here
+// reaches their routes, and registering them takes no dereference.
 func testRouter() http.Handler {
 	resolver := &stubResolver{session: auth.Session{UserID: uuid.New(), HomeID: uuid.New()}}
 	return NewRouter(&stubRecipeService{}, &stubPantryService{}, nil, nil, nil, nil, resolver, &noopLogger{})

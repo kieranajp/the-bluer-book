@@ -21,7 +21,7 @@ import (
 )
 
 // Taxonomy mirrors the canonical (type, name) pairs the schema locks down.
-// Keep these in sync — any value the model returns outside this map is skipped.
+// Keep these in sync — any value the model returns that isn't in this map is skipped.
 var taxonomy = map[string][]string{
 	"course": {
 		"main", "side", "starter", "dessert", "breakfast", "lunch", "snack",

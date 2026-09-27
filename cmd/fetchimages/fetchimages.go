@@ -27,6 +27,7 @@ import (
 	"golang.org/x/net/html"
 
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
 )
 
 var Command = &cli.Command{
@@ -116,6 +117,9 @@ func run(c *cli.Context) error {
 	defer db.Close()
 	if err := db.Ping(); err != nil {
 		return fmt.Errorf("ping db: %w", err)
+	}
+	if _, err := repository.CheckBypass(ctx, db); err != nil {
+		return err
 	}
 
 	var s3Client *s3.Client
@@ -259,9 +263,8 @@ func loadRecipesNeedingImages(ctx context.Context, db *sql.DB, onlyMissing bool)
 	return out, rows.Err()
 }
 
-// extractRecipeImage fetches a page and extracts a dish photo URL.
-// It tries schema.org/Recipe JSON-LD first (more reliable for recipe sites),
-// then falls back to og:image. Returns (url, source, error).
+// extractRecipeImage tries schema.org/Recipe JSON-LD first (more reliable
+// for recipe sites), then falls back to og:image.
 func extractRecipeImage(ctx context.Context, client *http.Client, pageURL string) (string, string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", pageURL, nil)
 	if err != nil {
@@ -509,9 +512,11 @@ func setMainPhoto(ctx context.Context, db *sql.DB, recipeID uuid.UUID, photoURL 
 	now := time.Now()
 	photoUUID := uuid.New()
 
+	// This tool sweeps every home at once, so there is no app.home_id to
+	// default from and the home comes from the recipe the photo belongs to.
 	_, err = tx.ExecContext(ctx, `
-		INSERT INTO photos (uuid, url, entity_type, entity_id, created_at, updated_at)
-		VALUES ($1, $2, 'recipe', $3, $4, $4)
+		INSERT INTO photos (uuid, url, entity_type, entity_id, home_id, created_at, updated_at)
+		VALUES ($1, $2, 'recipe', $3, (SELECT home_id FROM recipes WHERE uuid = $3), $4, $4)
 	`, photoUUID, photoURL, recipeID, now)
 	if err != nil {
 		return fmt.Errorf("insert photo: %w", err)

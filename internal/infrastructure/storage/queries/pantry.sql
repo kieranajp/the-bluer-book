@@ -16,7 +16,7 @@ LIMIT 1;
 -- an INSERT ... SELECT that quietly matches nothing.
 INSERT INTO pantry_items (ingredient_id)
 VALUES (@ingredient_id)
-ON CONFLICT (ingredient_id) DO NOTHING;
+ON CONFLICT (home_id, ingredient_id) DO NOTHING;
 
 -- name: RemoveFromPantry :exec
 -- Clears every casing variant, so a pantry that predates case-insensitive

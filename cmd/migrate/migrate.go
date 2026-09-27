@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 	"github.com/urfave/cli/v2"
 
@@ -41,6 +41,17 @@ var Command = &cli.Command{
 			Usage:   "Database Port",
 			EnvVars: []string{"DB_PORT"},
 		},
+		&cli.StringFlag{
+			Name:    "app-db-user",
+			Usage:   "Non-owner database role the server connects as; its password is set from APP_DB_PASS after migrating",
+			EnvVars: []string{"APP_DB_USER"},
+			Value:   "bluer_book_app",
+		},
+		&cli.StringFlag{
+			Name:    "app-db-pass",
+			Usage:   "Password to set on APP_DB_USER",
+			EnvVars: []string{"APP_DB_PASS"},
+		},
 	},
 	Action: run,
 }
@@ -74,9 +85,6 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to set dialect: %w", err)
 	}
 
-	// Seed goose's version table for databases that pre-date goose adoption.
-	// If the schema already exists but goose has never run, mark the original
-	// migrations as applied so they aren't re-executed.
 	if err := seedExistingMigrations(db, log); err != nil {
 		return fmt.Errorf("failed to seed migration history: %w", err)
 	}
@@ -85,17 +93,37 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
+	if err := setAppRolePassword(db, c.String("app-db-user"), c.String("app-db-pass"), log); err != nil {
+		return err
+	}
+
 	log.Info().Msg("Migrations completed successfully")
 	return nil
 }
 
-// seedExistingMigrations detects databases that were set up before goose was
-// adopted and marks the pre-existing migrations as already applied. It checks
-// whether the schema exists (recipes table) but goose hasn't tracked anything
-// yet, then inserts version rows with ON CONFLICT DO NOTHING so it's safe to
-// run repeatedly.
+// setAppRolePassword runs as the owner, the only connection that can set it.
+// ALTER ROLE takes no bind parameters, so both halves are quoted below.
+func setAppRolePassword(db *sql.DB, role, password string, log logger.Logger) error {
+	if password == "" {
+		log.Warn().Str("role", role).Msg("APP_DB_PASS not set — leaving the application role's password alone")
+		return nil
+	}
+	if role == "" {
+		return fmt.Errorf("APP_DB_PASS is set but APP_DB_USER is empty")
+	}
+
+	stmt := fmt.Sprintf("ALTER ROLE %s WITH PASSWORD %s", pq.QuoteIdentifier(role), pq.QuoteLiteral(password))
+	if _, err := db.Exec(stmt); err != nil {
+		return fmt.Errorf("failed to set the password for role %s: %w", role, err)
+	}
+
+	log.Info().Str("role", role).Msg("Set the application role's password")
+	return nil
+}
+
+// seedExistingMigrations marks the original migrations applied for a
+// database that predates goose (recipes exists, goose_db_version doesn't).
 func seedExistingMigrations(db *sql.DB, log logger.Logger) error {
-	// Check if this is a pre-goose database: schema exists but no goose table.
 	var hasRecipes bool
 	err := db.QueryRow(`SELECT EXISTS (
 		SELECT 1 FROM information_schema.tables
@@ -122,7 +150,6 @@ func seedExistingMigrations(db *sql.DB, log logger.Logger) error {
 
 	log.Info().Msg("Detected pre-goose database, seeding migration history...")
 
-	// Create goose's version table and mark all original migrations as applied.
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS goose_db_version (
 			id SERIAL PRIMARY KEY,

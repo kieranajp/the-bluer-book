@@ -34,7 +34,7 @@ INSERT INTO ingredients (
     updated_at
 ) VALUES (
     $1, $2, $3, $4
-) ON CONFLICT (name) DO UPDATE SET updated_at = EXCLUDED.updated_at
+) ON CONFLICT (home_id, name) DO UPDATE SET updated_at = EXCLUDED.updated_at
 RETURNING *;
 
 -- name: GetIngredientByName :one
@@ -59,7 +59,11 @@ RETURNING *;
 SELECT * FROM units WHERE name = $1;
 
 -- name: ListUnits :many
-SELECT * FROM units ORDER BY name ASC;
+-- `units` is global and unpoliced; the EXISTS reads through the policed
+-- recipe_ingredient, so a unit only another home uses stays out.
+SELECT u.* FROM units u
+WHERE EXISTS (SELECT 1 FROM recipe_ingredient ri WHERE ri.unit_id = u.uuid)
+ORDER BY u.name ASC;
 
 -- name: CreateRecipeIngredient :one
 INSERT INTO recipe_ingredient (
@@ -91,10 +95,13 @@ RETURNING *;
 SELECT * FROM labels WHERE type = $1 AND name = $2;
 
 -- name: ListLabels :many
+-- `labels` is global and unpoliced, so a zero count means another home applied
+-- it. The HAVING keeps the list inside the home the count is already scoped to.
 SELECT l.type, l.name, COUNT(rl.recipe_id) AS uses
 FROM labels l
 LEFT JOIN recipe_label rl ON rl.label_id = l.uuid
 GROUP BY l.type, l.name
+HAVING COUNT(rl.recipe_id) > 0
 ORDER BY l.type, l.name;
 
 -- name: CreateRecipeLabel :one
@@ -244,3 +251,9 @@ LIMIT $1 OFFSET $2;
 
 -- name: CountArchivedRecipes :one
 SELECT COUNT(*) FROM recipes WHERE archived_at IS NOT NULL;
+
+-- name: SetRecipeMainPhoto :execrows
+UPDATE recipes SET main_photo_id = $2, updated_at = $3 WHERE uuid = $1 AND archived_at IS NULL;
+
+-- name: RecipeIsVisible :one
+SELECT EXISTS (SELECT 1 FROM recipes WHERE uuid = $1 AND archived_at IS NULL);

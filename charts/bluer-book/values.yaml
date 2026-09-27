@@ -41,9 +41,8 @@ mcp:
 
 monitoring:
   dashboard:
-    # Ships the Grafana dashboard (charts/bluer-book/dashboards/dashboard.json)
-    # as a labelled ConfigMap. Grafana's sidecar auto-provisions it; no homelab
-    # change needed.
+    # Ships the dashboard as a labelled ConfigMap; the Grafana sidecar
+    # auto-provisions it, no homelab change needed.
     enabled: true
 
 gemini:
@@ -52,11 +51,16 @@ gemini:
 
 secretName: bluer-book-secrets
 
-# All secret and config values live in a single 1Password item (Homelab vault).
-# The onepassword-connect operator materialises a k8s Secret named `secretName`.
-# Required keys: DB_USER, DB_PASS, DB_NAME, DB_HOST, DB_PORT, GOOGLE_API_KEY,
-# R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL.
-# Keep DB_PASS in sync with the existing postgres PVC (currently "xxx").
+# Secret and config values live in a single 1Password item (Homelab vault),
+# materialised into k8s Secret `secretName` by the onepassword-connect operator.
+# Keys the item must hold; (!) means the pod never comes up without it:
+#   DB_USER DB_PASS DB_NAME DB_HOST DB_PORT (!)  superuser; DB_PASS must match the postgres PVC
+#   APP_DB_USER APP_DB_PASS (!)                  role the server connects as; no fallback to DB_USER
+#   GOOGLE_API_KEY (!)                           tag-recipes init container and chat
+#   R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_BUCKET R2_PUBLIC_URL (!)  fetch-images init container
+#   R2_SECRET_ACCESS_KEY                         every photo upload fails without it
+#   FOUNDER_SUBJECT                              missing at the founder's first login strands the existing recipes
+# Optional: R2_JURISDICTION, MCP_HOME_ID (defaults to the founder home).
 onepassword:
   vault: Homelab
   item: bluer-book-secrets

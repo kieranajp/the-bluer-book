@@ -17,11 +17,11 @@ import (
 	"google.golang.org/genai"
 
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
 )
 
-// Taxonomy mirrors the canonical (type, name) pairs locked down by
-// migrations/00007_label_taxonomy.sql. Keep these in sync — any value the
-// model returns that isn't in this map will be skipped.
+// Taxonomy mirrors the canonical (type, name) pairs the schema locks down.
+// Keep these in sync — any value the model returns that isn't in this map is skipped.
 var taxonomy = map[string][]string{
 	"course": {
 		"main", "side", "starter", "dessert", "breakfast", "lunch", "snack",
@@ -124,6 +124,9 @@ func run(c *cli.Context) error {
 	defer db.Close()
 	if err := db.Ping(); err != nil {
 		return fmt.Errorf("ping db: %w", err)
+	}
+	if _, err := repository.CheckBypass(ctx, db); err != nil {
+		return err
 	}
 
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: apiKey})
@@ -417,9 +420,8 @@ func applyLabels(
 			id, ok := labelIDs[key]
 			mu.Unlock()
 			if !ok {
-				// Label row doesn't exist yet (shouldn't happen for taxonomy
-				// rows since the migration seeded them, but be defensive for
-				// any future additions). Insert it and cache the id.
+				// Shouldn't happen for seeded taxonomy rows, but defends
+				// against a future addition. Insert it and cache the id.
 				id = uuid.New()
 				_, err := tx.ExecContext(ctx, `
 					INSERT INTO labels (uuid, type, name, created_at, updated_at)
@@ -441,9 +443,11 @@ func applyLabels(
 				mu.Unlock()
 			}
 
+			// This tool sweeps every home at once, so there is no app.home_id to
+			// default from and the home comes from the recipe being labelled.
 			_, err := tx.ExecContext(ctx, `
-				INSERT INTO recipe_label (recipe_id, label_id, created_at, updated_at)
-				VALUES ($1, $2, $3, $3)
+				INSERT INTO recipe_label (recipe_id, label_id, home_id, created_at, updated_at)
+				VALUES ($1, $2, (SELECT home_id FROM recipes WHERE uuid = $1), $3, $3)
 				ON CONFLICT (recipe_id, label_id) DO NOTHING
 			`, recipeID, id, now)
 			if err != nil {

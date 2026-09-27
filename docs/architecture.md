@@ -107,9 +107,12 @@ operation inside `InHomeTx`
 home as that transaction-local setting. An `INSERT` that never names a home still lands in
 the caller's, and one that runs with no home set fails the `NOT NULL` check rather than
 writing a row nobody owns — so no query takes a home parameter or carries a home predicate.
-`units` and `labels` stay global: shared vocabulary rather than anybody's data. Shared and
-mutable, though — `CreateUnit` upserts an abbreviation, so an ordinary save in one home
-rewrites the abbreviation every home sees. Nothing guards that.
+`units` and `labels` stay global: shared vocabulary rather than anybody's data. Any home
+can add a row, so each listing reads through a policed table: `ListUnits` returns only units
+the home's own recipes use, and `ListLabels` only labels it has applied. A new home sees no
+units until it saves a recipe with one. A save reuses an existing unit of the same name,
+abbreviation and all; `CreateUnit` overwrites the abbreviation only when two saves race to
+create the same new unit.
 
 PostgreSQL enforces this, not the query layer. Nine tenant tables — `recipes`, `steps`,
 `recipe_ingredient`, `recipe_label`, `photos`, `meal_plan_recipes`, `ingredients`,
@@ -126,8 +129,7 @@ that owns no table and holds neither SUPERUSER nor BYPASSRLS. There is deliberat
 fallback from `APP_DB_USER` to `DB_USER`, and the server checks the connected role's
 privileges at startup, and the tables' `FORCE` flags and policies, refusing to serve on
 anything that wouldn't bind. Ingredient lookup by name is scoped per home by the same
-policy. `labels` is not, being global, so `ListLabels` keeps its listing inside the home by
-dropping any label this home has never applied.
+policy.
 
 Uniqueness and foreign keys are checked with row security switched off, so a policy cannot
 stop one home writing a row that *references* another home's. Keys carry `home_id` for that

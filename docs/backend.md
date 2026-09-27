@@ -146,10 +146,10 @@ if errors.Is(err, recipe.ErrRecipeNotFound) {
   the pool hands back between transactions, whereas comparing against NULL evaluates to
   NULL, which excludes the row, so an idle connection reads zero rows rather than erroring. Ingredient name
   resolution is scoped per home by the same policy — two homes can each own an ingredient
-  called "milk". `labels` is not: it is a global taxonomy carrying no policy, so only the
-  `uses` count `ListLabels` reads out of `recipe_label` is scoped, and the query's
-  `HAVING COUNT(rl.recipe_id) > 0` is what keeps a label another home invented out of the
-  list.
+  called "milk". `labels` and `units` are not: both are global and carry no policy, so each
+  listing reads through a policed usage table. `ListLabels` keeps only labels with a use in
+  `recipe_label`, and `ListUnits` only units some `recipe_ingredient` row names, which keeps
+  another home's inventions out of both lists.
 - **Isolation** is proved against a real database, not asserted in code:
   `repository/isolation_integration_test.go` runs `TestIsolation` through the ordinary
   repositories and refuses outright — never skips — on a connection the policies wouldn't

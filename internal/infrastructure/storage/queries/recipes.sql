@@ -59,7 +59,11 @@ RETURNING *;
 SELECT * FROM units WHERE name = $1;
 
 -- name: ListUnits :many
-SELECT * FROM units ORDER BY name ASC;
+-- `units` is global and unpoliced; the EXISTS reads through the policed
+-- recipe_ingredient, so a unit only another home uses stays out.
+SELECT u.* FROM units u
+WHERE EXISTS (SELECT 1 FROM recipe_ingredient ri WHERE ri.unit_id = u.uuid)
+ORDER BY u.name ASC;
 
 -- name: CreateRecipeIngredient :one
 INSERT INTO recipe_ingredient (

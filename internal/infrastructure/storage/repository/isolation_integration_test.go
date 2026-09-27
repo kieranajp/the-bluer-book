@@ -300,6 +300,32 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
+	t.Run("a unit only another home has used stays out of this home's list", func(t *testing.T) {
+		if _, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Unit", "isolation unit ingredient")); err != nil {
+			t.Fatalf("save as A: %v", err)
+		}
+
+		hasTestUnit := func(ctx context.Context) bool {
+			units, err := recipes.ListUnits(ctx)
+			if err != nil {
+				t.Fatalf("list units: %v", err)
+			}
+			for _, u := range units {
+				if u.Name == testUnitName {
+					return true
+				}
+			}
+			return false
+		}
+
+		if !hasTestUnit(ctxA) {
+			t.Fatalf("A cannot see the unit it used itself, so the check below proves nothing")
+		}
+		if hasTestUnit(ctxB) {
+			t.Errorf("B was handed the unit %q, which only A has used", testUnitName)
+		}
+	})
+
 	// A read reaching its table only through a join would look isolated even
 	// with a missing policy. This checks each of the nine directly, home A
 	// first, so "B sees none" can't mean "there were none".

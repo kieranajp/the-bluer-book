@@ -430,6 +430,26 @@ func TestResolveActiveHomeGivesAHomelessUserOneBack(t *testing.T) {
 	}
 }
 
+func TestResolveActiveHomeReturnsAHomelessFounderToTheFounderHome(t *testing.T) {
+	repo := &stubRepo{homeErr: account.ErrHomeNotFound}
+	svc := NewAccountService(repo, "founder-subject", metrics.NoopAccountProbe{})
+
+	got, err := svc.ResolveActiveHome(context.Background(), account.User{
+		UUID:    uuid.New(),
+		Subject: "founder-subject",
+		Email:   "kieran@example.com",
+	}, uuid.Nil)
+	if err != nil {
+		t.Fatalf("ResolveActiveHome: %v", err)
+	}
+	if got.UUID != account.FounderHomeID {
+		t.Errorf("homeless founder landed in home %s, want the founder home %s", got.UUID, account.FounderHomeID)
+	}
+	if len(repo.provisionedAt) != 1 || repo.provisionedAt[0].ID != account.FounderHomeID {
+		t.Errorf("provisioned into %+v, want the founder home once", repo.provisionedAt)
+	}
+}
+
 func TestResolveActiveHomeSurfacesLookupFailures(t *testing.T) {
 	boom := errors.New("connection refused")
 	repo := &stubRepo{homeErr: boom}

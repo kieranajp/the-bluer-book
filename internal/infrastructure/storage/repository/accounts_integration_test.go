@@ -211,6 +211,36 @@ func TestProvisionFounderSubject(t *testing.T) {
 		}
 	})
 
+	t.Run("the founder removed from every home rejoins the founder home as owner", func(t *testing.T) {
+		user, err := svc.ProvisionFromSubject(context.Background(), account.Identity{
+			Subject: founderSubject,
+			Email:   "founder@example.com",
+		})
+		if err != nil {
+			t.Fatalf("ProvisionFromSubject: %v", err)
+		}
+		cleanupProvisioned(t, sqlDB, user.UUID, account.FounderHomeID)
+
+		if _, err := sqlDB.Exec(`DELETE FROM home_members WHERE user_id = $1`, user.UUID); err != nil {
+			t.Fatalf("remove the founder from every home: %v", err)
+		}
+
+		home, err := svc.ResolveActiveHome(context.Background(), user, uuid.Nil)
+		if err != nil {
+			t.Fatalf("ResolveActiveHome: %v", err)
+		}
+		if home.UUID != account.FounderHomeID {
+			t.Errorf("homeless founder landed in home %s, want the founder home", home.UUID)
+		}
+		role, err := repo.FindRole(context.Background(), account.FounderHomeID, user.UUID)
+		if err != nil {
+			t.Fatalf("FindRole: %v", err)
+		}
+		if role != account.RoleOwner {
+			t.Errorf("founder rejoined as %q, want owner", role)
+		}
+	})
+
 	t.Run("a different subject lands somewhere else", func(t *testing.T) {
 		subject := uniqueSubject("non-founder")
 		user, err := svc.ProvisionFromSubject(context.Background(), account.Identity{

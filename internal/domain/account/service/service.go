@@ -135,7 +135,8 @@ func (s *accountService) ResolveActiveHome(ctx context.Context, user account.Use
 		return account.Home{}, err
 	}
 
-	// A known user with no home has lost their last membership.
+	// A known user with no home has lost their last membership. The founder
+	// subject rejoins the founder home as owner; anyone else gets a new home.
 	id := account.Identity{Subject: user.Subject, Email: user.Email, DisplayName: user.DisplayName}
 	_, home, err = s.repo.ProvisionUser(ctx, id, s.homeTarget(id))
 	if err != nil {

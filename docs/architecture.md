@@ -149,9 +149,12 @@ stays unavailable to every other home until MCP can carry the caller and the pin
 
 `cmd/tag` and `cmd/fetchimages` still connect as `DB_USER`, not `bluer_book_app`, because
 they sweep every home at once; so they name `home_id` explicitly, taking it from the recipe
-each row belongs to. That sweep works only because `DB_USER` is a superuser: `FORCE` binds a
-plain owner like anyone else, so a `DB_USER` stripped of SUPERUSER would read nothing and
-both init containers would complete as silent no-ops.
+each row belongs to. That sweep needs a role that bypasses row security, because `FORCE`
+binds a plain owner like anyone else. Both commands check this at startup and refuse to run
+unless `DB_USER` holds SUPERUSER or BYPASSRLS, rather than reading nothing and exiting 0.
+Migration `00015` needs the same: its cleanup `DELETE` runs with `row_security = off`, so
+on a policy-bound role it fails instead of silently deleting nothing. The rest of
+`cmd/migrate` is DDL and needs no bypass, so the command itself carries no such check.
 
 ## Observability
 

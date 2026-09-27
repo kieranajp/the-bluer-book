@@ -134,6 +134,15 @@ func TestHomeScoping(t *testing.T) {
 	homeA := makeHome(t, sqlDB, "scoping A")
 	homeB := makeHome(t, sqlDB, "scoping B")
 
+	t.Run("the sweeps' check accepts this role and the server's check refuses it", func(t *testing.T) {
+		if _, err := CheckBypass(context.Background(), sqlDB); err != nil {
+			t.Errorf("CheckBypass refused a role that bypasses row security: %v", err)
+		}
+		if _, err := CheckIsolation(context.Background(), sqlDB); err == nil {
+			t.Errorf("CheckIsolation let the server run as a role that bypasses row security")
+		}
+	})
+
 	t.Run("a save lands in the home its context names", func(t *testing.T) {
 		saved, err := repo.SaveRecipe(auth.WithHome(context.Background(), homeA), testRecipe("Scoped A", "scoped ingredient A"))
 		if err != nil {

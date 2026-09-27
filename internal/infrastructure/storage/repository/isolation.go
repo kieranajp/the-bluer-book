@@ -16,13 +16,9 @@ var TenantTables = []string{
 // CheckIsolation refuses a connection that would read and write every home
 // while every request still looked right — the failure has no other symptom.
 func CheckIsolation(ctx context.Context, sqlDB *sql.DB) (string, error) {
-	var role string
-	var super, bypass bool
-	err := sqlDB.QueryRowContext(ctx,
-		`SELECT rolname, rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user`,
-	).Scan(&role, &super, &bypass)
+	role, super, bypass, err := connectedRole(ctx, sqlDB)
 	if err != nil {
-		return "", fmt.Errorf("failed to read the connected role's privileges: %w", err)
+		return "", err
 	}
 	if super || bypass {
 		return role, fmt.Errorf(
@@ -51,4 +47,30 @@ func CheckIsolation(ctx context.Context, sqlDB *sql.DB) (string, error) {
 	}
 
 	return role, nil
+}
+
+// CheckBypass is the inverse of CheckIsolation, for commands that must read
+// every home: on a policy-bound role they would find nothing and exit 0.
+func CheckBypass(ctx context.Context, sqlDB *sql.DB) (string, error) {
+	role, super, bypass, err := connectedRole(ctx, sqlDB)
+	if err != nil {
+		return "", err
+	}
+	if !super && !bypass {
+		return role, fmt.Errorf(
+			"refusing to run as %q: it holds neither SUPERUSER nor BYPASSRLS, so row-level security would hide every home's rows — point DB_USER at a role that bypasses it",
+			role,
+		)
+	}
+	return role, nil
+}
+
+func connectedRole(ctx context.Context, sqlDB *sql.DB) (role string, super, bypass bool, err error) {
+	err = sqlDB.QueryRowContext(ctx,
+		`SELECT rolname, rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user`,
+	).Scan(&role, &super, &bypass)
+	if err != nil {
+		return "", false, false, fmt.Errorf("failed to read the connected role's privileges: %w", err)
+	}
+	return role, super, bypass, nil
 }

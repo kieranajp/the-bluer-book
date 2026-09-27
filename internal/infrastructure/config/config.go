@@ -20,8 +20,8 @@ type Config struct {
 	DBHost string
 	DBPort string
 
-	// AppDBUser and AppDBPass are the non-owner role the server connects as;
-	// DB_USER owns every table, so FORCE ROW LEVEL SECURITY does not bind it.
+	// AppDBUser and AppDBPass are the role the server connects as. DB_USER is a
+	// superuser, and FORCE ROW LEVEL SECURITY binds neither it nor BYPASSRLS.
 	AppDBUser string
 	AppDBPass string
 

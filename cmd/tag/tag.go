@@ -17,6 +17,7 @@ import (
 	"google.golang.org/genai"
 
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
 )
 
 // Taxonomy mirrors the canonical (type, name) pairs the schema locks down.
@@ -123,6 +124,9 @@ func run(c *cli.Context) error {
 	defer db.Close()
 	if err := db.Ping(); err != nil {
 		return fmt.Errorf("ping db: %w", err)
+	}
+	if _, err := repository.CheckBypass(ctx, db); err != nil {
+		return err
 	}
 
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: apiKey})

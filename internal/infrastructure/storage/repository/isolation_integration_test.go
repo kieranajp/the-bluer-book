@@ -183,6 +183,15 @@ func TestIsolation(t *testing.T) {
 	ctxA := auth.WithHome(context.Background(), homeA)
 	ctxB := auth.WithHome(context.Background(), homeB)
 
+	t.Run("the server's check accepts this role and the sweeps' check refuses it", func(t *testing.T) {
+		if _, err := CheckIsolation(context.Background(), sqlDB); err != nil {
+			t.Errorf("CheckIsolation refused the application role: %v", err)
+		}
+		if _, err := CheckBypass(context.Background(), sqlDB); err == nil {
+			t.Errorf("CheckBypass let a sweep run as a role the policies bind")
+		}
+	})
+
 	t.Run("one home reads none of another's rows", func(t *testing.T) {
 		const item = "isolation sentinel item"
 

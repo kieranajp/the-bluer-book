@@ -53,9 +53,14 @@ secretName: bluer-book-secrets
 
 # Secret and config values live in a single 1Password item (Homelab vault),
 # materialised into k8s Secret `secretName` by the onepassword-connect operator.
-
-# APP_DB_USER has no fallback to DB_USER: DB_USER is the superuser, and the
-# server refuses to start as it.
+# Keys the item must hold; (!) means the pod never comes up without it:
+#   DB_USER DB_PASS DB_NAME DB_HOST DB_PORT (!)  superuser; DB_PASS must match the postgres PVC
+#   APP_DB_USER APP_DB_PASS (!)                  role the server connects as; no fallback to DB_USER
+#   GOOGLE_API_KEY (!)                           tag-recipes init container and chat
+#   R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_BUCKET R2_PUBLIC_URL (!)  fetch-images init container
+#   R2_SECRET_ACCESS_KEY                         every photo upload fails without it
+#   FOUNDER_SUBJECT                              missing at the founder's first login strands the existing recipes
+# Optional: R2_JURISDICTION, MCP_HOME_ID (defaults to the founder home).
 onepassword:
   vault: Homelab
   item: bluer-book-secrets

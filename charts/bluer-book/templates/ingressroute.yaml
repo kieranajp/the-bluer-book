@@ -8,7 +8,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    # MCP route — no auth (MCP server handles its own auth)
+    # Unauthenticated: anyone who reaches /mcp reads and writes the MCP_HOME_ID home.
     - kind: Rule
       match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/mcp`)
       services:

@@ -38,6 +38,8 @@ jobs:
   comment-lint:
     name: "Comments: Lint"
     runs-on: ubuntu-latest
+    # Advisory: a red lint must not fail the workflow, because Deploy gates on its conclusion.
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v6

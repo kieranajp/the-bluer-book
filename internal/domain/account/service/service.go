@@ -194,6 +194,7 @@ func (s *accountService) Invite(ctx context.Context, actorID, homeID uuid.UUID, 
 }
 
 func (s *accountService) AcceptInvitation(ctx context.Context, userID uuid.UUID, token string) (account.Home, account.Role, error) {
+	// The token alone admits: the caller's email is never compared with the invited one.
 	token = strings.TrimSpace(token)
 	if token == "" {
 		s.probe.InvitationRefused("empty")

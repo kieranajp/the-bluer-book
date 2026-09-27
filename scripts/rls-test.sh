@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 CONTAINER="${RLS_TEST_CONTAINER:-bluer-book-rls-test}"
 PORT="${RLS_TEST_PORT:-55433}"
 IMAGE="${RLS_TEST_IMAGE:-postgres:17.5-alpine}"
-PKG="./internal/infrastructure/storage/repository/..."
+PKGS=(./internal/infrastructure/storage/repository/... ./internal/application/mcp/...)
 
 OWNER_USER="bluer_book"
 OWNER_PASS="rls-test-owner"
@@ -76,7 +76,7 @@ run_suite() {
 
   echo "==> ${label}"
   local output
-  if ! output=$(BLUER_BOOK_TEST_DSN="$dsn" go test "$PKG" -v "$@" 2>&1); then
+  if ! output=$(BLUER_BOOK_TEST_DSN="$dsn" go test "${PKGS[@]}" -v "$@" 2>&1); then
     echo "$output" >&2
     echo "FAIL: ${label}" >&2
     exit 1
@@ -97,13 +97,14 @@ run_suite() {
 run_suite "TestIsolation as ${APP_USER} (must pass)" "$APP_DSN" -run TestIsolation -count=1
 
 echo "==> TestIsolation as ${OWNER_USER} (must fail, on the guard)"
-if owner_output=$(BLUER_BOOK_TEST_DSN="$OWNER_DSN" go test "$PKG" -run TestIsolation -count=1 -v 2>&1); then
+if owner_output=$(BLUER_BOOK_TEST_DSN="$OWNER_DSN" go test "${PKGS[@]}" -run TestIsolation -count=1 -v 2>&1); then
   echo "FAIL: the isolation suite passed as ${OWNER_USER}, which bypasses every policy." >&2
   echo "      Its role guard is broken, so the run above proved nothing." >&2
   exit 1
 fi
 # A compile error fails too, and would otherwise read as the guard working.
-if ! printf '%s' "$owner_output" | grep 'which holds SUPERUSER or BYPASSRLS' >/dev/null; then
+# Each package carries its own guard, so each must fail on it.
+if [ "$(printf '%s' "$owner_output" | grep -c 'which holds SUPERUSER or BYPASSRLS')" -lt "${#PKGS[@]}" ]; then
   echo "$owner_output" >&2
   echo "FAIL: the suite failed as ${OWNER_USER}, but not because the role guard fired." >&2
   exit 1

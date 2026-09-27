@@ -26,7 +26,6 @@ import (
 	pantryservice "github.com/kieranajp/the-bluer-book/internal/domain/pantry/service"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/ai"
-	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/metrics"
@@ -225,13 +224,7 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on MCP address %s: %w", mcpAddr, err)
 	}
-	// No MCP call carries auth or a caller argument, so every call acts on one
-	// configured home, stamped here where middleware would normally have put it.
-	httpMCPServer := server.NewStreamableHTTPServer(mcpServer,
-		server.WithHTTPContextFunc(func(ctx context.Context, _ *http.Request) context.Context {
-			return auth.WithHome(ctx, mcpHomeID)
-		}),
-	)
+	httpMCPServer := mcp.NewPinnedHTTPServer(mcpServer, mcpHomeID)
 	go func() {
 		log.Info().Str("address", mcpAddr).Msg("Starting MCP server")
 		if err := http.Serve(mcpListener, httpMCPServer); err != nil && err != http.ErrServerClosed {

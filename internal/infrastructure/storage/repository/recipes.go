@@ -22,6 +22,10 @@ type RecipeRepository interface {
 	RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
 	ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error)
 
+	// RequireRecipe returns RecipeNotFoundError unless the caller's home holds
+	// the recipe and it is not archived.
+	RequireRecipe(ctx context.Context, id uuid.UUID) error
+
 	// Photos
 	SetMainPhoto(ctx context.Context, recipeID uuid.UUID, url string) error
 
@@ -797,20 +801,46 @@ func (r *recipeRepository) SetMainPhoto(ctx context.Context, recipeID uuid.UUID,
 			return fmt.Errorf("storing the photo: %w", err)
 		}
 
-		if err := q.SetRecipeMainPhoto(ctx, db.SetRecipeMainPhotoParams{
+		updated, err := q.SetRecipeMainPhoto(ctx, db.SetRecipeMainPhotoParams{
 			Uuid:        recipeID,
 			MainPhotoID: uuid.NullUUID{UUID: photoID, Valid: true},
 			UpdatedAt:   now,
-		}); err != nil {
+		})
+		if err != nil {
 			return fmt.Errorf("pointing the recipe at it: %w", err)
+		}
+		if updated == 0 {
+			return recipe.RecipeNotFoundError{ID: recipeID}
 		}
 
 		return nil
 	})
 }
 
+func (r *recipeRepository) RequireRecipe(ctx context.Context, id uuid.UUID) error {
+	return InHomeTx(ctx, r.sqlDB, func(q *db.Queries) error {
+		return requireRecipe(ctx, q, id)
+	})
+}
+
+func requireRecipe(ctx context.Context, q *db.Queries, id uuid.UUID) error {
+	visible, err := q.RecipeIsVisible(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !visible {
+		return recipe.RecipeNotFoundError{ID: id}
+	}
+	return nil
+}
+
+// AddToMealPlan checks the recipe first because the foreign key is checked
+// without row security, so another home's recipe id would otherwise insert.
 func (r *recipeRepository) AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error {
 	return InHomeTx(ctx, r.sqlDB, func(q *db.Queries) error {
+		if err := requireRecipe(ctx, q, recipeID); err != nil {
+			return err
+		}
 		return q.AddToMealPlan(ctx, recipeID)
 	})
 }

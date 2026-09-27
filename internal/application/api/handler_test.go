@@ -26,6 +26,11 @@ type stubRecipeService struct {
 	units       []recipe.Unit
 	ingredients []recipe.Ingredient
 	err         error
+
+	requireErr      error
+	setMainPhotoErr error
+	mealPlanErr     error
+	setMainPhotos   int
 }
 
 func (s *stubRecipeService) CreateRecipe(_ context.Context, _ recipe.Recipe) (*recipe.Recipe, error) {
@@ -47,9 +52,13 @@ func (s *stubRecipeService) RestoreRecipe(_ context.Context, _ uuid.UUID) (*reci
 func (s *stubRecipeService) ListArchivedRecipes(_ context.Context, _, _ int) ([]*recipe.Recipe, int, error) {
 	return nil, 0, nil
 }
-func (s *stubRecipeService) SetMainPhoto(_ context.Context, _ uuid.UUID, _ string) error { return nil }
-func (s *stubRecipeService) AddToMealPlan(_ context.Context, _ uuid.UUID) error          { return nil }
-func (s *stubRecipeService) RemoveFromMealPlan(_ context.Context, _ uuid.UUID) error     { return nil }
+func (s *stubRecipeService) RequireRecipe(_ context.Context, _ uuid.UUID) error { return s.requireErr }
+func (s *stubRecipeService) SetMainPhoto(_ context.Context, _ uuid.UUID, _ string) error {
+	s.setMainPhotos++
+	return s.setMainPhotoErr
+}
+func (s *stubRecipeService) AddToMealPlan(_ context.Context, _ uuid.UUID) error      { return s.mealPlanErr }
+func (s *stubRecipeService) RemoveFromMealPlan(_ context.Context, _ uuid.UUID) error { return nil }
 func (s *stubRecipeService) ListMealPlanRecipes(_ context.Context) ([]*recipe.Recipe, error) {
 	return nil, nil
 }
@@ -210,4 +219,16 @@ func TestListIngredients_ServiceError(t *testing.T) {
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", rec.Code)
 	}
+}
+
+func TestAddToMealPlanForARecipeTheCallerCannotSeeIs404(t *testing.T) {
+	svc := &stubRecipeService{mealPlanErr: recipe.RecipeNotFoundError{}}
+	h := NewRecipeHandler(svc, &noopLogger{})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/recipes/x/meal-plan", nil)
+	req.SetPathValue("id", uuid.New().String())
+	rec := httptest.NewRecorder()
+	h.AddToMealPlan(rec, req)
+
+	requireNotFoundEnvelope(t, rec)
 }

@@ -653,6 +653,63 @@ func TestIsolation(t *testing.T) {
 		}
 	})
 
+	// Another home's recipe and a made-up id must look alike and write nothing:
+	// recipe ids appear in public photo URLs.
+	t.Run("the meal plan refuses a recipe this home cannot see", func(t *testing.T) {
+		saved, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Plan Probe", "isolation plan probe ingredient"))
+		if err != nil {
+			t.Fatalf("save as A: %v", err)
+		}
+		if err := recipes.RequireRecipe(ctxA, saved.UUID); err != nil {
+			t.Fatalf("A cannot see its own recipe, so the refusals below prove nothing: %v", err)
+		}
+
+		for name, id := range map[string]uuid.UUID{"another home's recipe": saved.UUID, "an unknown id": uuid.New()} {
+			if err := recipes.AddToMealPlan(ctxB, id); !errors.Is(err, recipe.ErrRecipeNotFound) {
+				t.Errorf("B adding %s returned %v, want a not-found error", name, err)
+			}
+			if n := countInHome(t, sqlDB, homeB, `SELECT count(*) FROM meal_plan_recipes WHERE recipe_id = $1`, id); n != 0 {
+				t.Errorf("B adding %s wrote %d meal plan rows", name, n)
+			}
+		}
+
+		if err := recipes.AddToMealPlan(ctxA, saved.UUID); err != nil {
+			t.Fatalf("A adds its own recipe: %v", err)
+		}
+		if err := recipes.RemoveFromMealPlan(ctxB, saved.UUID); err != nil {
+			t.Fatalf("B removes A's recipe from its own plan: %v", err)
+		}
+		if n := countInHome(t, sqlDB, homeA, `SELECT count(*) FROM meal_plan_recipes WHERE recipe_id = $1`, saved.UUID); n != 1 {
+			t.Errorf("A's plan holds %d rows for its recipe after B's removal, want 1", n)
+		}
+	})
+
+	t.Run("a photo for a recipe this home cannot see is refused", func(t *testing.T) {
+		saved, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Photo Probe", "isolation photo probe ingredient"))
+		if err != nil {
+			t.Fatalf("save as A: %v", err)
+		}
+		if err := recipes.SetMainPhoto(ctxA, saved.UUID, "https://example.invalid/own.jpg"); err != nil {
+			t.Fatalf("A cannot set its own photo, so the refusal below proves nothing: %v", err)
+		}
+
+		err = recipes.SetMainPhoto(ctxB, saved.UUID, "https://example.invalid/planted.jpg")
+		if !errors.Is(err, recipe.ErrRecipeNotFound) {
+			t.Errorf("B setting A's photo returned %v, want a not-found error", err)
+		}
+		if n := countInHome(t, sqlDB, homeB, `SELECT count(*) FROM photos WHERE entity_id = $1`, saved.UUID); n != 0 {
+			t.Errorf("B's refused upload left %d photo rows", n)
+		}
+
+		got, err := recipes.GetRecipeByID(ctxA, saved.UUID)
+		if err != nil {
+			t.Fatalf("A re-reads its recipe: %v", err)
+		}
+		if got.MainPhoto == nil || got.MainPhoto.URL != "https://example.invalid/own.jpg" {
+			t.Errorf("A's main photo is now %+v", got.MainPhoto)
+		}
+	})
+
 	// The pantry resolves a name to an ingredient before writing; that lookup is
 	// now scoped, so a name only another home owns errors rather than writing to it.
 	t.Run("stocking an ingredient only another home owns is refused", func(t *testing.T) {

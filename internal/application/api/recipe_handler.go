@@ -72,20 +72,24 @@ func (h *RecipeHandler) GetRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipe, err := h.recipeService.GetRecipe(r.Context(), recipeID)
+	rec, err := h.recipeService.GetRecipe(r.Context(), recipeID)
+	if errors.Is(err, recipe.ErrRecipeNotFound) {
+		h.writeErrorResponse(w, http.StatusNotFound, "recipe_not_found", "Recipe not found")
+		return
+	}
 	if err != nil {
 		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to get recipe")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "retrieval_failed", "Failed to retrieve recipe")
 		return
 	}
 
-	if recipe == nil {
+	if rec == nil {
 		h.writeErrorResponse(w, http.StatusNotFound, "recipe_not_found", "Recipe not found")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(recipe)
+	json.NewEncoder(w).Encode(rec)
 }
 
 // GET /api/recipes
@@ -307,6 +311,10 @@ func (h *RecipeHandler) AddToMealPlan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.recipeService.AddToMealPlan(r.Context(), recipeID)
+	if errors.Is(err, recipe.ErrRecipeNotFound) {
+		h.writeErrorResponse(w, http.StatusNotFound, "recipe_not_found", "Recipe not found")
+		return
+	}
 	if err != nil {
 		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to add recipe to meal plan")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "meal_plan_add_failed", "Failed to add recipe to meal plan")

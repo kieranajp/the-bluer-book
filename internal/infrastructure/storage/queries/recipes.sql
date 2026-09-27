@@ -252,5 +252,8 @@ LIMIT $1 OFFSET $2;
 -- name: CountArchivedRecipes :one
 SELECT COUNT(*) FROM recipes WHERE archived_at IS NOT NULL;
 
--- name: SetRecipeMainPhoto :exec
-UPDATE recipes SET main_photo_id = $2, updated_at = $3 WHERE uuid = $1;
+-- name: SetRecipeMainPhoto :execrows
+UPDATE recipes SET main_photo_id = $2, updated_at = $3 WHERE uuid = $1 AND archived_at IS NULL;
+
+-- name: RecipeIsVisible :one
+SELECT EXISTS (SELECT 1 FROM recipes WHERE uuid = $1 AND archived_at IS NULL);

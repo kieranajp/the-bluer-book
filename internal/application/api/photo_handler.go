@@ -1,24 +1,30 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/kieranajp/the-bluer-book/internal/domain/recipe"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe/service"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
-	"github.com/kieranajp/the-bluer-book/internal/infrastructure/upload"
 )
 
+type photoUploader interface {
+	UploadRecipePhoto(ctx context.Context, recipeID string, data []byte, contentType string, filename string) (string, error)
+}
+
 type PhotoHandler struct {
-	uploader      *upload.R2Uploader
+	uploader      photoUploader
 	recipeService service.RecipeService
 	logger        logger.Logger
 }
 
-func NewPhotoHandler(uploader *upload.R2Uploader, recipeService service.RecipeService, logger logger.Logger) *PhotoHandler {
+func NewPhotoHandler(uploader photoUploader, recipeService service.RecipeService, logger logger.Logger) *PhotoHandler {
 	return &PhotoHandler{
 		uploader:      uploader,
 		recipeService: recipeService,
@@ -38,6 +44,17 @@ func (h *PhotoHandler) UploadRecipePhoto(w http.ResponseWriter, r *http.Request)
 	recipeID, err := uuid.Parse(pathParts[0])
 	if err != nil {
 		writeAPIError(w, http.StatusBadRequest, "invalid_recipe_id", "Recipe id is not a uuid")
+		return
+	}
+
+	// Checked before anything is stored: the upload lands in R2 under this id.
+	if err := h.recipeService.RequireRecipe(r.Context(), recipeID); err != nil {
+		if errors.Is(err, recipe.ErrRecipeNotFound) {
+			writeAPIError(w, http.StatusNotFound, "recipe_not_found", "Recipe not found")
+			return
+		}
+		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to look up recipe for photo upload")
+		writeAPIError(w, http.StatusInternalServerError, "photo_not_saved", "Could not save the photo against the recipe")
 		return
 	}
 
@@ -77,6 +94,10 @@ func (h *PhotoHandler) UploadRecipePhoto(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.recipeService.SetMainPhoto(r.Context(), recipeID, photoURL); err != nil {
+		if errors.Is(err, recipe.ErrRecipeNotFound) {
+			writeAPIError(w, http.StatusNotFound, "recipe_not_found", "Recipe not found")
+			return
+		}
 		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to save recipe photo")
 		writeAPIError(w, http.StatusInternalServerError, "photo_not_saved", "Could not save the photo against the recipe")
 		return

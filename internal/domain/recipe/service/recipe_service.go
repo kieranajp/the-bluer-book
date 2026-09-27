@@ -19,6 +19,10 @@ type RecipeService interface {
 	RestoreRecipe(ctx context.Context, id uuid.UUID) (*recipe.Recipe, error)
 	ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error)
 
+	// RequireRecipe returns ErrRecipeNotFound unless the caller's home holds
+	// the recipe and it is not archived.
+	RequireRecipe(ctx context.Context, id uuid.UUID) error
+
 	// SetMainPhoto stores an already-uploaded photo against a recipe and makes
 	// it the one the recipe shows.
 	SetMainPhoto(ctx context.Context, recipeID uuid.UUID, url string) error
@@ -123,6 +127,10 @@ func (s *recipeService) RestoreRecipe(ctx context.Context, id uuid.UUID) (*recip
 
 func (s *recipeService) ListArchivedRecipes(ctx context.Context, limit, offset int) ([]*recipe.Recipe, int, error) {
 	return s.repo.ListArchivedRecipes(ctx, limit, offset)
+}
+
+func (s *recipeService) RequireRecipe(ctx context.Context, id uuid.UUID) error {
+	return s.repo.RequireRecipe(ctx, id)
 }
 
 func (s *recipeService) SetMainPhoto(ctx context.Context, recipeID uuid.UUID, url string) error {

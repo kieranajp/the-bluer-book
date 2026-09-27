@@ -134,7 +134,11 @@ policy.
 Uniqueness and foreign keys are checked with row security switched off, so a policy cannot
 stop one home writing a row that *references* another home's. Keys carry `home_id` for that
 reason — the pantry on `(home_id, ingredient_id)`, the meal plan on `(home_id, recipe_id)` —
-so such a row lands in the writer's own home and cannot occupy the other's slot.
+so such a row lands in the writer's own home and cannot occupy the other's slot. A write
+that takes a recipe id from the caller checks that the home can see the recipe first. Adding
+to the meal plan and uploading a photo both answer `404 recipe_not_found` for another
+home's recipe exactly as for an unknown id, and the photo check runs before anything
+reaches R2.
 
 The MCP server has no caller to resolve — its route carries no auth and its tools take no
 caller argument — so every tool call acts on the home named by `MCP_HOME_ID`, which defaults

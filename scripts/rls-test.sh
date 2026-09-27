@@ -34,12 +34,13 @@ docker run --detach --name "$CONTAINER" \
   "$IMAGE" >/dev/null
 
 for _ in $(seq 1 60); do
-  if docker exec "$CONTAINER" pg_isready --quiet --username "$OWNER_USER" --dbname "$DB_NAME"; then
+  # Over TCP: the image's first-boot init server listens only on the socket, then restarts.
+  if docker exec "$CONTAINER" pg_isready --quiet --host 127.0.0.1 --username "$OWNER_USER" --dbname "$DB_NAME"; then
     break
   fi
   sleep 1
 done
-docker exec "$CONTAINER" pg_isready --username "$OWNER_USER" --dbname "$DB_NAME" >/dev/null
+docker exec "$CONTAINER" pg_isready --host 127.0.0.1 --username "$OWNER_USER" --dbname "$DB_NAME"
 
 echo "==> Generating query stubs"
 sqlc generate

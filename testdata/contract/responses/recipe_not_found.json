@@ -1,0 +1,11 @@
+{
+  "method": "GET",
+  "path": "/api/recipes/00000000-0000-0000-0000-000000000000",
+  "status": 404,
+  "body": {
+    "error": {
+      "code": "recipe_not_found",
+      "message": "Recipe not found"
+    }
+  }
+}

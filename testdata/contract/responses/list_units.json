@@ -1,0 +1,21 @@
+{
+  "method": "GET",
+  "path": "/api/units",
+  "status": 200,
+  "body": {
+    "units": [
+      {
+        "abbreviation": "g",
+        "createdAt": "2026-03-14T18:30:00Z",
+        "name": "gram",
+        "updatedAt": "2026-03-14T18:30:00Z"
+      },
+      {
+        "abbreviation": "",
+        "createdAt": "2026-03-14T18:30:00Z",
+        "name": "sheet",
+        "updatedAt": "2026-03-14T18:30:00Z"
+      }
+    ]
+  }
+}

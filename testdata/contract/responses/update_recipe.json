@@ -1,0 +1,89 @@
+{
+  "method": "PUT",
+  "path": "/api/recipes/7b0c6a52-3a8e-4f4e-9d1a-2f5a6c1e9b10",
+  "status": 200,
+  "body": {
+    "cookTime": 45,
+    "createdAt": "2026-03-14T18:30:00Z",
+    "description": "Layered and baked.",
+    "ingredients": [
+      {
+        "component": "ragù",
+        "ingredient": {
+          "createdAt": "2026-03-14T18:30:00Z",
+          "name": "beef mince",
+          "updatedAt": "2026-03-14T18:30:00Z"
+        },
+        "preparation": "browned",
+        "quantity": 500,
+        "unit": {
+          "abbreviation": "g",
+          "createdAt": "2026-03-14T18:30:00Z",
+          "name": "gram",
+          "updatedAt": "2026-03-14T18:30:00Z"
+        }
+      },
+      {
+        "component": "",
+        "ingredient": {
+          "createdAt": "2026-03-14T18:30:00Z",
+          "name": "lasagne sheets",
+          "updatedAt": "2026-03-14T18:30:00Z"
+        },
+        "preparation": "",
+        "quantity": 2.5,
+        "unit": {
+          "abbreviation": "",
+          "createdAt": "2026-03-14T18:30:00Z",
+          "name": "sheet",
+          "updatedAt": "2026-03-14T18:30:00Z"
+        }
+      }
+    ],
+    "isInMealPlan": true,
+    "labels": [
+      {
+        "createdAt": "2026-03-14T18:30:00Z",
+        "name": "main",
+        "type": "course",
+        "updatedAt": "2026-03-14T18:30:00Z"
+      }
+    ],
+    "mainPhoto": "https://img.example/lasagne.jpg",
+    "name": "Lasagne",
+    "photos": [
+      {
+        "createdAt": "2026-03-14T18:30:00Z",
+        "updatedAt": "2026-03-14T18:30:00Z",
+        "url": "https://img.example/lasagne.jpg"
+      }
+    ],
+    "prepTime": 30,
+    "servings": 4,
+    "steps": [
+      {
+        "createdAt": "2026-03-14T18:30:00Z",
+        "description": "Make the ragù.",
+        "order": 1,
+        "photos": [
+          {
+            "createdAt": "2026-03-14T18:30:00Z",
+            "updatedAt": "2026-03-14T18:30:00Z",
+            "url": "https://img.example/lasagne.jpg"
+          }
+        ],
+        "updatedAt": "2026-03-14T18:30:00Z"
+      },
+      {
+        "createdAt": "2026-03-14T18:30:00Z",
+        "description": "Layer and bake.",
+        "order": 2,
+        "photos": [],
+        "updatedAt": "2026-03-14T18:30:00Z"
+      }
+    ],
+    "updatedAt": "2026-03-14T18:30:00Z",
+    "url": "https://example.com/lasagne",
+    "uuid": "7b0c6a52-3a8e-4f4e-9d1a-2f5a6c1e9b10"
+  }
+}

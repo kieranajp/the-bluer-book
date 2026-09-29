@@ -40,8 +40,11 @@ the obvious stuff.
 - **Vocabulary is "meal plan" everywhere.** There is no "favourite" concept (it was
   vestigial and removed). Don't reintroduce it.
 - **FE↔BE field names differ by design.** The Flutter domain bridges names with
-  `@JsonKey` (e.g. `preparationTime`↔`prepTime`, `cookingTime`↔`cookTime`). If you
-  change a Go JSON struct tag, update the matching `@JsonKey` in `app/lib/domain`.
+  `@JsonKey` (e.g. `preparationTime`↔`prepTime`, `cookingTime`↔`cookTime`). The wire
+  is pinned by contract fixtures in `testdata/contract/`: Go writes `responses/`
+  (`go test ./internal/application/... -run Contract -update-contract`), the app writes
+  `requests/` (`cd app && UPDATE_CONTRACT=1 flutter test test/contract_test.dart`), and
+  each side's tests read the other's. Regenerate your half, then run the other side.
 - **REST error shape** is always `{"error":{"code","message"}}`. Map domain sentinel
   errors (`recipe.ErrRecipeNotFound`, …) with `errors.Is`, not string matching.
 - **REST path params**: use `r.PathValue("id")` (via the `recipeIDFromPath` helper),

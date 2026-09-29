@@ -1,0 +1,6 @@
+{
+  "method": "POST",
+  "path": "/api/chat",
+  "status": 200,
+  "body": "data: {\"content\":\"Try the lasagne.\",\"done\":false,\"session_id\":\"sess-1\"}\n\ndata: {\"content\":\"\",\"done\":true,\"session_id\":\"sess-1\"}\n\n"
+}

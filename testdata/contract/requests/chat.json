@@ -1,0 +1,8 @@
+{
+  "method": "POST",
+  "path": "/api/chat",
+  "body": {
+    "message": "What's for dinner?",
+    "session_id": "sess-1"
+  }
+}

@@ -26,6 +26,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/net/html"
 
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
 )
@@ -33,12 +34,7 @@ import (
 var Command = &cli.Command{
 	Name:  "fetch-images",
 	Usage: "Scrape og:image from each recipe's source URL, upload to R2, and set as main photo",
-	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "db-user", EnvVars: []string{"DB_USER"}},
-		&cli.StringFlag{Name: "db-pass", EnvVars: []string{"DB_PASS"}},
-		&cli.StringFlag{Name: "db-name", EnvVars: []string{"DB_NAME"}},
-		&cli.StringFlag{Name: "db-host", EnvVars: []string{"DB_HOST"}},
-		&cli.StringFlag{Name: "db-port", EnvVars: []string{"DB_PORT"}},
+	Flags: append(config.DBFlags(),
 		&cli.StringFlag{
 			Name:    "r2-account-id",
 			Usage:   "Cloudflare account ID",
@@ -91,7 +87,7 @@ var Command = &cli.Command{
 			Name:  "continue-on-error",
 			Usage: "Exit 0 even if some recipes failed",
 		},
-	},
+	),
 	Action: run,
 }
 
@@ -105,11 +101,7 @@ func run(c *cli.Context) error {
 	log := logger.New(logger.LogLevelInfo)
 	ctx := c.Context
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		c.String("db-user"), c.String("db-pass"),
-		c.String("db-host"), c.String("db-port"),
-		c.String("db-name"),
-	)
+	dsn := config.New(c).DBDSN()
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)

@@ -17,6 +17,7 @@ import (
 	"google.golang.org/genai"
 
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
 )
@@ -47,12 +48,7 @@ var taxonomy = map[recipe.LabelType][]string{
 var Command = &cli.Command{
 	Name:  "tag-recipes",
 	Usage: "Use Gemini to tag every recipe with the canonical label taxonomy",
-	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "db-user", EnvVars: []string{"DB_USER"}},
-		&cli.StringFlag{Name: "db-pass", EnvVars: []string{"DB_PASS"}},
-		&cli.StringFlag{Name: "db-name", EnvVars: []string{"DB_NAME"}},
-		&cli.StringFlag{Name: "db-host", EnvVars: []string{"DB_HOST"}},
-		&cli.StringFlag{Name: "db-port", EnvVars: []string{"DB_PORT"}},
+	Flags: append(config.DBFlags(),
 		&cli.StringFlag{
 			Name:    "google-api-key",
 			Usage:   "Google AI Studio API key",
@@ -86,7 +82,7 @@ var Command = &cli.Command{
 			Name:  "continue-on-error",
 			Usage: "Exit 0 even if some recipes failed to tag (intended for deploy-time init containers)",
 		},
-	},
+	),
 	Action: run,
 }
 
@@ -113,11 +109,7 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("GOOGLE_API_KEY is required")
 	}
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		c.String("db-user"), c.String("db-pass"),
-		c.String("db-host"), c.String("db-port"),
-		c.String("db-name"),
-	)
+	dsn := config.New(c).DBDSN()
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)

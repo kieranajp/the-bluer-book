@@ -356,6 +356,7 @@ func (r *recipeRepository) ListRecipes(ctx context.Context, limit, offset int, s
 		recipeRows, err := q.ListRecipesWithMealPlanStatusAndLabels(ctx, db.ListRecipesWithMealPlanStatusAndLabelsParams{
 			Search:       searchParam,
 			LabelKeys:    labels,
+			Sort:         sort,
 			RecipeLimit:  int32(limit),
 			RecipeOffset: int32(offset),
 		})

@@ -3,9 +3,18 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'label.freezed.dart';
 part 'label.g.dart';
 
-/// The label taxonomy types, in canonical display order. Mirrors the enum on
-/// the backend MCP `create_recipe`/`update_recipe` tools — keep the two in sync.
-const List<String> kLabelTypes = ['course', 'cuisine', 'diet', 'method'];
+/// The label taxonomy, in display order. The Go domain's tests pin it to the
+/// backend's set.
+enum LabelType {
+  course,
+  cuisine,
+  diet,
+  method;
+
+  static LabelType? tryParse(String name) => values.asNameMap()[name];
+}
+
+final List<String> kLabelTypes = [for (final t in LabelType.values) t.name];
 
 @freezed
 abstract class Label with _$Label {

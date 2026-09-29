@@ -193,13 +193,13 @@ func (r *recipeRepository) SaveRecipe(ctx context.Context, rec recipe.Recipe) (*
 		// Insert labels and recipe_label
 		for _, label := range rec.Labels {
 			labelRow, err := q.GetLabelByTypeAndName(ctx, db.GetLabelByTypeAndNameParams{
-				Type: label.Type,
+				Type: string(label.Type),
 				Name: label.Name,
 			})
 			if err == sql.ErrNoRows {
 				labelRow, err = q.CreateLabel(ctx, db.CreateLabelParams{
 					Uuid:      uuid.New(),
-					Type:      label.Type,
+					Type:      string(label.Type),
 					Name:      label.Name,
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -457,7 +457,7 @@ func (r *recipeRepository) buildRecipeFromRows(ctx context.Context, q *db.Querie
 	labels := make([]recipe.Label, len(labelRows))
 	for i, labelRow := range labelRows {
 		labels[i] = recipe.Label{
-			Type: labelRow.Type,
+			Type: recipe.LabelType(labelRow.Type),
 			Name: labelRow.Name,
 		}
 	}
@@ -642,13 +642,13 @@ func (r *recipeRepository) UpdateRecipe(ctx context.Context, id uuid.UUID, rec r
 		// Re-insert labels and recipe_label
 		for _, label := range rec.Labels {
 			labelRow, err := q.GetLabelByTypeAndName(ctx, db.GetLabelByTypeAndNameParams{
-				Type: label.Type,
+				Type: string(label.Type),
 				Name: label.Name,
 			})
 			if err == sql.ErrNoRows {
 				labelRow, err = q.CreateLabel(ctx, db.CreateLabelParams{
 					Uuid:      uuid.New(),
-					Type:      label.Type,
+					Type:      string(label.Type),
 					Name:      label.Name,
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -890,7 +890,7 @@ func (r *recipeRepository) ListLabels(ctx context.Context) ([]recipe.LabelSummar
 		labels := make([]recipe.LabelSummary, len(rows))
 		for i, row := range rows {
 			labels[i] = recipe.LabelSummary{
-				Type: row.Type,
+				Type: recipe.LabelType(row.Type),
 				Name: row.Name,
 				Uses: int(row.Uses),
 			}

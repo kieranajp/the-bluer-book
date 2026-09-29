@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../domain/label.dart';
 import 'colours.dart';
 
 class LabelTone {
@@ -15,18 +16,12 @@ class LabelTone {
 ///   method  → neutral surface        — least loaded
 LabelTone labelToneFor(BuildContext context, String type) {
   final c = context.colours;
-  switch (type) {
-    case 'course':
-      return LabelTone(c.primaryContainer, c.onPrimaryContainer);
-    case 'diet':
-      return LabelTone(c.secondaryContainer, c.onSecondaryContainer);
-    case 'cuisine':
-      return LabelTone(c.tertiaryContainer, c.onTertiaryContainer);
-    case 'method':
-      return LabelTone(c.surfaceContainerHigh, c.textPrimary);
-    default:
-      return LabelTone(c.surfaceContainerHigh, c.textPrimary);
-  }
+  return switch (LabelType.tryParse(type)) {
+    LabelType.course => LabelTone(c.primaryContainer, c.onPrimaryContainer),
+    LabelType.diet => LabelTone(c.secondaryContainer, c.onSecondaryContainer),
+    LabelType.cuisine => LabelTone(c.tertiaryContainer, c.onTertiaryContainer),
+    LabelType.method || null => LabelTone(c.surfaceContainerHigh, c.textPrimary),
+  };
 }
 
 String labelDisplayName(String name) =>

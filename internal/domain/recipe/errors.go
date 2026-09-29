@@ -3,6 +3,7 @@ package recipe
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -17,6 +18,8 @@ var (
 
 	// ErrArchivedRecipeNotFound indicates that an archived recipe could not be found
 	ErrArchivedRecipeNotFound = errors.New("archived recipe not found")
+
+	ErrInvalidLabelType = errors.New("invalid label type")
 )
 
 // RecipeNotFoundError provides context about which recipe was not found
@@ -56,4 +59,24 @@ func (e ArchivedRecipeNotFoundError) Error() string {
 
 func (e ArchivedRecipeNotFoundError) Is(target error) bool {
 	return target == ErrArchivedRecipeNotFound
+}
+
+type InvalidLabelTypeError struct {
+	Type LabelType
+}
+
+func (e InvalidLabelTypeError) Error() string {
+	return fmt.Sprintf("label type %q is not one of %s", e.Type, joinLabelTypes(", "))
+}
+
+func (e InvalidLabelTypeError) Is(target error) bool {
+	return target == ErrInvalidLabelType
+}
+
+func joinLabelTypes(sep string) string {
+	names := make([]string, len(LabelTypes))
+	for i, t := range LabelTypes {
+		names[i] = string(t)
+	}
+	return strings.Join(names, sep)
 }

@@ -2,6 +2,7 @@ package recipe
 
 import (
 	"encoding/json"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,8 +59,37 @@ type RecipeIngredient struct {
 	Component   string     `json:"component"`
 }
 
+// LabelType is a label's place in the taxonomy. The labels table's CHECK
+// constraint admits the same set.
+type LabelType string
+
+const (
+	LabelCourse  LabelType = "course"
+	LabelCuisine LabelType = "cuisine"
+	LabelDiet    LabelType = "diet"
+	LabelMethod  LabelType = "method"
+)
+
+// LabelTypes is the whole taxonomy, in display order.
+var LabelTypes = []LabelType{LabelCourse, LabelCuisine, LabelDiet, LabelMethod}
+
+func (t LabelType) Valid() bool {
+	return slices.Contains(LabelTypes, t)
+}
+
+// ValidateLabels returns an InvalidLabelTypeError for the first label outside
+// the taxonomy.
+func ValidateLabels(labels []Label) error {
+	for _, l := range labels {
+		if !l.Type.Valid() {
+			return InvalidLabelTypeError{Type: l.Type}
+		}
+	}
+	return nil
+}
+
 type Label struct {
-	Type      string    `json:"type"`
+	Type      LabelType `json:"type"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	UpdatedAt time.Time `json:"updatedAt,omitempty"`
@@ -67,9 +97,9 @@ type Label struct {
 
 // LabelSummary is a label plus its usage count, returned by the labels listing endpoint.
 type LabelSummary struct {
-	Type string `json:"type"`
-	Name string `json:"name"`
-	Uses int    `json:"uses"`
+	Type LabelType `json:"type"`
+	Name string    `json:"name"`
+	Uses int       `json:"uses"`
 }
 
 // Photo is a value object representing a photo attached to a recipe or step.

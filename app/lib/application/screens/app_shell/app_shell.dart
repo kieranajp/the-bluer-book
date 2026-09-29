@@ -15,8 +15,8 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  void _selectTab(int i) {
-    ref.read(selectedTabProvider.notifier).select(i);
+  void _selectTab(AppTab tab) {
+    ref.read(selectedTabProvider.notifier).select(tab);
   }
 
   void _openChat() {
@@ -30,24 +30,27 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final currentIndex = ref.watch(selectedTabProvider);
+    final currentTab = ref.watch(selectedTabProvider);
 
     final tabs = [
-      const RecipeListScreen(),
-      const MealPlanScreen(),
-      const PantryScreen(),
+      for (final tab in AppTab.values)
+        switch (tab) {
+          AppTab.recipes => const RecipeListScreen(),
+          AppTab.mealPlan => const MealPlanScreen(),
+          AppTab.pantry => const PantryScreen(),
+        },
     ];
 
     return Scaffold(
       body: Stack(
         children: [
-          IndexedStack(index: currentIndex, children: tabs),
+          IndexedStack(index: currentTab.index, children: tabs),
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: AppShellNavBar(
-              currentIndex: currentIndex,
+              currentTab: currentTab,
               onTabSelected: _selectTab,
               onChatTap: _openChat,
             ),

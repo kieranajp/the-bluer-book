@@ -53,6 +53,9 @@ func NewRecipeService(repo repository.RecipeRepository, probe recipe.Probe) Reci
 }
 
 func (s *recipeService) CreateRecipe(ctx context.Context, r recipe.Recipe) (*recipe.Recipe, error) {
+	if err := recipe.ValidateLabels(r.Labels); err != nil {
+		return nil, err
+	}
 	if r.UUID == uuid.Nil {
 		r.UUID = uuid.New()
 	}
@@ -81,6 +84,9 @@ func (s *recipeService) ListRecipes(ctx context.Context, limit, offset int, sear
 }
 
 func (s *recipeService) UpdateRecipe(ctx context.Context, id uuid.UUID, r recipe.Recipe) (*recipe.Recipe, error) {
+	if err := recipe.ValidateLabels(r.Labels); err != nil {
+		return nil, err
+	}
 	existingRecipe, err := s.repo.GetRecipeByID(ctx, id)
 	if err != nil {
 		return nil, err

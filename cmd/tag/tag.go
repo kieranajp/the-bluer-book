@@ -16,28 +16,30 @@ import (
 	"github.com/urfave/cli/v2"
 	"google.golang.org/genai"
 
+	"github.com/kieranajp/the-bluer-book/internal/domain/recipe"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/storage/repository"
 )
 
-// Taxonomy mirrors the canonical (type, name) pairs the schema locks down.
-// Keep these in sync — any value the model returns that isn't in this map is skipped.
-var taxonomy = map[string][]string{
-	"course": {
+// taxonomy is the canonical names for each label type; the tagger skips any
+// other value the model sends.
+var taxonomy = map[recipe.LabelType][]string{
+	recipe.LabelCourse: {
 		"main", "side", "starter", "dessert", "breakfast", "lunch", "snack",
 		"soup", "stew", "salad", "sauce", "bread", "pastry", "drink", "condiment",
 	},
-	"cuisine": {
+	recipe.LabelCuisine: {
 		"british", "irish", "german", "french", "spanish", "italian", "greek",
 		"mediterranean", "middle_eastern", "indian", "thai", "chinese", "korean",
 		"japanese", "vietnamese", "indonesian", "mexican", "american", "moroccan",
 		"african", "georgian",
 	},
-	"diet": {
+	recipe.LabelDiet: {
 		"vegetarian", "vegan", "gluten_free", "dairy_free", "egg_free", "nut_free",
 		"low_fodmap", "low_carb", "low_calorie",
 	},
-	"method": {
+	recipe.LabelMethod: {
 		"slow_cooked", "baked", "grilled", "fried", "roasted", "raw", "no_cook",
 		"fermented", "microwave", "sous_vide", "stir_fry",
 	},
@@ -46,12 +48,7 @@ var taxonomy = map[string][]string{
 var Command = &cli.Command{
 	Name:  "tag-recipes",
 	Usage: "Use Gemini to tag every recipe with the canonical label taxonomy",
-	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "db-user", EnvVars: []string{"DB_USER"}},
-		&cli.StringFlag{Name: "db-pass", EnvVars: []string{"DB_PASS"}},
-		&cli.StringFlag{Name: "db-name", EnvVars: []string{"DB_NAME"}},
-		&cli.StringFlag{Name: "db-host", EnvVars: []string{"DB_HOST"}},
-		&cli.StringFlag{Name: "db-port", EnvVars: []string{"DB_PORT"}},
+	Flags: append(config.DBFlags(),
 		&cli.StringFlag{
 			Name:    "google-api-key",
 			Usage:   "Google AI Studio API key",
@@ -85,7 +82,7 @@ var Command = &cli.Command{
 			Name:  "continue-on-error",
 			Usage: "Exit 0 even if some recipes failed to tag (intended for deploy-time init containers)",
 		},
-	},
+	),
 	Action: run,
 }
 
@@ -112,11 +109,7 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("GOOGLE_API_KEY is required")
 	}
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		c.String("db-user"), c.String("db-pass"),
-		c.String("db-host"), c.String("db-port"),
-		c.String("db-name"),
-	)
+	dsn := config.New(c).DBDSN()
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
@@ -275,10 +268,10 @@ func loadLabelIDs(ctx context.Context, db *sql.DB) (map[string]uuid.UUID, error)
 }
 
 func buildGenerateConfig() *genai.GenerateContentConfig {
-	courseEnum := taxonomy["course"]
-	cuisineEnum := taxonomy["cuisine"]
-	dietEnum := taxonomy["diet"]
-	methodEnum := taxonomy["method"]
+	required := make([]string, len(recipe.LabelTypes))
+	for i, t := range recipe.LabelTypes {
+		required[i] = string(t)
+	}
 
 	temp := float32(0.1)
 	return &genai.GenerateContentConfig{
@@ -286,27 +279,27 @@ func buildGenerateConfig() *genai.GenerateContentConfig {
 		ResponseMIMEType: "application/json",
 		ResponseSchema: &genai.Schema{
 			Type:     genai.TypeObject,
-			Required: []string{"course", "cuisine", "diet", "method"},
+			Required: required,
 			Properties: map[string]*genai.Schema{
-				"course": {
+				string(recipe.LabelCourse): {
 					Type:        genai.TypeString,
-					Enum:        courseEnum,
+					Enum:        taxonomy[recipe.LabelCourse],
 					Description: "The primary course this recipe is. Pick exactly one.",
 				},
-				"cuisine": {
+				string(recipe.LabelCuisine): {
 					Type:        genai.TypeArray,
 					Description: "Cuisine(s) the recipe belongs to. Empty if not clearly tied to any.",
-					Items:       &genai.Schema{Type: genai.TypeString, Enum: cuisineEnum},
+					Items:       &genai.Schema{Type: genai.TypeString, Enum: taxonomy[recipe.LabelCuisine]},
 				},
-				"diet": {
+				string(recipe.LabelDiet): {
 					Type:        genai.TypeArray,
 					Description: "Diets the recipe naturally satisfies. Empty if none apply.",
-					Items:       &genai.Schema{Type: genai.TypeString, Enum: dietEnum},
+					Items:       &genai.Schema{Type: genai.TypeString, Enum: taxonomy[recipe.LabelDiet]},
 				},
-				"method": {
+				string(recipe.LabelMethod): {
 					Type:        genai.TypeArray,
 					Description: "Cooking methods used. Empty if none of the listed methods clearly apply.",
-					Items:       &genai.Schema{Type: genai.TypeString, Enum: methodEnum},
+					Items:       &genai.Schema{Type: genai.TypeString, Enum: taxonomy[recipe.LabelMethod]},
 				},
 			},
 		},
@@ -358,27 +351,27 @@ func callGemini(
 // pairs and drops any value not in the canonical taxonomy.
 func normaliseTags(g *geminiResponse) map[string][]string {
 	out := map[string][]string{}
-	add := func(typ, name string) {
+	add := func(typ recipe.LabelType, name string) {
 		name = strings.ToLower(strings.TrimSpace(name))
 		if name == "" {
 			return
 		}
 		for _, allowed := range taxonomy[typ] {
 			if allowed == name {
-				out[typ] = append(out[typ], name)
+				out[string(typ)] = append(out[string(typ)], name)
 				return
 			}
 		}
 	}
-	add("course", g.Course)
+	add(recipe.LabelCourse, g.Course)
 	for _, v := range g.Cuisine {
-		add("cuisine", v)
+		add(recipe.LabelCuisine, v)
 	}
 	for _, v := range g.Diet {
-		add("diet", v)
+		add(recipe.LabelDiet, v)
 	}
 	for _, v := range g.Method {
-		add("method", v)
+		add(recipe.LabelMethod, v)
 	}
 	return out
 }

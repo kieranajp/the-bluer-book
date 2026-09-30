@@ -38,7 +38,7 @@ var (
 	Command = &cli.Command{
 		Name:  "server",
 		Usage: "Start the HTTP API server",
-		Flags: []cli.Flag{
+		Flags: append(config.DBFlags(),
 			&cli.StringFlag{
 				Name:    "listen-addr",
 				Usage:   "Server listen address",
@@ -50,30 +50,6 @@ var (
 				Usage:   "MCP server listen address",
 				EnvVars: []string{"MCP_ADDR"},
 				Value:   ":8082",
-			}, &cli.StringFlag{
-				Name:    "db-user",
-				Usage:   "Database Username",
-				EnvVars: []string{"DB_USER"},
-			},
-			&cli.StringFlag{
-				Name:    "db-pass",
-				Usage:   "Database Password",
-				EnvVars: []string{"DB_PASS"},
-			},
-			&cli.StringFlag{
-				Name:    "db-name",
-				Usage:   "Database Name",
-				EnvVars: []string{"DB_NAME"},
-			},
-			&cli.StringFlag{
-				Name:    "db-host",
-				Usage:   "Database Host",
-				EnvVars: []string{"DB_HOST"},
-			},
-			&cli.StringFlag{
-				Name:    "db-port",
-				Usage:   "Database Port",
-				EnvVars: []string{"DB_PORT"},
 			},
 			&cli.StringFlag{
 				Name:    "app-db-user",
@@ -113,7 +89,7 @@ var (
 			&cli.StringFlag{Name: "r2-secret-access-key", EnvVars: []string{"R2_SECRET_ACCESS_KEY"}},
 			&cli.StringFlag{Name: "r2-bucket", EnvVars: []string{"R2_BUCKET"}},
 			&cli.StringFlag{Name: "r2-public-url", EnvVars: []string{"R2_PUBLIC_URL"}},
-		},
+		),
 		Action: run,
 	}
 )

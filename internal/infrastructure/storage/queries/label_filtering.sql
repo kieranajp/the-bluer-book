@@ -21,7 +21,10 @@ WHERE r.archived_at IS NULL
             HAVING COUNT(DISTINCT l2.type || ':' || l2.name) = array_length(sqlc.arg('label_keys')::text[], 1)
         )
     )
-ORDER BY r.created_at DESC
+ORDER BY
+    CASE WHEN sqlc.arg('sort')::text = 'name' THEN LOWER(r.name) END ASC NULLS LAST,
+    CASE WHEN sqlc.arg('sort')::text = 'time' THEN COALESCE(r.prep_time, 0) + COALESCE(r.cook_time, 0) END ASC NULLS LAST,
+    r.created_at DESC
 LIMIT sqlc.arg('recipe_limit')
 OFFSET sqlc.arg('recipe_offset');
 

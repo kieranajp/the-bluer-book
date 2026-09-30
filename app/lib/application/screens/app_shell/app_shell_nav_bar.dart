@@ -1,19 +1,20 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../../providers/tab_provider.dart';
 import '../../styles/colours.dart';
 import 'app_shell_add_button.dart';
 import 'app_shell_nav_item.dart';
 
 /// The floating, blurred bottom navigation bar for the [AppShell].
 class AppShellNavBar extends StatelessWidget {
-  final int currentIndex;
-  final ValueChanged<int> onTabSelected;
+  final AppTab currentTab;
+  final ValueChanged<AppTab> onTabSelected;
   final VoidCallback onChatTap;
 
   const AppShellNavBar({
     super.key,
-    required this.currentIndex,
+    required this.currentTab,
     required this.onTabSelected,
     required this.onChatTap,
   });
@@ -53,16 +54,16 @@ class AppShellNavBar extends StatelessWidget {
                   child: AppShellNavItem(
                     icon: Icons.restaurant_menu_rounded,
                     label: 'Recipes',
-                    active: currentIndex == 0,
-                    onTap: () => onTabSelected(0),
+                    active: currentTab == AppTab.recipes,
+                    onTap: () => onTabSelected(AppTab.recipes),
                   ),
                 ),
                 Expanded(
                   child: AppShellNavItem(
                     icon: Icons.calendar_today_rounded,
                     label: 'Plan',
-                    active: currentIndex == 1,
-                    onTap: () => onTabSelected(1),
+                    active: currentTab == AppTab.mealPlan,
+                    onTap: () => onTabSelected(AppTab.mealPlan),
                   ),
                 ),
                 const AppShellAddButton(),
@@ -70,8 +71,8 @@ class AppShellNavBar extends StatelessWidget {
                   child: AppShellNavItem(
                     icon: Icons.kitchen_outlined,
                     label: 'Pantry',
-                    active: currentIndex == 2,
-                    onTap: () => onTabSelected(2),
+                    active: currentTab == AppTab.pantry,
+                    onTap: () => onTabSelected(AppTab.pantry),
                   ),
                 ),
                 Expanded(

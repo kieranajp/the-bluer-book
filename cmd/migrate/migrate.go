@@ -8,6 +8,7 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/urfave/cli/v2"
 
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/config"
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 	"github.com/kieranajp/the-bluer-book/migrations"
 )
@@ -15,32 +16,7 @@ import (
 var Command = &cli.Command{
 	Name:  "migrate",
 	Usage: "Run database migrations",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "db-user",
-			Usage:   "Database Username",
-			EnvVars: []string{"DB_USER"},
-		},
-		&cli.StringFlag{
-			Name:    "db-pass",
-			Usage:   "Database Password",
-			EnvVars: []string{"DB_PASS"},
-		},
-		&cli.StringFlag{
-			Name:    "db-name",
-			Usage:   "Database Name",
-			EnvVars: []string{"DB_NAME"},
-		},
-		&cli.StringFlag{
-			Name:    "db-host",
-			Usage:   "Database Host",
-			EnvVars: []string{"DB_HOST"},
-		},
-		&cli.StringFlag{
-			Name:    "db-port",
-			Usage:   "Database Port",
-			EnvVars: []string{"DB_PORT"},
-		},
+	Flags: append(config.DBFlags(),
 		&cli.StringFlag{
 			Name:    "app-db-user",
 			Usage:   "Non-owner database role the server connects as; its password is set from APP_DB_PASS after migrating",
@@ -52,20 +28,14 @@ var Command = &cli.Command{
 			Usage:   "Password to set on APP_DB_USER",
 			EnvVars: []string{"APP_DB_PASS"},
 		},
-	},
+	),
 	Action: run,
 }
 
 func run(c *cli.Context) error {
 	log := logger.New(logger.LogLevelInfo)
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		c.String("db-user"),
-		c.String("db-pass"),
-		c.String("db-host"),
-		c.String("db-port"),
-		c.String("db-name"),
-	)
+	dsn := config.New(c).DBDSN()
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {

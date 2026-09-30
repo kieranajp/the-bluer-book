@@ -34,6 +34,10 @@ func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 	// Call service directly with validated data
 	savedRecipe, err := h.recipeService.CreateRecipe(r.Context(), rec)
 	if err != nil {
+		if errors.Is(err, recipe.ErrInvalidLabelType) {
+			h.writeErrorResponse(w, http.StatusBadRequest, "invalid_label_type", err.Error())
+			return
+		}
 		h.logger.Error().Err(err).Msg("Failed to create recipe")
 		h.writeErrorResponse(w, http.StatusInternalServerError, "creation_failed", "Failed to create recipe")
 		return
@@ -197,6 +201,10 @@ func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, recipe.ErrRecipeNotFound) {
 			h.writeErrorResponse(w, http.StatusNotFound, "recipe_not_found", "Recipe not found")
+			return
+		}
+		if errors.Is(err, recipe.ErrInvalidLabelType) {
+			h.writeErrorResponse(w, http.StatusBadRequest, "invalid_label_type", err.Error())
 			return
 		}
 		h.logger.Error().Err(err).Str("recipe_id", recipeID.String()).Msg("Failed to update recipe")

@@ -116,6 +116,8 @@ run_suite "TestHomeScoping as ${OWNER_USER} (must pass)" "$OWNER_DSN" \
 
 run_suite "TestProvision as ${APP_USER} (must pass)" "$APP_DSN" -run TestProvision -count=3
 
+run_suite "TestListRecipes as ${APP_USER} (must pass)" "$APP_DSN" -run TestListRecipes -count=1
+
 # As ${APP_USER}: identity tables carry no RLS policy, since a token is
 # looked up before any home is known — this catches one creeping on regardless.
 run_suite "TestMembership as ${APP_USER} (must pass)" "$APP_DSN" -run TestMembership -count=3

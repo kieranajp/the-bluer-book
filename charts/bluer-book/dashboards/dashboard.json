@@ -411,13 +411,13 @@
           ]
         },
         {
-          "title": "GC Pause (p95)",
+          "title": "GC Pause (max)",
           "type": "timeseries",
           "datasource": { "uid": "${datasource}" },
           "gridPos": { "h": 8, "w": 8, "x": 16, "y": 79 },
           "fieldConfig": { "defaults": { "unit": "s", "custom": { "fillOpacity": 10 } } },
           "targets": [
-            { "expr": "max(go_gc_duration_seconds{quantile=\"0.95\"})", "legendFormat": "p95 pause" }
+            { "expr": "max(go_gc_duration_seconds{quantile=\"1\"})", "legendFormat": "p95 pause" }
           ]
         }
       ]

@@ -1,0 +1,18 @@
+{
+  "method": "GET",
+  "path": "/api/shopping-list",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "name": "lasagne sheets",
+        "source": "meal_plan"
+      },
+      {
+        "name": "washing-up liquid",
+        "source": "custom"
+      }
+    ],
+    "total": 2
+  }
+}

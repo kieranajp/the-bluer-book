@@ -6,10 +6,12 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe"
+	"github.com/kieranajp/the-bluer-book/internal/infrastructure/auth"
 	"github.com/rs/zerolog"
 )
 
@@ -231,4 +233,38 @@ func TestAddToMealPlanForARecipeTheCallerCannotSeeIs404(t *testing.T) {
 	h.AddToMealPlan(rec, req)
 
 	requireNotFoundEnvelope(t, rec)
+}
+
+type invalidLabelRecipeService struct{ stubRecipeService }
+
+func (invalidLabelRecipeService) CreateRecipe(context.Context, recipe.Recipe) (*recipe.Recipe, error) {
+	return nil, recipe.InvalidLabelTypeError{Type: "occasion"}
+}
+
+func (invalidLabelRecipeService) UpdateRecipe(context.Context, uuid.UUID, recipe.Recipe) (*recipe.Recipe, error) {
+	return nil, recipe.InvalidLabelTypeError{Type: "occasion"}
+}
+
+func TestSavingARecipeWithAnUnknownLabelTypeIs400(t *testing.T) {
+	body := `{"name":"Mince pies","steps":[{"order":1,"description":"Bake."}],"ingredients":[{"ingredient":{"name":"mincemeat"},"quantity":1}],"labels":[{"type":"occasion","name":"christmas"}]}`
+	router := NewRouter(&invalidLabelRecipeService{}, &stubPantryService{}, nil, nil, nil, nil,
+		&stubResolver{session: auth.Session{UserID: uuid.New(), HomeID: uuid.New()}}, &noopLogger{})
+
+	for _, tc := range []struct{ method, path string }{
+		{http.MethodPost, "/api/recipes"},
+		{http.MethodPut, "/api/recipes/" + uuid.New().String()},
+	} {
+		req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(body))
+		req.Header.Set(auth.HeaderUser, "subject-a")
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+
+		var resp struct {
+			Error struct{ Code, Message string } `json:"error"`
+		}
+		json.NewDecoder(rec.Body).Decode(&resp)
+		if rec.Code != http.StatusBadRequest || resp.Error.Code != "invalid_label_type" {
+			t.Errorf("%s %s: got %d %q, want 400 invalid_label_type", tc.method, tc.path, rec.Code, resp.Error.Code)
+		}
+	}
 }

@@ -1,0 +1,14 @@
+{
+  "method": "GET",
+  "path": "/api/ingredients",
+  "status": 200,
+  "body": {
+    "ingredients": [
+      {
+        "createdAt": "2026-03-14T18:30:00Z",
+        "name": "beef mince",
+        "updatedAt": "2026-03-14T18:30:00Z"
+      }
+    ]
+  }
+}

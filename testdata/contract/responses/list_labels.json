@@ -1,0 +1,19 @@
+{
+  "method": "GET",
+  "path": "/api/labels",
+  "status": 200,
+  "body": {
+    "labels": [
+      {
+        "name": "main",
+        "type": "course",
+        "uses": 3
+      },
+      {
+        "name": "vegetarian",
+        "type": "diet",
+        "uses": 1
+      }
+    ]
+  }
+}

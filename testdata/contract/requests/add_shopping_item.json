@@ -1,0 +1,7 @@
+{
+  "method": "POST",
+  "path": "/api/shopping-list",
+  "body": {
+    "name": "washing-up liquid"
+  }
+}

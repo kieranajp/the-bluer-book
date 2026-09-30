@@ -1,0 +1,14 @@
+{
+  "method": "GET",
+  "path": "/api/pantry",
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "addedAt": "2026-03-14T18:30:00Z",
+        "ingredient": "beef mince"
+      }
+    ],
+    "total": 1
+  }
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/kieranajp/the-bluer-book/internal/domain/recipe"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -177,11 +178,11 @@ func (h *RecipeMCPHandler) parseLabels(data []any) ([]recipe.Label, error) {
 
 		typeVal, ok := labelMap["type"].(string)
 		if !ok || typeVal == "" {
-			return nil, fmt.Errorf("label %d must have a type (course|cuisine|diet|method)", i)
+			return nil, fmt.Errorf("label %d must have a type (%s)", i, strings.Join(labelTypeNames(), "|"))
 		}
 
 		labels = append(labels, recipe.Label{
-			Type: typeVal,
+			Type: recipe.LabelType(typeVal),
 			Name: name,
 		})
 	}

@@ -46,8 +46,9 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
 
   Future<void> _refresh() async {
     try {
-      final fresh =
-          await ref.read(recipeRepositoryProvider).getRecipe(widget.recipe.uuid);
+      final fresh = await ref.refresh(
+        recipeDetailProvider(widget.recipe.uuid).future,
+      );
       if (!mounted) return;
       setState(() => _refreshed = fresh);
       // Keep the list and meal plan in sync with the latest data.
@@ -68,7 +69,9 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final recipeListAsync = ref.watch(recipeListProvider);
-    final fallback = _refreshed ?? widget.recipe;
+    final fallback = ref.watch(recipeDetailProvider(widget.recipe.uuid)).value ??
+        _refreshed ??
+        widget.recipe;
     final recipe = recipeListAsync.maybeWhen(
       data: (recipes) => recipes.firstWhere(
         (r) => r.uuid == widget.recipe.uuid,
@@ -157,3 +160,4 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
     );
   }
 }
+

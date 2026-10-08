@@ -42,6 +42,10 @@ final mealPlanRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
   return ref.watch(recipeRepositoryProvider).getMealPlanRecipes();
 });
 
+final recipeDetailProvider = FutureProvider.family<Recipe, String>((ref, uuid) {
+  return ref.watch(recipeRepositoryProvider).getRecipe(uuid);
+});
+
 final labelsProvider = FutureProvider<List<LabelSummary>>((ref) async {
   return ref.watch(recipeRepositoryProvider).getLabels();
 });
@@ -218,42 +222,27 @@ class RecipeListNotifier extends Notifier<AsyncValue<List<Recipe>>> {
   }
 
   Future<void> toggleMealPlan(String uuid) async {
-    final currentState = state;
-    if (!currentState.hasValue) {
-      return;
-    }
-
-    final recipes = currentState.value!;
-
-    // Find the recipe
+    final recipes = state.value ?? const <Recipe>[];
     final recipeIndex = recipes.indexWhere((r) => r.uuid == uuid);
-    if (recipeIndex == -1) {
-      return;
-    }
-
-    final recipe = recipes[recipeIndex];
+    final recipe = recipeIndex == -1
+        ? await _repository.getRecipe(uuid)
+        : recipes[recipeIndex];
     final wasInMealPlan = recipe.isInMealPlan;
 
-    // Optimistic update
-    final updatedRecipe = recipe.copyWith(isInMealPlan: !wasInMealPlan);
-    final updatedRecipes = [...recipes];
-    updatedRecipes[recipeIndex] = updatedRecipe;
-    state = AsyncValue.data(updatedRecipes);
+    updateRecipe(recipe.copyWith(isInMealPlan: !wasInMealPlan));
 
     try {
-      // Make API call
       if (wasInMealPlan) {
         await _repository.removeFromMealPlan(uuid);
       } else {
         await _repository.addToMealPlan(uuid);
       }
 
-      // Invalidate the meal plan list to refresh the meal plan section
+      ref.invalidate(recipeDetailProvider(uuid));
       ref.invalidate(mealPlanRecipesProvider);
     } catch (e, stack) {
       dev.log('Failed to toggle meal plan for $uuid', name: 'RecipeListNotifier', error: e, stackTrace: stack);
-      // Revert optimistic update on error
-      state = AsyncValue.data(recipes);
+      updateRecipe(recipe);
       rethrow;
     }
   }
@@ -278,3 +267,4 @@ final searchQueryProvider =
 final filteredRecipesProvider = Provider<AsyncValue<List<Recipe>>>((ref) {
   return ref.watch(recipeListProvider);
 });
+

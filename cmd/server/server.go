@@ -121,7 +121,7 @@ func run(c *cli.Context) error {
 	listenAddr := cfg.ListenAddr
 	mcpAddr := cfg.MCPAddr
 
-	log := logger.New(logger.LogLevelInfo)
+	log := logger.New(logger.LogLevel(config.New(c).LogLevel))
 
 	mcpHomeID, err := uuid.Parse(cfg.MCPHomeID)
 	if err != nil {

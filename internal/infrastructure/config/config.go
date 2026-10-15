@@ -11,6 +11,8 @@ import (
 // Config is the single place env-backed settings are gathered, so nothing
 // downstream needs to reach for os.Getenv.
 type Config struct {
+	LogLevel string
+
 	ListenAddr string
 	MCPAddr    string
 
@@ -51,6 +53,7 @@ func DBFlags() []cli.Flag {
 // New builds a Config from the CLI context.
 func New(c *cli.Context) Config {
 	return Config{
+		LogLevel:     c.String("log-level"),
 		ListenAddr:   c.String("listen-addr"),
 		MCPAddr:      c.String("mcp-addr"),
 		DBUser:       c.String("db-user"),

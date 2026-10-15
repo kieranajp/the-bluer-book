@@ -33,7 +33,7 @@ var Command = &cli.Command{
 }
 
 func run(c *cli.Context) error {
-	log := logger.New(logger.LogLevelInfo)
+	log := logger.New(logger.LogLevel(config.New(c).LogLevel))
 
 	dsn := config.New(c).DBDSN()
 

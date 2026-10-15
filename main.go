@@ -21,6 +21,10 @@ func main() {
 	app := &cli.App{
 		Name:  "The Bluer Book",
 		Usage: "Recipe book",
+		Before: func(c *cli.Context) error {
+			log = logger.New(logger.LogLevel(c.String("log-level")))
+			return nil
+		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "log-level",

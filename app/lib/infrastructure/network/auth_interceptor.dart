@@ -6,18 +6,12 @@ import 'package:dio/dio.dart';
 import '../auth/auth_repository.dart';
 import '../auth/token_store.dart';
 
-/// What a refresh attempt settled. [session] is null when it produced no new
-/// token; [sessionDead] then says whether the grant was rejected — only then is
-/// signing the person out the right answer.
+/// [session] is null when the refresh produced no token; only then does
+/// [sessionDead] mean the grant was rejected and the person must be signed out.
 typedef _RefreshResult = ({AuthSession? session, bool sessionDead});
 
-/// Attaches the signed-in person's bearer token to every API call and keeps it
-/// fresh.
-///
-/// A request made within [_refreshWindow] of expiry refreshes first; a 401
-/// refreshes once and replays. Only a grant the server rejects ends the
-/// session — a refresh that could not be delivered leaves the tokens alone, so
-/// a spell without a network costs a request rather than the login.
+/// Only a grant the server rejects ends the session; a refresh that could not
+/// be delivered leaves the tokens alone, so going offline never logs out.
 class AuthInterceptor extends Interceptor {
   AuthInterceptor({
     TokenStore? store,

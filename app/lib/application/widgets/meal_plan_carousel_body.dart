@@ -9,9 +9,7 @@ import 'meal_plan_carousel_card.dart';
 import 'meal_plan_empty.dart';
 import 'section_label.dart';
 
-/// The data-driven contents of the meal-plan carousel: loads the planned
-/// recipes and renders the section label, the snap carousel, and the dots.
-/// Page state (controller + active index) is owned by the parent and passed in.
+/// The parent owns page state (controller + active index).
 class MealPlanCarouselBody extends ConsumerWidget {
   final PageController controller;
   final int active;

@@ -9,11 +9,8 @@ class LabelTone {
   const LabelTone(this.background, this.foreground);
 }
 
-/// Each taxonomy type gets a distinct slot of the M3 ladder:
-///   course  → primary (denim blue)   — the most prominent type
-///   diet    → secondary (sage green) — health/constraint
-///   cuisine → tertiary (honey amber) — origin/flavour
-///   method  → neutral surface        — least loaded
+/// Course → primary, diet → secondary, cuisine → tertiary, method → neutral
+/// surface: each taxonomy type gets its own slot of the M3 ladder.
 LabelTone labelToneFor(BuildContext context, String type) {
   final c = context.colours;
   return switch (LabelType.tryParse(type)) {

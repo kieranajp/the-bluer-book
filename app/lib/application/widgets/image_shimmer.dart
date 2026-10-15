@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../styles/colours.dart';
 
-/// A subtle sweeping shimmer used as a loading placeholder for images. Sits on
-/// top of the same tonal surface as [StripedPlaceholder] so a thumbnail that's
-/// still decoding reads as "loading" rather than blinking in and out.
 class ImageShimmer extends StatefulWidget {
   final BorderRadius? borderRadius;
   final double? height;

@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../domain/label.dart';
 
-/// Dialog for adding a typed label to a recipe being edited. Presentational —
-/// it reports the chosen `(type, name)` via [onAdd] and leaves persistence to
-/// the caller.
+/// Presentational: reports the chosen `(type, name)` via [onAdd] and leaves
+/// persistence to the caller.
 class AddLabelDialog extends StatefulWidget {
   final void Function(String type, String name) onAdd;
 

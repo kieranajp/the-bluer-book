@@ -5,9 +5,6 @@ import '../styles/colours.dart';
 import '../styles/shapes.dart';
 import '../utils/error_message.dart';
 
-/// Extended FAB-style "Add to meal plan" / "Remove from meal plan" action.
-/// Torn-corner radii + a blob-shaped leading icon — two of the Shape DNA
-/// families on a single component for clear M3 Expressive intent.
 class AddToPlanButton extends ConsumerWidget {
   final String uuid;
   final bool isInMealPlan;

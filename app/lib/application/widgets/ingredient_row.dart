@@ -4,9 +4,7 @@ import '../../domain/ingredient.dart';
 import '../styles/colours.dart';
 import '../styles/shapes.dart';
 
-/// A single tap-to-check ingredient row in [IngredientsList]. Checked means
-/// "in my pantry": squircle checkbox, name (with preparation), and a monospace
-/// quantity pill anchored right.
+/// Checked means "in my pantry".
 class IngredientRow extends StatelessWidget {
   final Ingredient ingredient;
   final bool checked;

@@ -107,10 +107,8 @@ func (h *RecipeMCPHandler) RemoveFromShoppingList(ctx context.Context, req mcpli
 	return successResult(fmt.Sprintf("Removed '%s' from the shopping list", name), "name", name)
 }
 
-// unknownIngredientResult tells the caller the pantry didn't change and why.
-// It's a tool error rather than a transport error so the model reads the text
-// and can correct itself — the usual fix is a name lifted from a recipe, or
-// add_to_shopping_list for something that isn't a recipe ingredient at all.
+// unknownIngredientResult is a tool error, not a transport error, so the model
+// reads the text and can correct itself.
 func unknownIngredientResult(ingredient string) *mcplib.CallToolResult {
 	return mcplib.NewToolResultError(fmt.Sprintf(
 		"No ingredient called '%s' exists, so the pantry was not changed. The pantry only holds ingredients that recipes in the book already use — check the spelling against a recipe's ingredient list, or use add_to_shopping_list if this isn't a recipe ingredient.",

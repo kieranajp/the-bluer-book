@@ -5,9 +5,6 @@ import '../screens/cooking_mode/cooking_mode_screen.dart';
 import '../styles/colours.dart';
 import '../styles/shapes.dart';
 
-/// "Start cooking" CTA on the recipe details screen. Opens the step-by-step
-/// cooking mode. Sage (secondary) tone so it reads as a distinct action from
-/// the primary "Add to meal plan" button beneath it.
 class CookingModeButton extends StatelessWidget {
   final Recipe recipe;
 

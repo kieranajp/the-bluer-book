@@ -10,13 +10,8 @@ class HighlightSegment {
   bool get isHighlighted => ingredient != null;
 }
 
-/// Scans [text] for mentions of ingredient names from [ingredients] and
-/// returns a list of segments splitting the text into plain and highlighted
-/// parts. Matching is case-insensitive with word boundaries, and handles
-/// basic English pluralisation (egg/eggs, tomato/tomatoes, cherry/cherries).
-///
-/// Ingredients with longer names are matched first so that "soy sauce" takes
-/// priority over "soy".
+/// Splits [text] into plain and highlighted ingredient mentions: case-blind,
+/// word-bounded, plural-aware, longest name first ("soy sauce" beats "soy").
 List<HighlightSegment> highlightIngredients(
   String text,
   List<Ingredient> ingredients,
@@ -46,9 +41,8 @@ List<HighlightSegment> highlightIngredients(
   // sub-parts (e.g. "soy sauce" before "soy").
   entries.sort((a, b) => b.nameLength.compareTo(a.nameLength));
 
-  // Build a single combined regex from all entries so we can walk the string
-  // once.  Each entry becomes a named group so we can identify which
-  // ingredient matched.
+  // One combined regex with a named group per ingredient, so a single pass
+  // finds every match and which ingredient it was.
   final groupNames = <String, Ingredient>{};
   final groupPatterns = <String>[];
   for (var i = 0; i < entries.length; i++) {
@@ -95,12 +89,8 @@ List<HighlightSegment> highlightIngredients(
   return segments;
 }
 
-/// Returns the distinct ingredients mentioned in a step [description], in the
-/// order they first appear. Reuses [highlightIngredients] so the linking logic
-/// (case-insensitive, plural-aware, longest-name-first) stays in one place.
-///
-/// Used by cooking mode to show "the ingredients you need for this step" next
-/// to each instruction.
+/// The distinct ingredients mentioned in [description], in order of first
+/// appearance, matched the same way as [highlightIngredients].
 List<Ingredient> ingredientsInStep(
   String description,
   List<Ingredient> ingredients,
@@ -193,9 +183,7 @@ String formatIngredientTooltip(Ingredient ingredient) {
   return buffer.toString().trim();
 }
 
-/// Formats just the quantity + unit of an ingredient (e.g. "200 g", "2"),
-/// for the standalone quantity pills shown in cooking mode. Returns an empty
-/// string when there is nothing useful to show.
+/// Quantity and unit only (e.g. "200 g", "2"); empty when there is neither.
 String formatIngredientQuantity(Ingredient ingredient) {
   final buffer = StringBuffer();
 

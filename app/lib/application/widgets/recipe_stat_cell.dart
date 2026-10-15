@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../styles/colours.dart';
 
-/// One stat in the [RecipeStatsCard] — a tonal icon plate over a value and a
-/// small caption. The icon plate's [shape] varies per stat (squircle / blob /
-/// diamond) to show off the Shape DNA rules.
 class RecipeStatCell extends StatelessWidget {
   final IconData icon;
   final String value;

@@ -129,9 +129,8 @@ func TestRecipeJSON_MixedComponents(t *testing.T) {
 	}
 }
 
-// TestRecipeMainPhotoRoundTrip guards against the asymmetry that previously
-// broke saving any recipe with a photo: MarshalJSON emits mainPhoto as a URL
-// string, so UnmarshalJSON must accept that same string back.
+// Guards that UnmarshalJSON accepts the URL string MarshalJSON emits for
+// mainPhoto.
 func TestRecipeMainPhotoRoundTrip(t *testing.T) {
 	original := Recipe{
 		Name:        "Imported recipe",

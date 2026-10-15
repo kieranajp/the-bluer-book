@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'brand_mark.dart';
 
-/// Animated brand loader — the monogram with a gentle "breathing" pulse.
-/// Drop-in for `CircularProgressIndicator` on full-screen / section loads
-/// (recipe list initial load, chat "thinking", etc.).
 class BrandLoader extends StatefulWidget {
   final double size;
   const BrandLoader({super.key, this.size = 56});

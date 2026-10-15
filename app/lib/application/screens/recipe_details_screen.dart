@@ -32,10 +32,8 @@ class _RecipeDetailsScreenState extends ConsumerState<RecipeDetailsScreen> {
   /// the recipe isn't part of the currently loaded list page.
   Recipe? _refreshed;
 
-  /// Opens the editor and, if a save happened, pulls the freshly saved recipe
-  /// back in — the list provider only reloads its first page, so editing a
-  /// recipe further down would otherwise leave this screen showing stale data
-  /// until a manual pull-to-refresh.
+  /// Re-fetches the recipe after a save: the list provider reloads only its
+  /// first page, so a recipe further down would otherwise show stale data.
   Future<void> _openEditor(Recipe recipe) async {
     final saved = await Navigator.push<bool>(
       context,

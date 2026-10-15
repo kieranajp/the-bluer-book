@@ -38,8 +38,6 @@ jobs:
   comment-lint:
     name: "Comments: Lint"
     runs-on: ubuntu-latest
-    # Advisory: a red lint must not fail the workflow, because Deploy gates on its conclusion.
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v6
@@ -82,7 +80,7 @@ jobs:
 
   docker-push:
     name: "Docker: Build & Push"
-    needs: [go-test]
+    needs: [go-test, comment-lint]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:

@@ -6,9 +6,6 @@ import '../styles/text_styles.dart';
 import 'recipe_label_chip.dart';
 import 'recipe_source_link.dart';
 
-/// Title block for the recipe details screen — sits in a top-radius "sheet"
-/// that overlaps the hero by 28px. Chips → serif italic title → description →
-/// source link.
 class RecipeHeader extends StatelessWidget {
   final String name;
   final String description;

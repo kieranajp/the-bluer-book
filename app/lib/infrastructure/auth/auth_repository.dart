@@ -19,19 +19,14 @@ class AuthCancelledException extends AuthException {
   const AuthCancelledException() : super('sign-in was cancelled');
 }
 
-/// The server rejected the refresh grant, so the session is finished and only
-/// a fresh sign-in gets it back. Distinct from a refresh that merely could not
-/// be delivered, which leaves the grant intact.
+/// The server rejected the refresh grant: only a fresh sign-in recovers. A
+/// refresh that could not be delivered is not this, and leaves the grant intact.
 class AuthGrantRejectedException extends AuthException {
   const AuthGrantRejectedException() : super('the refresh grant was rejected');
 }
 
-/// Runs the authorization-code + PKCE flow against Authentik and keeps the
-/// resulting session in [TokenStore].
-///
-/// AppAuth opens the browser, generates the PKCE verifier and exchanges the
-/// code natively, so nothing in the app's HTTP stack ever sees the token
-/// endpoint.
+/// AppAuth exchanges the code natively, so nothing in the app's HTTP stack
+/// ever sees the token endpoint.
 class AuthRepository {
   AuthRepository({TokenStore? store, FlutterAppAuth? appAuth})
       : _store = store ?? TokenStore(),
@@ -76,9 +71,8 @@ class AuthRepository {
     }
   }
 
-  /// The OAuth error codes that mean the grant itself is finished. Every other
-  /// failure — no network, a restarting server, a plugin fault — says nothing
-  /// about the grant.
+  /// Only these OAuth errors end the grant; any other failure (no network, a
+  /// restarting server) says nothing about it.
   static const _rejectedGrantErrors = {
     FlutterAppAuthOAuthError.invalidGrant,
     FlutterAppAuthOAuthError.invalidClient,

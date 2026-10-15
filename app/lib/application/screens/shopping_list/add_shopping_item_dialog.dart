@@ -3,9 +3,7 @@ import '../../styles/colours.dart';
 import '../../styles/spacing.dart';
 import '../../styles/text_styles.dart';
 
-/// Prompts for a free-text shopping list item (e.g. "washing-up liquid").
-/// Pops the trimmed name on submit, or null on cancel. Show via
-/// `showDialog<String>(context: ..., builder: (_) => const AddShoppingItemDialog())`.
+/// Pops the trimmed item name on submit, or null on cancel.
 class AddShoppingItemDialog extends StatefulWidget {
   const AddShoppingItemDialog({super.key});
 

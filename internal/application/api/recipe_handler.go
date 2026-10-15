@@ -50,9 +50,8 @@ func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info().Str("recipe_id", savedRecipe.UUID.String()).Str("name", savedRecipe.Name).Msg("Recipe created via API")
 }
 
-// recipeIDFromPath reads and validates the {id} path parameter captured by the
-// ServeMux route. It writes an error response and returns ok=false when the ID
-// is missing or malformed, so callers can simply `return` on !ok.
+// recipeIDFromPath has already written the error response when it returns
+// false.
 func (h *RecipeHandler) recipeIDFromPath(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	id := r.PathValue("id")
 	if id == "" {

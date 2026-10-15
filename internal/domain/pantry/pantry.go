@@ -2,18 +2,15 @@ package pantry
 
 import "time"
 
-// PantryItem records that the user currently has a given ingredient at home.
-// Presence-only (v1): the ingredient is identified by its name, which is
-// unique in the ingredients table.
+// PantryItem is presence-only: the ingredient is identified by its name, which
+// is unique in the ingredients table.
 type PantryItem struct {
 	Ingredient string    `json:"ingredient"`
 	AddedAt    time.Time `json:"addedAt,omitempty"`
 }
 
-// Shopping list item sources. A meal-plan item is an ingredient a planned
-// recipe needs but the pantry lacks; checking one off stocks the pantry. A
-// custom item is free text the user added (or scanned from a photo) that isn't
-// a recipe ingredient at all; checking one off simply deletes it.
+// Checking off a meal-plan item stocks the pantry; checking off a custom
+// (free-text) item simply deletes it.
 type ShoppingSource string
 
 const (

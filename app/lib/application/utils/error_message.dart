@@ -1,10 +1,7 @@
 import '../../infrastructure/network/api_exception.dart';
 
-/// Returns a user-facing message for [error].
-///
-/// Prefers a typed [ApiException]'s detail (which includes the server's reason),
-/// strips the noisy `Exception: ` prefix off any other [Exception], and falls
-/// back to [fallback] for anything unrecognised (or null).
+/// Prefers an [ApiException]'s server detail, strips the `Exception: ` prefix
+/// from other exceptions, and otherwise (null included) returns [fallback].
 String errorMessage(Object? error, {required String fallback}) {
   if (error is ApiException) return error.message;
   if (error is Exception) {

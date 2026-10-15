@@ -12,10 +12,6 @@ import 'add_shopping_item_dialog.dart';
 import 'shopping_list_row.dart';
 import '../../utils/error_message.dart';
 
-/// What you still need to buy: every meal-plan ingredient your planned recipes
-/// call for that isn't already in the pantry, plus any extras you add by hand
-/// or snap a photo of. Checking a meal-plan item off adds it to the pantry;
-/// checking a custom item off just removes it.
 class ShoppingListScreen extends ConsumerStatefulWidget {
   const ShoppingListScreen({super.key});
 

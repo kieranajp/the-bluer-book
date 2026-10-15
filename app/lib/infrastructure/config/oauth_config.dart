@@ -1,8 +1,5 @@
-/// OAuth2 configuration for the-bluer-book's Authentik client.
-///
-/// A person signs in with the authorization-code grant and PKCE, so this is a
-/// public client and no secret ships in the binary. AppAuth reads every
-/// endpoint from [discoveryUrl] and runs the code exchange natively.
+/// A public PKCE client: no secret ships in the binary, and AppAuth reads every
+/// endpoint from [discoveryUrl].
 class OAuthConfig {
   static const String discoveryUrl = String.fromEnvironment(
     'OAUTH_DISCOVERY_URL',
@@ -10,9 +7,8 @@ class OAuthConfig {
         'https://auth.kieranajp.uk/application/o/the-bluer-book/.well-known/openid-configuration',
   );
 
-  /// Must match the provider's `allowed_redirect_uris` byte for byte —
-  /// Authentik matches it literally, and the scheme is registered with the
-  /// platform in the Android manifest placeholder and the iOS URL types.
+  /// Must match Authentik's `allowed_redirect_uris` byte for byte, and the
+  /// scheme must stay registered in the Android manifest and iOS URL types.
   static const String redirectUri = String.fromEnvironment(
     'OAUTH_REDIRECT_URI',
     defaultValue: 'com.thebluerbook.app://oauth/callback',

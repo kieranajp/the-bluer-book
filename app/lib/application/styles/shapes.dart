@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Shape DNA for the Garden Plot / M3 Expressive design language.
-///
-/// Used sparingly — max ~3 families per screen. See the design spec card "D"
-/// for the full playbook.
+/// Garden Plot shape families. Use at most ~3 per screen.
 class Shapes {
   Shapes._();
 
-  /// Asymmetric blob — wonky avatar / FAB-style. Used on the home header
-  /// avatar and the mini filter-blob inside the search pill.
-  ///
-  /// CSS equivalent: `56% 44% 56% 44% / 44% 56% 44% 56%`
+  /// Asymmetric blob: CSS `56% 44% 56% 44% / 44% 56% 44% 56%`.
   static BorderRadius blob(double size) {
     final r1 = size * 0.56;
     final r2 = size * 0.44;
@@ -22,9 +16,7 @@ class Shapes {
     );
   }
 
-  /// Page-torn-from-the-cookbook corners — big top-left + bottom-right,
-  /// tight top-right + bottom-left. Used on meal-plan carousel cards and
-  /// the extended "Add to meal plan" FAB.
+  /// Big top-left and bottom-right corners, tight top-right and bottom-left.
   static const tornCorner = BorderRadius.only(
     topLeft: Radius.circular(36),
     topRight: Radius.circular(14),
@@ -40,10 +32,8 @@ class Shapes {
     bottomLeft: Radius.circular(16),
   );
 
-  /// Horizontal mirror of [tornCorner] — big top-right + bottom-left. Pair it
-  /// with [tornCorner] across a two-column grid so each row reads as a
-  /// symmetric, hand-cut spread instead of a uniform stamp. Used by the
-  /// meal-plan grid cards.
+  /// Horizontal mirror of [tornCorner]; alternate the two across a grid row so
+  /// cards read as a symmetric spread.
   static const tornCornerMirror = BorderRadius.only(
     topLeft: Radius.circular(14),
     topRight: Radius.circular(36),

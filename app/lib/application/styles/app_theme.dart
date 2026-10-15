@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'colours.dart';
 
-/// Builds the app's [ThemeData] for a given [brightness] and [Colours] palette.
-///
-/// Lives here (rather than inline in `main.dart`) so tests — golden tests in
-/// particular — render widgets under the exact theme that ships, with no
-/// hand-maintained copy to drift out of sync.
+/// The single source of the shipped theme; golden tests render under it too.
 ThemeData buildAppTheme(Brightness brightness, Colours c) {
   // Explicit ColorScheme — no fromSeed. Tonal values match the Garden Plot
   // palette so what's on the design canvas is what ships.

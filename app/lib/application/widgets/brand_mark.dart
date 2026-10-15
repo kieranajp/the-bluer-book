@@ -3,9 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../styles/colours.dart';
 import '../styles/shapes.dart';
 
-/// The Bluer Book brand monogram — an Instrument Serif italic "B" with a sage
-/// leaf accent, set in the wonky M3 blob. Drop-in replacement for the 🥦 emoji
-/// avatar in the home header (and reusable anywhere a small brand mark fits).
 class BrandMark extends StatelessWidget {
   /// Edge length of the square blob, in logical pixels.
   final double size;
@@ -15,9 +12,8 @@ class BrandMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colours;
-    // The brand sage reads well on both the denim (light) and light-blue (dark)
-    // blob, so we pin the leaf to it rather than c.secondary — which inverts to
-    // a pale sage in dark mode and disappears against the blob.
+    // Pinned brand sage: c.secondary inverts to a pale sage in dark mode and
+    // disappears against the blob.
     const leafColor = Color(0xFF6B8E5A);
     return SizedBox(
       width: size,

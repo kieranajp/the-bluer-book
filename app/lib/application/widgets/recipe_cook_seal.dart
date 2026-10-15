@@ -2,12 +2,8 @@ import 'package:flutter/material.dart';
 import '../styles/colours.dart';
 import '../utils/cookability.dart';
 
-/// A small circular "seal" stamped over the corner of a recipe thumbnail,
-/// signalling how cookable the recipe is from the current pantry: a check when
-/// you have every ingredient, otherwise the number still missing.
-///
-/// Designed to sit proudly over the image edge inside a [Stack] — give it a
-/// [Positioned] with small negative insets so it overlaps the corner.
+/// Place inside a [Stack] under a [Positioned] with small negative insets so it
+/// overlaps the thumbnail corner.
 class RecipeCookSeal extends StatelessWidget {
   final Cookability cook;
 

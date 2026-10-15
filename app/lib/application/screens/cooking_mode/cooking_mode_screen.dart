@@ -15,14 +15,8 @@ import 'cooking_progress_header.dart';
 import 'cooking_step_page.dart';
 import 'cooking_top_bar.dart';
 
-/// Hands-busy cooking view: one step at a time at a comfortable across-the-
-/// kitchen reading size, the ingredients needed for that step pulled out
-/// beside it, the screen kept awake, and an optional touchless hand-wave to
-/// advance when your fingers are covered in dough.
-///
-/// Steps advance by swiping the page horizontally (always available) or, when
-/// the camera toggle is on, by waving a hand left→right (next) / right→left
-/// (previous) in front of the front camera.
+/// Steps advance by horizontal swipe, or by a hand wave in front of the front
+/// camera when the camera toggle is on. The screen is kept awake.
 class CookingModeScreen extends ConsumerStatefulWidget {
   final Recipe recipe;
 

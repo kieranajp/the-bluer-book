@@ -8,10 +8,8 @@ import '../utils/time_format.dart';
 import 'meal_plan_card_star.dart';
 import 'recipe_image.dart';
 
-/// A torn-corner meal-plan card for the two-column grid on the Meal Plan
-/// screen. Shares the cookbook-page shape DNA, full-bleed image and serif
-/// title with the home carousel, scaled down for the grid. Set [mirror] to
-/// flip the torn corners so adjacent columns read as a symmetric spread.
+/// Set [mirror] to flip the torn corners so adjacent grid columns read as a
+/// symmetric spread.
 class MealPlanCard extends StatelessWidget {
   final Recipe recipe;
   final bool mirror;

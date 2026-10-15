@@ -19,9 +19,8 @@ type PantryHandler struct {
 	logger        logger.Logger
 }
 
-// NewPantryHandler wires the pantry/shopping-list endpoints. scanner may be nil
-// when Gemini isn't configured, in which case the photo-scan endpoint reports
-// that it's unavailable rather than failing.
+// NewPantryHandler accepts a nil scanner when Gemini isn't configured; the
+// photo-scan endpoint then answers 503.
 func NewPantryHandler(pantryService service.PantryService, scanner *ai.ShoppingListScanner, logger logger.Logger) *PantryHandler {
 	return &PantryHandler{
 		pantryService: pantryService,
@@ -30,9 +29,8 @@ func NewPantryHandler(pantryService service.PantryService, scanner *ai.ShoppingL
 	}
 }
 
-// ingredientFromPath reads the {ingredient} path parameter (the ingredient
-// name, URL-encoded by the client). It writes an error response and returns
-// ok=false when missing, so callers can simply `return` on !ok.
+// ingredientFromPath has already written the error response when it returns
+// false.
 func (h *PantryHandler) ingredientFromPath(w http.ResponseWriter, r *http.Request) (string, bool) {
 	name := r.PathValue("ingredient")
 	if name == "" {
@@ -132,9 +130,8 @@ func (h *PantryHandler) RemoveCustomShoppingItem(w http.ResponseWriter, r *http.
 	h.logger.Info().Str("name", name).Msg("Custom shopping list item removed")
 }
 
-// POST /api/shopping-list/scan - Upload a photo of a physical shopping list;
-// Gemini parses the items and they're added as custom items. Returns the names
-// that were added.
+// POST /api/shopping-list/scan - adds the items Gemini reads from a photo as
+// custom items and returns their names.
 func (h *PantryHandler) ScanShoppingList(w http.ResponseWriter, r *http.Request) {
 	if h.scanner == nil {
 		h.writeErrorResponse(w, http.StatusServiceUnavailable, "scan_unavailable", "Photo scanning is not configured")

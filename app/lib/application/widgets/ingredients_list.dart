@@ -7,10 +7,8 @@ import '../utils/error_message.dart';
 import 'ingredient_row.dart';
 import 'ingredients_summary.dart';
 
-/// Tap-to-check ingredient rows. A checked row means "I have this in my
-/// pantry" — tapping persists to the shared pantry via [pantryProvider], so
-/// the state survives navigation and shows up in "what can I cook". Squircle
-/// checkbox, name, and a monospace quantity pill anchored to the right.
+/// Tapping a row persists to the shared pantry via [pantryProvider], so the
+/// check survives navigation and feeds "what can I cook".
 class IngredientsList extends ConsumerWidget {
   final List<Ingredient> ingredients;
 

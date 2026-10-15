@@ -6,9 +6,6 @@ import '../../styles/colours.dart';
 import '../../styles/shapes.dart';
 import '../../utils/error_message.dart';
 
-/// One buyable item in the [ShoppingListScreen]. Tapping checks it off: a
-/// meal-plan ingredient lands in the pantry (so it drops off the list), a
-/// custom item is just removed.
 class ShoppingListRow extends ConsumerWidget {
   final ShoppingListItem item;
 

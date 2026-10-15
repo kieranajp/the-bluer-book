@@ -4,9 +4,7 @@ import 'colours.dart';
 
 /// Text style definitions (theme-aware)
 class TextStyles {
-  // Headers
-  // Page headers share the cookbook serif (Instrument Serif) with the home
-  // hero, so every screen's title reads in the same voice.
+  // Page headers use the home hero's serif so every title reads in one voice.
   static TextStyle appBarTitle(BuildContext context) =>
       GoogleFonts.instrumentSerif(
         fontSize: 28,

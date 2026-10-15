@@ -1,6 +1,5 @@
-// Package ai holds integrations with Google's Gemini models that sit outside
-// the conversational chat agent — one-shot, structured calls like turning a
-// photo of a handwritten shopping list into a tidy list of item names.
+// Package ai holds one-shot, structured Gemini calls that sit outside the chat
+// agent.
 package ai
 
 import (
@@ -14,9 +13,8 @@ import (
 	"github.com/kieranajp/the-bluer-book/internal/infrastructure/logger"
 )
 
-// scanPrompt instructs Gemini to read a photo of a shopping list and return
-// just the item names. Kept deliberately strict — no quantities, no prices, no
-// section headings — because the shopping list is presence-only.
+// scanPrompt forbids quantities and prices because the shopping list is
+// presence-only.
 const scanPrompt = `You are reading a photo of a shopping list. It may be handwritten or printed.
 Extract every distinct item the person needs to buy.
 Return ONLY the item names, lowercased, with no quantities, prices, units, bullet points, or section headings.

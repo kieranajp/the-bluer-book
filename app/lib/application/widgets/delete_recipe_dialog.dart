@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Confirmation dialog shown before deleting a recipe. Presentational — it
-/// pops `true` when the user confirms and `false`/`null` otherwise, leaving
-/// the actual deletion to the caller.
+/// Pops `true` on confirm and `false`/`null` otherwise; the caller performs the
+/// deletion.
 class DeleteRecipeDialog extends StatelessWidget {
   final String recipeName;
 

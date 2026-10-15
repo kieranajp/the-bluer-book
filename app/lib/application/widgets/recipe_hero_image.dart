@@ -3,10 +3,6 @@ import '../styles/colours.dart';
 import 'recipe_hero_glass_button.dart';
 import 'recipe_image.dart';
 
-/// Full-bleed 320px hero with a top-edge dim gradient, glass action chrome
-/// (back / share / edit) and a tertiary bookmark FAB anchored bottom-right.
-/// Bottom margin overlaps the content sheet by 28px so the sheet appears to
-/// peel up into the hero.
 class RecipeHeroImage extends StatelessWidget {
   final String? imageUrl;
   final VoidCallback onBack;

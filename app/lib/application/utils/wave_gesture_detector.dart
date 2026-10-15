@@ -5,23 +5,8 @@ import 'package:camera/camera.dart';
 /// Direction of a detected horizontal hand wave.
 enum WaveDirection { left, right }
 
-/// Touchless hand-wave detector for cooking mode.
-///
-/// Opens the front camera at low resolution, streams luminance frames, and
-/// looks for a hand sweeping horizontally across the field of view. It does
-/// **not** identify a hand specifically — it tracks the centroid of frame-to-
-/// frame motion and, when that centroid travels far enough along the dominant
-/// horizontal axis in one continuous movement, reports a [WaveDirection].
-///
-/// This is intentionally lightweight (no ML model, ~144 luminance samples per
-/// frame) so it runs on-device without extra assets. It is best-effort and
-/// experimental: greasy-hands cooking ergonomics over pixel-perfect accuracy.
-///
-/// Because the camera buffer is in sensor coordinates (often rotated 90° in
-/// portrait) and the front camera is mirrored, the detector measures movement
-/// on whichever buffer axis shows the larger displacement, and the on-screen
-/// "swap direction" toggle can flip [invertDirection] if next/previous feel
-/// reversed on a given device.
+/// Best-effort wave detection: it tracks the centroid of frame-to-frame motion,
+/// not a hand, so any horizontal sweep across the front camera counts.
 class WaveGestureController {
   WaveGestureController({
     required this.onWave,
@@ -225,9 +210,8 @@ class WaveGestureController {
     onWave(movingRight ? WaveDirection.right : WaveDirection.left);
   }
 
-  /// Samples a [_grid]×[_grid] luminance grid from the Y plane. Works for both
-  /// Android (planar yuv420) and iOS (biplanar) since plane 0 is luminance and
-  /// [Plane.bytesPerRow] accounts for row padding on each platform.
+  /// Samples a [_grid]×[_grid] luminance grid from plane 0, which is luminance
+  /// on Android and iOS; [Plane.bytesPerRow] absorbs row padding.
   List<int> _sampleLuminance(CameraImage image) {
     final plane = image.planes.first;
     final bytes = plane.bytes;

@@ -10,10 +10,7 @@ final pantryRepositoryProvider = Provider<PantryRepository>((ref) {
   return PantryRepository(ref.watch(apiClientProvider));
 });
 
-/// Holds the set of ingredient names currently in the pantry. Kept as a set of
-/// names because that's the lingua franca of the rest of the app (recipe
-/// ingredients reference their ingredient by name) — membership is all the
-/// "have / don't-have" model needs.
+/// Ingredient names in the pantry; recipe ingredients match on name.
 class PantryNotifier extends Notifier<AsyncValue<Set<String>>> {
   PantryRepository get _repository => ref.read(pantryRepositoryProvider);
 
@@ -79,10 +76,8 @@ final pantryProvider =
     NotifierProvider<PantryNotifier, AsyncValue<Set<String>>>(
         PantryNotifier.new);
 
-/// The shopping list: meal-plan ingredients that aren't in the pantry, plus any
-/// free-text custom items the user added or scanned from a photo. autoDispose
-/// so it re-fetches each time the screen is opened (it depends on both the meal
-/// plan and the pantry, which change elsewhere).
+/// Meal-plan ingredients not in the pantry, plus custom items. Re-fetches on
+/// each open because the meal plan and pantry change elsewhere.
 class ShoppingListNotifier
     extends Notifier<AsyncValue<List<ShoppingListItem>>> {
   PantryRepository get _repository => ref.read(pantryRepositoryProvider);
@@ -104,9 +99,8 @@ class ShoppingListNotifier
     }
   }
 
-  /// Check an item off the list. A meal-plan ingredient goes into the pantry
-  /// (so it stays off the list); a custom item is simply deleted. Optimistic —
-  /// reverts if the API call fails.
+  /// A meal-plan ingredient goes into the pantry; a custom item is deleted.
+  /// Optimistic: reverts if the API call fails.
   Future<void> check(ShoppingListItem item) async {
     final current = state.value ?? const <ShoppingListItem>[];
     state = AsyncValue.data(
@@ -147,9 +141,8 @@ class ShoppingListNotifier
     }
   }
 
-  /// Upload a photo of a physical shopping list; Gemini parses it and the items
-  /// are added as custom items. Reloads the list and returns how many were
-  /// added.
+  /// Adds the items parsed from a shopping-list photo as custom items, reloads
+  /// the list, and returns how many were added.
   Future<int> scan(Uint8List bytes, String filename) async {
     try {
       final added = await _repository.scanShoppingList(bytes, filename);

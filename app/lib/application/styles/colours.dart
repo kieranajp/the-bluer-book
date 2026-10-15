@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Garden Plot palette — denim × sage × honey amber.
-/// Seeds: #3E5C7E (denim) × #6B8E5A (sage) × #C8923B (honey amber)
-///
-/// Fields map to M3 ColorScheme roles. The legacy aliases (background, surface,
-/// primary, textPrimary, textSecondary, border, shadow) are preserved so older
-/// screens keep working while M3-aware screens use the full ladder.
+/// Garden Plot palette in M3 ColorScheme roles. The legacy aliases (background,
+/// surface, primary, text*, border, shadow) still serve older screens.
 @immutable
 class Colours extends ThemeExtension<Colours> {
   // Legacy semantic aliases (kept for existing widgets)
@@ -76,9 +72,7 @@ class Colours extends ThemeExtension<Colours> {
   });
 
   // ── Light ──────────────────────────────────────────────────────────
-  // Surfaces carry a very faint denim tint — same hue family as primary,
-  // near-zero chroma. Keeps "The Bluer Book" feeling blue without the green
-  // sage secondary dominating the room.
+  // Surfaces carry a faint denim tint so the green secondary doesn't dominate.
   static const light = Colours(
     background: Color(0xFFF5F8FC),
     surface: Color(0xFFEAEFF5), // alias of surfaceContainer for legacy widgets
@@ -114,8 +108,7 @@ class Colours extends ThemeExtension<Colours> {
   );
 
   // ── Dark ───────────────────────────────────────────────────────────
-  // Surfaces are midnight-denim — same hue family as primary, chroma high
-  // enough to register as actually blue rather than cool gray.
+  // Midnight-denim surfaces: chroma high enough to read blue, not cool gray.
   static const dark = Colours(
     background: Color(0xFF0F1726),
     surface: Color(0xFF1A2438), // alias of surfaceContainer

@@ -9,9 +9,8 @@ import '../../infrastructure/network/auth_interceptor.dart';
 import '../../infrastructure/recipe_repository.dart';
 import 'auth_providers.dart';
 
-/// The one Dio client every repository shares. Its interceptor reads the same
-/// token store and repository the auth notifier does, and tells that notifier
-/// when a refresh has failed and the session is over.
+/// The Dio client every repository shares. Its interceptor tells the auth
+/// notifier when a token refresh fails and the session is over.
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(
     authInterceptor: AuthInterceptor(
@@ -53,9 +52,8 @@ final labelsProvider = FutureProvider<List<LabelSummary>>((ref) async {
 enum RecipeSort { newest, name, time, cookable }
 
 extension RecipeSortApi on RecipeSort {
-  /// Server-side sort key. `cookable` has none — the server returns its default
-  /// order and the list is re-sorted client-side from the pantry (the client
-  /// already has each recipe's ingredients and the pantry set).
+  /// Server-side sort key. `cookable` has none: the server returns its default
+  /// order and the client re-sorts against the pantry.
   String get apiValue => switch (this) {
         RecipeSort.newest => '',
         RecipeSort.name => 'name',

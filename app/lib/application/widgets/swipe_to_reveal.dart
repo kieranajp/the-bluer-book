@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Swipe a row to the left to reveal a single trailing action button (e.g. a
-/// bin). Tapping the button fires [onAction]; the row snaps shut once the
-/// action's future resolves. Swiping back — or tapping the still-open row —
-/// closes it without firing.
-///
-/// Generic on purpose: it owns the gesture + reveal animation and nothing
-/// about deletion. The destructive wiring lives in the caller.
+/// The row snaps shut once [onAction]'s future resolves. Swiping back or tapping
+/// the open row closes it without firing.
 class SwipeToReveal extends StatefulWidget {
   final Widget child;
   final IconData actionIcon;
@@ -15,9 +10,8 @@ class SwipeToReveal extends StatefulWidget {
   final String actionSemanticLabel;
   final Future<void> Function() onAction;
 
-  /// Opaque background painted behind [child] so the trailing action stays
-  /// hidden until the row is swiped. Without this the (transparent) child
-  /// would let the action bleed through at rest.
+  /// Must be opaque: it hides the trailing action behind a transparent [child]
+  /// at rest.
   final Color childBackgroundColor;
 
   /// Width of the revealed action area.

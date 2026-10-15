@@ -1,6 +1,5 @@
-/// One line on the shopping list. [source] distinguishes ingredients derived
-/// from the meal plan (checking one off stocks the pantry) from free-text
-/// custom items the user added or scanned (checking one off just removes it).
+/// Checking off a meal-plan item stocks the pantry; checking off a custom
+/// item just removes it.
 class ShoppingListItem {
   final String name;
   final String source;

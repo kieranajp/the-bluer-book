@@ -1,8 +1,7 @@
 import '../../domain/recipe.dart';
 
-/// How close a recipe is to being cookable given what's in the pantry.
-/// "Have / don't-have" matching: an ingredient counts as had when its name is
-/// in the pantry set (see pantryProvider).
+/// How close a recipe is to cookable: an ingredient counts as had when its
+/// name is in the pantry set.
 class Cookability {
   final int total;
   final int have;

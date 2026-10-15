@@ -46,10 +46,8 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     super.dispose();
   }
 
-  /// "Cook now" sorts the loaded recipes by fewest missing ingredients
-  /// (ready first), breaking ties by name. Other sorts are handled server-side,
-  /// so the list is shown as-is. Note: this only orders what's currently
-  /// loaded — across pages it's approximate until more are fetched.
+  /// Only "Cook now" sorts client-side (fewest missing, then name), and only
+  /// across loaded pages; other sorts arrive ordered from the server.
   List<Recipe> _sortForDisplay(
     List<Recipe> recipes,
     RecipeSort sort,

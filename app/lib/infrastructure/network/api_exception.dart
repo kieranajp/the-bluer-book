@@ -1,11 +1,7 @@
 import 'package:dio/dio.dart';
 
-/// A typed error for failed API calls.
-///
-/// Carries the HTTP status, the server's error `code`/`message` (parsed from the
-/// API's `{"error": {"code": ..., "message": ...}}` envelope) and the action we
-/// were attempting, so the UI can show a real reason — or branch on the *kind*
-/// of failure — instead of matching on strings.
+/// [code] and [serverMessage] are parsed from the API's
+/// `{"error": {"code": ..., "message": ...}}` envelope.
 class ApiException implements Exception {
   ApiException({
     required this.action,

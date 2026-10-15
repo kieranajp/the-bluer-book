@@ -7,10 +7,8 @@ import (
 
 // Domain-specific errors
 var (
-	// ErrIngredientNotFound indicates a pantry operation named an ingredient no
-	// recipe in the book uses. Pantry entries reference the ingredients table,
-	// so there is nothing for such an entry to point at — the operation is a
-	// reportable failure, not a no-op.
+	// ErrIngredientNotFound means no recipe in the book uses the named
+	// ingredient; pantry entries can only reference existing ingredients.
 	ErrIngredientNotFound = errors.New("ingredient not found")
 )
 

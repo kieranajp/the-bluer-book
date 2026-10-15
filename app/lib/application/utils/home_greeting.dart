@@ -55,11 +55,8 @@ const Map<Mealtime, List<HomeGreeting>> _greetings = {
   ],
 };
 
-/// Picks a greeting for the given moment. The mealtime is inferred from the
-/// hour; within that bucket a greeting is chosen at random.
-///
-/// [now] and [random] are injectable for deterministic tests; both default to
-/// live values.
+/// Picks a random greeting for the mealtime of [now]'s hour. [now] and
+/// [random] default to live values.
 HomeGreeting greetingFor({DateTime? now, Random? random}) {
   final mealtime = mealtimeForHour((now ?? DateTime.now()).hour);
   final options = _greetings[mealtime]!;

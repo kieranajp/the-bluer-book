@@ -22,13 +22,8 @@ class AuthSession {
   }
 }
 
-/// Keeps the session in the iOS keychain / Android encrypted shared
-/// preferences, so relaunching resumes it without another trip through the
-/// browser.
-///
-/// The whole session is one JSON value under one key. Split across three keys,
-/// a write that failed part-way would leave a new access token beside a stale
-/// refresh token, which reads back as a working session and is not one.
+/// The session is one JSON value under one key, so a write that fails part-way
+/// cannot leave a new access token beside a stale refresh token.
 class TokenStore {
   TokenStore([FlutterSecureStorage? storage])
       : _storage = storage ??

@@ -13,9 +13,8 @@ import (
 // PantryService is the single door into the pantry domain. REST handlers and
 // MCP tools call this rather than the repository directly.
 type PantryService interface {
-	// AddToPantry marks a known ingredient as in stock. The name is matched
-	// case-insensitively; one that matches no ingredient returns
-	// pantry.ErrIngredientNotFound rather than silently doing nothing.
+	// AddToPantry matches the name case-insensitively and returns
+	// pantry.ErrIngredientNotFound when it matches no ingredient.
 	AddToPantry(ctx context.Context, ingredient string) error
 	// RemoveFromPantry is the inverse, and reports the same not-found error.
 	// Removing an ingredient that isn't in the pantry is a no-op, not an error.
@@ -69,9 +68,8 @@ func (s *pantryService) RemoveFromPantry(ctx context.Context, ingredient string)
 	return nil
 }
 
-// observeFailure splits "the caller named something we don't stock" from "the
-// pantry is broken". Only the latter belongs in the error counter; conflating
-// them would make a chat agent guessing ingredient names look like an outage.
+// observeFailure keeps unknown ingredients out of the error counter, so a chat
+// agent guessing names does not look like an outage.
 func (s *pantryService) observeFailure(action, ingredient string, err error) {
 	if errors.Is(err, pantry.ErrIngredientNotFound) {
 		s.probe.UnknownIngredient(action, ingredient)

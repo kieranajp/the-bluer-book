@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/recipe_providers.dart';
 import 'meal_plan_carousel_body.dart';
 
-/// Horizontal, snap-aligned carousel of meal-plan recipes. First card uses
-/// ~86% of viewport width so the next one peeks from the right edge — the
-/// strongest tactile cue that the row scrolls.
 class MealPlanCarousel extends ConsumerStatefulWidget {
   const MealPlanCarousel({super.key});
 
@@ -31,10 +28,8 @@ class _MealPlanCarouselState extends ConsumerState<MealPlanCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    // While a search is active the meal plan recedes — it collapses and fades
-    // out of the way so the results below rise to the top and it's obvious the
-    // search did something. The carousel stays in the tree (and keeps its page
-    // position) so it springs back when the query clears.
+    // While searching, the carousel collapses but stays in the tree, so it
+    // keeps its page position when the query clears.
     final isSearching = ref.watch(searchQueryProvider).isNotEmpty;
 
     return ClipRect(

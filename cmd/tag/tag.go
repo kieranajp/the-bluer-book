@@ -101,7 +101,7 @@ type geminiResponse struct {
 }
 
 func run(c *cli.Context) error {
-	log := logger.New(logger.LogLevelInfo)
+	log := logger.New(logger.LogLevel(config.New(c).LogLevel))
 	ctx := c.Context
 
 	apiKey := c.String("google-api-key")

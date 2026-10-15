@@ -98,7 +98,7 @@ type recipeRow struct {
 }
 
 func run(c *cli.Context) error {
-	log := logger.New(logger.LogLevelInfo)
+	log := logger.New(logger.LogLevel(config.New(c).LogLevel))
 	ctx := c.Context
 
 	dsn := config.New(c).DBDSN()

@@ -114,6 +114,9 @@ fi
 run_suite "TestHomeScoping as ${OWNER_USER} (must pass)" "$OWNER_DSN" \
   -run 'TestHomeScoping|TestHomeScopedPantry' -count=1
 
+# Only the owning role writes link tokens, so the suite runs as it.
+run_suite "TestLinkTokens as ${OWNER_USER} (must pass)" "$OWNER_DSN" -run TestLinkTokens -count=1
+
 run_suite "TestProvision as ${APP_USER} (must pass)" "$APP_DSN" -run TestProvision -count=3
 
 run_suite "TestListRecipes as ${APP_USER} (must pass)" "$APP_DSN" -run TestListRecipes -count=1

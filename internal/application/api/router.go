@@ -92,5 +92,14 @@ func NewRouter(recipeService service.RecipeService, pantryService pantryservice.
 	// one nested mux behind the identity middleware; /health and /metrics need no caller.
 	mux.Handle("/api/", auth.Middleware(resolver, logger)(apiMux))
 
+	// A linked app reads one home with a link token. The ingress routes
+	// nothing under /link, so only callers inside the cluster reach it.
+	linkHandler := NewLinkHandler(recipeService, logger)
+	linkMux := http.NewServeMux()
+	linkMux.HandleFunc("GET /link/v1/recipes", linkHandler.RecipeIndex)
+	linkMux.HandleFunc("GET /link/v1/recipes/{id}", linkHandler.GetRecipe)
+	linkMux.HandleFunc("GET /link/v1/meal-plan", linkHandler.MealPlan)
+	mux.Handle("/link/v1/", LinkMiddleware(accountService, logger)(linkMux))
+
 	return metrics.HTTPMetrics(middleware.AccessLog(logger, mux))
 }

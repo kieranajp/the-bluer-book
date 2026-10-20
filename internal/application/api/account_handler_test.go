@@ -37,6 +37,9 @@ type stubAccountService struct {
 
 	removeErr error
 
+	// links maps a raw token to the link it resolves to.
+	links map[string]account.Link
+
 	// What each method was called with, to assert the caller came from context, not the path or body.
 	findUserID         uuid.UUID
 	listHomesUserID    uuid.UUID
@@ -89,6 +92,22 @@ func (s *stubAccountService) ListMembers(_ context.Context, actorID, homeID uuid
 func (s *stubAccountService) RemoveMember(_ context.Context, actorID, homeID, targetID uuid.UUID) error {
 	s.removeActorID, s.removeHomeID, s.removeTargetID = actorID, homeID, targetID
 	return s.removeErr
+}
+
+func (s *stubAccountService) IssueLink(context.Context, uuid.UUID) (account.Link, string, error) {
+	return account.Link{}, "", nil
+}
+
+func (s *stubAccountService) RevokeLink(context.Context, uuid.UUID) error {
+	return nil
+}
+
+func (s *stubAccountService) ResolveLink(_ context.Context, token string) (account.Link, error) {
+	link, ok := s.links[token]
+	if !ok {
+		return account.Link{}, account.ErrLinkNotFound
+	}
+	return link, nil
 }
 
 // --- Helpers ---

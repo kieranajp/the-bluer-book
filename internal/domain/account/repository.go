@@ -60,4 +60,14 @@ type Repository interface {
 	// RemoveMember takes a user out of a home, refusing with ErrLastOwner when
 	// they are the only owner left.
 	RemoveMember(ctx context.Context, homeID, userID uuid.UUID) error
+
+	// CreateLink stores a link against the hash of its token, or returns
+	// ErrHomeNotFound.
+	CreateLink(ctx context.Context, homeID uuid.UUID, tokenHash string) (Link, error)
+
+	// RevokeLink returns ErrLinkNotFound for an unknown or already revoked link.
+	RevokeLink(ctx context.Context, linkID uuid.UUID) error
+
+	// FindLiveLink returns ErrLinkNotFound for an unknown or revoked token.
+	FindLiveLink(ctx context.Context, tokenHash string) (Link, error)
 }

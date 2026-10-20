@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"io"
 	"os"
 
 	"github.com/rs/zerolog"
@@ -42,7 +43,12 @@ func parseLevel(level LogLevel) zerolog.Level {
 }
 
 func New(level LogLevel) Logger {
-	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 15:04:05"}
+	return NewTo(os.Stdout, level)
+}
+
+// NewTo logs to w, for commands whose stdout carries their output.
+func NewTo(w io.Writer, level LogLevel) Logger {
+	output := zerolog.ConsoleWriter{Out: w, TimeFormat: "2006-01-02 15:04:05"}
 	logger := zerolog.New(output).With().Timestamp().Caller().Logger().Level(parseLevel(level))
 	return &zerologLogger{logger: logger}
 }

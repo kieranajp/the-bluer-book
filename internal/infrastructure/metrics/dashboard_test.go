@@ -58,6 +58,8 @@ func exerciseEveryProbe(t *testing.T) {
 	a.UserProvisioned("x")
 	a.MembershipChanged("add", uuid.New())
 	a.InvitationRefused("expired")
+	a.LinkChanged("issued", uuid.New())
+	a.LinkRefused()
 	a.AccountError("provision", boom)
 
 	HTTPMetrics(http.NotFoundHandler()).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/api/recipes", nil))

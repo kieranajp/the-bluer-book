@@ -99,3 +99,18 @@ RETURNING *;
 -- Only tells a caller why their token was refused. Redemption never reads
 -- first; it goes through RedeemInvitation.
 SELECT * FROM invitations WHERE token_hash = @token_hash;
+
+-- name: CreateLinkToken :one
+INSERT INTO link_tokens (home_id, token_hash)
+VALUES (@home_id, @token_hash)
+RETURNING *;
+
+-- name: RevokeLinkToken :execrows
+UPDATE link_tokens SET revoked_at = now()
+WHERE uuid = @link_id AND revoked_at IS NULL;
+
+-- name: GetLiveLinkByTokenHash :one
+SELECT l.uuid, l.home_id, l.created_at, h.name AS home_name
+FROM link_tokens l
+INNER JOIN homes h ON h.uuid = l.home_id
+WHERE l.token_hash = @token_hash AND l.revoked_at IS NULL;

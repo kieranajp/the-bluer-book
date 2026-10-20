@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -33,6 +34,9 @@ type RecipeRepository interface {
 	AddToMealPlan(ctx context.Context, recipeID uuid.UUID) error
 	RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error
 	ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error)
+
+	// RecipeIndex lists every non-archived recipe in the caller's home.
+	RecipeIndex(ctx context.Context) ([]recipe.IndexEntry, error)
 
 	// Label browsing
 	ListLabels(ctx context.Context) ([]recipe.LabelSummary, error)
@@ -873,6 +877,37 @@ func (r *recipeRepository) ListMealPlanRecipes(ctx context.Context) ([]*recipe.R
 		}
 
 		out = recipes
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (r *recipeRepository) RecipeIndex(ctx context.Context) ([]recipe.IndexEntry, error) {
+	var out []recipe.IndexEntry
+	err := InHomeTx(ctx, r.sqlDB, func(q *db.Queries) error {
+		rows, err := q.ListRecipeIndex(ctx)
+		if err != nil {
+			return err
+		}
+
+		out = make([]recipe.IndexEntry, len(rows))
+		for i, row := range rows {
+			var labels []recipe.Label
+			if err := json.Unmarshal(row.Labels, &labels); err != nil {
+				return fmt.Errorf("decode labels of recipe %s: %w", row.Uuid, err)
+			}
+			out[i] = recipe.IndexEntry{
+				UUID:         row.Uuid,
+				Name:         row.Name,
+				Labels:       labels,
+				MainPhotoURL: row.MainPhotoUrl.String,
+				Url:          row.Url.String,
+				UpdatedAt:    row.UpdatedAt,
+			}
+		}
 		return nil
 	})
 	if err != nil {

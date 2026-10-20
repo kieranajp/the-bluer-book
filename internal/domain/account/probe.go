@@ -9,5 +9,8 @@ type Probe interface {
 	// InvitationRefused counts tokens presented and not honoured: a run of
 	// these is guessing, or a client holding a token it should have discarded.
 	InvitationRefused(reason string)
+	LinkChanged(action string, linkID uuid.UUID)
+	// LinkRefused counts link tokens presented and not honoured.
+	LinkRefused()
 	AccountError(operation string, err error)
 }

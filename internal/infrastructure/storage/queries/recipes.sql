@@ -257,3 +257,18 @@ UPDATE recipes SET main_photo_id = $2, updated_at = $3 WHERE uuid = $1 AND archi
 
 -- name: RecipeIsVisible :one
 SELECT EXISTS (SELECT 1 FROM recipes WHERE uuid = $1 AND archived_at IS NULL);
+
+-- name: ListRecipeIndex :many
+SELECT r.uuid, r.name, r.url, r.updated_at, p.url AS main_photo_url,
+       COALESCE(
+         json_agg(json_build_object('type', l.type, 'name', l.name) ORDER BY l.type, l.name)
+           FILTER (WHERE l.uuid IS NOT NULL),
+         '[]'
+       )::json AS labels
+FROM recipes r
+LEFT JOIN photos p ON p.uuid = r.main_photo_id
+LEFT JOIN recipe_label rl ON rl.recipe_id = r.uuid
+LEFT JOIN labels l ON l.uuid = rl.label_id
+WHERE r.archived_at IS NULL
+GROUP BY r.uuid, p.url
+ORDER BY LOWER(r.name), r.uuid;

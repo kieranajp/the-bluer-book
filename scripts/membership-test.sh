@@ -213,6 +213,80 @@ expect 204 "$(status subject-a DELETE "/api/homes/${HOME_A}/members/${MEMBER_ID}
 expect 403 "$(HOME_HEADER="$HOME_A" status subject-b GET /api/recipes)" \
   "subject-b naming home A once removed"
 
+# link_as TOKEN PATH [curl args] — one read from a linked app, which sends
+# no identity of its own.
+link_as() {
+  local token="$1" path="$2"
+  shift 2
+  curl --silent --header "Authorization: Bearer ${token}" "$@" "localhost:${API_PORT}${path}"
+}
+
+link_status() {
+  local token="$1" path="$2"
+  shift 2
+  link_as "$token" "$path" --output /dev/null --write-out '%{http_code}' "$@"
+}
+
+owner_cli() {
+  DB_HOST=127.0.0.1 DB_PORT="$PORT" DB_NAME="$DB_NAME" \
+    DB_USER="$OWNER_USER" DB_PASS="$OWNER_PASS" \
+    "${BUILD_DIR}/server" "$@"
+}
+
+recipe_ids() { python3 -c 'import json,sys; print(" ".join(sorted(r[sys.argv[1]] for r in json.load(sys.stdin)["recipes"])))' "$1"; }
+
+echo "==> A link token reads the home it was issued for and nothing else"
+new_recipe() {
+  local subject="$1" name="$2"
+  as "$subject" POST /api/recipes "{
+    \"name\": \"${name}\", \"description\": \"seeded for the link checks\", \"servings\": 2,
+    \"steps\": [{\"order\": 1, \"description\": \"Cook it\"}],
+    \"ingredients\": [{\"ingredient\": {\"name\": \"rice\"}, \"unit\": {\"name\": \"gram\", \"abbreviation\": \"g\"}, \"quantity\": 100}]
+  }" | json 'json.load(sys.stdin)["uuid"]'
+}
+
+PAELLA_ID=$(as subject-a GET /api/recipes | json 'next(r["uuid"] for r in json.load(sys.stdin)["recipes"] if r["name"] == "Home A Paella")')
+TORTILLA_ID=$(new_recipe subject-a "Home A Tortilla")
+expect 204 "$(status subject-a POST "/api/recipes/${PAELLA_ID}/meal-plan")" "planning home A's paella"
+
+B_RECIPE_ID=$(HOME_HEADER="$HOME_B" new_recipe subject-b "Home B Risotto")
+expect 204 "$(HOME_HEADER="$HOME_B" status subject-b POST "/api/recipes/${B_RECIPE_ID}/meal-plan")" \
+  "planning home B's risotto"
+
+LINK_ERR="$(mktemp)"
+LINK_TOKEN=$(owner_cli issue-link --home "$HOME_A" 2>"$LINK_ERR")
+[ -n "$LINK_TOKEN" ] || fail "issue-link printed no token: $(cat "$LINK_ERR")"
+LINK_ID=$(sed -n 's/^Issued link \([0-9a-f-]*\) .*/\1/p' "$LINK_ERR")
+rm -f "$LINK_ERR"
+[ -n "$LINK_ID" ] || fail "issue-link named no link id"
+
+stored=$(docker exec "$CONTAINER" psql --username "$OWNER_USER" --dbname "$DB_NAME" \
+  --no-align --tuples-only --command "SELECT token_hash FROM link_tokens WHERE uuid = '${LINK_ID}'")
+expect "$(printf '%s' "$LINK_TOKEN" | sha256sum | cut -d' ' -f1)" "$stored" "the stored link hash"
+
+expect "$(printf '%s\n' "$PAELLA_ID" "$TORTILLA_ID" | sort | xargs)" \
+  "$(link_as "$LINK_TOKEN" /link/v1/recipes | recipe_ids id)" "home A's recipe index"
+expect "$HOME_A" "$(link_as "$LINK_TOKEN" /link/v1/recipes | json 'json.load(sys.stdin)["home"]["id"]')" \
+  "the home the index names"
+expect "$PAELLA_ID" "$(link_as "$LINK_TOKEN" /link/v1/meal-plan | recipe_ids uuid)" "home A's meal plan"
+expect 200 "$(link_status "$LINK_TOKEN" "/link/v1/recipes/${PAELLA_ID}")" "reading home A's recipe"
+expect 404 "$(link_status "$LINK_TOKEN" "/link/v1/recipes/${B_RECIPE_ID}")" "reading home B's recipe"
+
+expect "$(printf '%s\n' "$PAELLA_ID" "$TORTILLA_ID" | sort | xargs)" \
+  "$(link_as "$LINK_TOKEN" /link/v1/recipes --header "X-User: subject-b" --header "X-Home: ${HOME_B}" | recipe_ids id)" \
+  "home A's index with a forged X-User and X-Home naming B"
+expect "$PAELLA_ID" \
+  "$(link_as "$LINK_TOKEN" /link/v1/meal-plan --header "X-User: subject-b" --header "X-Home: ${HOME_B}" | recipe_ids uuid)" \
+  "home A's meal plan with a forged X-Home naming B"
+
+expect 401 "$(curl --silent --output /dev/null --write-out '%{http_code}' --header "X-User: subject-a" \
+  "localhost:${API_PORT}/link/v1/recipes")" "an identity header with no link token"
+expect 405 "$(link_status "$LINK_TOKEN" "/link/v1/recipes/${PAELLA_ID}" --request DELETE)" "deleting through a link"
+
+owner_cli revoke-link --id "$LINK_ID" >/dev/null 2>&1 || fail "revoke-link refused ${LINK_ID}"
+expect 401 "$(link_status "$LINK_TOKEN" /link/v1/recipes)" "the index once the link is revoked"
+expect 401 "$(link_status "$LINK_TOKEN" /link/v1/meal-plan)" "the meal plan once the link is revoked"
+
 # Strips ANSI colour first since the console writer embeds it in the label.
 # grep reads to the end, not --quiet, to avoid pipefail on a closed pipe.
 sed 's/\x1b\[[0-9;]*m//g' "$SERVER_LOG" | grep "role=${APP_USER}" >/dev/null \
@@ -220,9 +294,11 @@ sed 's/\x1b\[[0-9;]*m//g' "$SERVER_LOG" | grep "role=${APP_USER}" >/dev/null \
 
 # The access log records every path, so a token in one would sit in the log for
 # as long as it stayed redeemable.
-if grep --quiet "$TOKEN" "$SERVER_LOG"; then
-  fail "the invitation token reached the server log"
-fi
-echo "    ok  the token never reached the log"
+for secret in "$TOKEN" "$LINK_TOKEN"; do
+  if grep --quiet -- "$secret" "$SERVER_LOG"; then
+    fail "a token reached the server log"
+  fi
+done
+echo "    ok  no token reached the log"
 
 echo "==> Homes admit only who they were told to."

@@ -357,3 +357,41 @@ func toInvitation(row db.Invitation) account.Invitation {
 		CreatedAt: row.CreatedAt,
 	}
 }
+
+func (r *accountRepository) CreateLink(ctx context.Context, homeID uuid.UUID, tokenHash string) (account.Link, error) {
+	home, err := r.db.GetHomeByID(ctx, homeID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return account.Link{}, account.ErrHomeNotFound
+	}
+	if err != nil {
+		return account.Link{}, err
+	}
+
+	row, err := r.db.CreateLinkToken(ctx, db.CreateLinkTokenParams{HomeID: home.Uuid, TokenHash: tokenHash})
+	if err != nil {
+		return account.Link{}, err
+	}
+	return account.Link{UUID: row.Uuid, HomeID: row.HomeID, HomeName: home.Name, CreatedAt: row.CreatedAt}, nil
+}
+
+func (r *accountRepository) RevokeLink(ctx context.Context, linkID uuid.UUID) error {
+	revoked, err := r.db.RevokeLinkToken(ctx, linkID)
+	if err != nil {
+		return err
+	}
+	if revoked == 0 {
+		return account.ErrLinkNotFound
+	}
+	return nil
+}
+
+func (r *accountRepository) FindLiveLink(ctx context.Context, tokenHash string) (account.Link, error) {
+	row, err := r.db.GetLiveLinkByTokenHash(ctx, tokenHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return account.Link{}, account.ErrLinkNotFound
+	}
+	if err != nil {
+		return account.Link{}, err
+	}
+	return account.Link{UUID: row.Uuid, HomeID: row.HomeID, HomeName: row.HomeName, CreatedAt: row.CreatedAt}, nil
+}

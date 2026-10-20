@@ -21,7 +21,7 @@ import (
 
 // unpolicedHomeTables carry a home_id but stay outside the policies on
 // purpose: they decide which home a request acts on, so are read before an answer exists.
-var unpolicedHomeTables = []string{"home_members", "invitations"}
+var unpolicedHomeTables = []string{"home_members", "invitations", "link_tokens"}
 
 // requireEveryHomeTableAccountedFor fails on a table with a home_id in neither
 // list: a new one would inherit this role's DML privileges unscoped.
@@ -362,6 +362,70 @@ func TestIsolation(t *testing.T) {
 			}
 			if theirs := countInHome(t, sqlDB, homeB, count, homeA); theirs != 0 {
 				t.Errorf("home B reads %d of home A's %s rows", theirs, table)
+			}
+		}
+	})
+
+	t.Run("the recipe index lists only this home's live recipes", func(t *testing.T) {
+		live, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Index Live", "isolation index ingredient"))
+		if err != nil {
+			t.Fatalf("save as A: %v", err)
+		}
+		archived, err := recipes.SaveRecipe(ctxA, testRecipe("Isolation Index Archived", "isolation index ingredient"))
+		if err != nil {
+			t.Fatalf("save as A: %v", err)
+		}
+		if err := recipes.ArchiveRecipe(ctxA, archived.UUID); err != nil {
+			t.Fatalf("archive as A: %v", err)
+		}
+
+		indexA, err := recipes.RecipeIndex(ctxA)
+		if err != nil {
+			t.Fatalf("index as A: %v", err)
+		}
+		var found bool
+		for _, e := range indexA {
+			switch e.UUID {
+			case live.UUID:
+				found = true
+				if len(e.Labels) != 1 || e.Labels[0].Type != testLabelType || e.Labels[0].Name != testLabelName {
+					t.Errorf("A's index entry carries labels %v, want the one it was saved with", e.Labels)
+				}
+			case archived.UUID:
+				t.Errorf("A's index lists its archived recipe")
+			}
+		}
+		if !found {
+			t.Fatalf("A's index lacks its own live recipe, so the check below proves nothing")
+		}
+
+		indexB, err := recipes.RecipeIndex(ctxB)
+		if err != nil {
+			t.Fatalf("index as B: %v", err)
+		}
+		for _, e := range indexB {
+			if e.UUID == live.UUID {
+				t.Errorf("B's index lists A's recipe %s", live.UUID)
+			}
+		}
+	})
+
+	// Only the owner role issues and revokes links; the server resolves them.
+	t.Run("this role reads link tokens and cannot write them", func(t *testing.T) {
+		var n int
+		if err := sqlDB.QueryRow(`SELECT count(*) FROM link_tokens`).Scan(&n); err != nil {
+			t.Fatalf("read link_tokens: %v", err)
+		}
+
+		for name, stmt := range map[string]string{
+			"insert": `INSERT INTO link_tokens (home_id, token_hash) VALUES ('` + homeA.String() + `', 'planted')`,
+			"update": `UPDATE link_tokens SET revoked_at = NULL`,
+			"delete": `DELETE FROM link_tokens`,
+		} {
+			_, err := sqlDB.Exec(stmt)
+			var pqErr *pq.Error
+			if !errors.As(err, &pqErr) || pqErr.Code != "42501" {
+				t.Errorf("%s on link_tokens returned %v, want a permission error", name, err)
 			}
 		}
 	})

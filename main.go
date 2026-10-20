@@ -4,6 +4,7 @@ import (
 	"os"
 
 	fetchimages "github.com/kieranajp/the-bluer-book/cmd/fetchimages"
+	"github.com/kieranajp/the-bluer-book/cmd/link"
 	"github.com/kieranajp/the-bluer-book/cmd/migrate"
 	"github.com/kieranajp/the-bluer-book/cmd/server"
 	"github.com/kieranajp/the-bluer-book/cmd/tag"
@@ -16,13 +17,13 @@ var (
 )
 
 func main() {
-	log = logger.New(logger.LogLevelInfo)
+	log = logger.NewTo(os.Stderr, logger.LogLevelInfo)
 
 	app := &cli.App{
 		Name:  "The Bluer Book",
 		Usage: "Recipe book",
 		Before: func(c *cli.Context) error {
-			log = logger.New(logger.LogLevel(c.String("log-level")))
+			log = logger.NewTo(os.Stderr, logger.LogLevel(c.String("log-level")))
 			return nil
 		},
 		Flags: []cli.Flag{
@@ -38,6 +39,8 @@ func main() {
 			migrate.Command,
 			tag.Command,
 			fetchimages.Command,
+			link.IssueCommand,
+			link.RevokeCommand,
 		},
 	}
 

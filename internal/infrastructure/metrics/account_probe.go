@@ -24,6 +24,16 @@ var (
 		Help: "Total invitation tokens presented and not honoured, by reason.",
 	}, []string{"reason"})
 
+	accountLinkChanges = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "bluerbook_account_link_changes_total",
+		Help: "Total link tokens issued or revoked, by action.",
+	}, []string{"action"})
+
+	accountLinkRefusals = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "bluerbook_account_link_refusals_total",
+		Help: "Total link tokens presented and not honoured.",
+	})
+
 	accountErrors = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "bluerbook_account_errors_total",
 		Help: "Total account operation errors by operation.",
@@ -52,6 +62,16 @@ func (p *AccountProbe) MembershipChanged(action string, homeID uuid.UUID) {
 func (p *AccountProbe) InvitationRefused(reason string) {
 	accountInvitationRefusals.WithLabelValues(reason).Inc()
 	p.logger.Warn().Str("probe", "account").Str("reason", reason).Msg("invitation refused")
+}
+
+func (p *AccountProbe) LinkChanged(action string, linkID uuid.UUID) {
+	accountLinkChanges.WithLabelValues(action).Inc()
+	p.logger.Info().Str("probe", "account").Str("action", action).Str("link_id", linkID.String()).Msg("link changed")
+}
+
+func (p *AccountProbe) LinkRefused() {
+	accountLinkRefusals.Inc()
+	p.logger.Warn().Str("probe", "account").Msg("link token refused")
 }
 
 func (p *AccountProbe) AccountError(operation string, err error) {

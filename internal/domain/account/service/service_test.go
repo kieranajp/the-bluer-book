@@ -80,6 +80,15 @@ type stubRepo struct {
 
 	removeMemberCalls []removeMemberCall
 	removeMemberErr   error
+
+	createLinkHashes []string
+	createLinkErr    error
+
+	findLiveLinkHashes []string
+	liveLink           account.Link
+	findLiveLinkErr    error
+
+	revokeLinkErr error
 }
 
 func (s *stubRepo) FindUserBySubject(_ context.Context, subject string) (account.User, error) {
@@ -555,7 +564,7 @@ func TestInviteByAnOwnerCreatesOneInvitation(t *testing.T) {
 	}
 	// The repository is only ever handed the hash: a copy of that row joins
 	// nobody to anything, which only holds if the plaintext never reaches it.
-	if call.hash != account.HashInvitationToken(token) {
+	if call.hash != account.HashToken(token) {
 		t.Error("repository was not given the hash of the returned token")
 	}
 	if call.hash == token {
@@ -625,6 +634,26 @@ func TestInviteRequiresANonBlankEmail(t *testing.T) {
 	}
 }
 
+func (s *stubRepo) CreateLink(_ context.Context, homeID uuid.UUID, tokenHash string) (account.Link, error) {
+	s.createLinkHashes = append(s.createLinkHashes, tokenHash)
+	if s.createLinkErr != nil {
+		return account.Link{}, s.createLinkErr
+	}
+	return account.Link{UUID: uuid.New(), HomeID: homeID}, nil
+}
+
+func (s *stubRepo) RevokeLink(context.Context, uuid.UUID) error {
+	return s.revokeLinkErr
+}
+
+func (s *stubRepo) FindLiveLink(_ context.Context, tokenHash string) (account.Link, error) {
+	s.findLiveLinkHashes = append(s.findLiveLinkHashes, tokenHash)
+	if s.findLiveLinkErr != nil {
+		return account.Link{}, s.findLiveLinkErr
+	}
+	return s.liveLink, nil
+}
+
 // Standing is decided before the body is read, so a non-owner learns only
 // that they may not invite, never whether their request was otherwise good.
 func TestInviteDecidesStandingBeforeValidatingTheRole(t *testing.T) {
@@ -647,8 +676,8 @@ func TestAcceptInvitationHashesTheTokenBeforeItReachesTheRepository(t *testing.T
 	if len(repo.redeemInvitationCalls) != 1 {
 		t.Fatalf("redeemed %d times, want 1", len(repo.redeemInvitationCalls))
 	}
-	if got := repo.redeemInvitationCalls[0].hash; got != account.HashInvitationToken(token) {
-		t.Errorf("repository saw %q, want the hash %q", got, account.HashInvitationToken(token))
+	if got := repo.redeemInvitationCalls[0].hash; got != account.HashToken(token) {
+		t.Errorf("repository saw %q, want the hash %q", got, account.HashToken(token))
 	}
 }
 
@@ -731,5 +760,54 @@ func TestRemoveMemberSurfacesLastOwnerUnchanged(t *testing.T) {
 
 	if err := svc.RemoveMember(context.Background(), uuid.New(), uuid.New(), uuid.New()); !errors.Is(err, account.ErrLastOwner) {
 		t.Errorf("got error %v, want %v", err, account.ErrLastOwner)
+	}
+}
+
+func TestIssueLinkStoresOnlyTheHashOfTheTokenItReturns(t *testing.T) {
+	repo := &stubRepo{}
+	svc := NewAccountService(repo, "", metrics.NoopAccountProbe{})
+
+	home := uuid.New()
+	link, token, err := svc.IssueLink(context.Background(), home)
+	if err != nil {
+		t.Fatalf("IssueLink: %v", err)
+	}
+	if link.HomeID != home {
+		t.Errorf("link is for home %s, want %s", link.HomeID, home)
+	}
+	if token == "" {
+		t.Fatal("IssueLink returned no token")
+	}
+	if len(repo.createLinkHashes) != 1 || repo.createLinkHashes[0] != account.HashToken(token) {
+		t.Errorf("repository stored %v, want only the hash of the returned token", repo.createLinkHashes)
+	}
+}
+
+func TestResolveLinkLooksUpTheHashOfTheToken(t *testing.T) {
+	want := account.Link{UUID: uuid.New(), HomeID: uuid.New(), HomeName: "Home A"}
+	repo := &stubRepo{liveLink: want}
+	svc := NewAccountService(repo, "", metrics.NoopAccountProbe{})
+
+	got, err := svc.ResolveLink(context.Background(), " link-token ")
+	if err != nil {
+		t.Fatalf("ResolveLink: %v", err)
+	}
+	if got != want {
+		t.Errorf("got %+v, want %+v", got, want)
+	}
+	if len(repo.findLiveLinkHashes) != 1 || repo.findLiveLinkHashes[0] != account.HashToken("link-token") {
+		t.Errorf("repository saw %v, want the hash of the trimmed token", repo.findLiveLinkHashes)
+	}
+}
+
+func TestResolveLinkRefusesABlankTokenWithoutReachingTheRepository(t *testing.T) {
+	repo := &stubRepo{}
+	svc := NewAccountService(repo, "", metrics.NoopAccountProbe{})
+
+	if _, err := svc.ResolveLink(context.Background(), "  "); !errors.Is(err, account.ErrLinkNotFound) {
+		t.Errorf("got error %v, want %v", err, account.ErrLinkNotFound)
+	}
+	if len(repo.findLiveLinkHashes) != 0 {
+		t.Error("reached the repository with a blank token")
 	}
 }

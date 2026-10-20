@@ -72,6 +72,15 @@ type Invitation struct {
 	CreatedAt time.Time
 }
 
+// Link lets another app read one home with a bearer token. Only the token's
+// hash is stored, and a revoked link resolves to nothing.
+type Link struct {
+	UUID      uuid.UUID
+	HomeID    uuid.UUID
+	HomeName  string
+	CreatedAt time.Time
+}
+
 // Valid reports whether a role is one this application recognises. A role
 // arrives from a request body, so nothing may assume it does.
 func (r Role) Valid() bool {

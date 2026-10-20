@@ -47,6 +47,15 @@ type AccountService interface {
 	// RemoveMember takes somebody out of a home. Only an owner may, and not the
 	// last owner.
 	RemoveMember(ctx context.Context, actorID, homeID, targetID uuid.UUID) error
+
+	// IssueLink returns the link and its bearer token. The token is not
+	// recoverable afterwards.
+	IssueLink(ctx context.Context, homeID uuid.UUID) (account.Link, string, error)
+
+	RevokeLink(ctx context.Context, linkID uuid.UUID) error
+
+	// ResolveLink returns ErrLinkNotFound for an unknown or revoked token.
+	ResolveLink(ctx context.Context, token string) (account.Link, error)
 }
 
 type accountService struct {
@@ -171,7 +180,7 @@ func (s *accountService) Invite(ctx context.Context, actorID, homeID uuid.UUID, 
 		return account.Invitation{}, "", account.ErrEmailRequired
 	}
 
-	token, hash, err := account.NewInvitationToken()
+	token, hash, err := account.NewToken()
 	if err != nil {
 		s.probe.AccountError("new_token", err)
 		return account.Invitation{}, "", err
@@ -203,7 +212,7 @@ func (s *accountService) AcceptInvitation(ctx context.Context, userID uuid.UUID,
 
 	// Expiry and single use are enforced by the database in the one statement
 	// that spends the token, so two concurrent redeems can't both get through.
-	home, role, err := s.repo.RedeemInvitation(ctx, account.HashInvitationToken(token), userID)
+	home, role, err := s.repo.RedeemInvitation(ctx, account.HashToken(token), userID)
 	switch {
 	case err == nil:
 		s.probe.MembershipChanged("joined", home.UUID)
@@ -248,6 +257,53 @@ func (s *accountService) RemoveMember(ctx context.Context, actorID, homeID, targ
 
 	s.probe.MembershipChanged("removed", homeID)
 	return nil
+}
+
+func (s *accountService) IssueLink(ctx context.Context, homeID uuid.UUID) (account.Link, string, error) {
+	token, hash, err := account.NewToken()
+	if err != nil {
+		s.probe.AccountError("new_token", err)
+		return account.Link{}, "", err
+	}
+
+	link, err := s.repo.CreateLink(ctx, homeID, hash)
+	if err != nil {
+		if !errors.Is(err, account.ErrHomeNotFound) {
+			s.probe.AccountError("issue_link", err)
+		}
+		return account.Link{}, "", err
+	}
+
+	s.probe.LinkChanged("issued", link.UUID)
+	return link, token, nil
+}
+
+func (s *accountService) RevokeLink(ctx context.Context, linkID uuid.UUID) error {
+	if err := s.repo.RevokeLink(ctx, linkID); err != nil {
+		if !errors.Is(err, account.ErrLinkNotFound) {
+			s.probe.AccountError("revoke_link", err)
+		}
+		return err
+	}
+
+	s.probe.LinkChanged("revoked", linkID)
+	return nil
+}
+
+func (s *accountService) ResolveLink(ctx context.Context, token string) (account.Link, error) {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		s.probe.LinkRefused()
+		return account.Link{}, account.ErrLinkNotFound
+	}
+
+	link, err := s.repo.FindLiveLink(ctx, account.HashToken(token))
+	if errors.Is(err, account.ErrLinkNotFound) {
+		s.probe.LinkRefused()
+	} else if err != nil {
+		s.probe.AccountError("resolve_link", err)
+	}
+	return link, err
 }
 
 // requireOwner refuses anybody who is not an owner of the home, including

@@ -57,6 +57,18 @@ func (s *stubService) RemoveMember(context.Context, uuid.UUID, uuid.UUID, uuid.U
 	return nil
 }
 
+func (s *stubService) IssueLink(context.Context, uuid.UUID) (account.Link, string, error) {
+	return account.Link{}, "", nil
+}
+
+func (s *stubService) RevokeLink(context.Context, uuid.UUID) error {
+	return nil
+}
+
+func (s *stubService) ResolveLink(context.Context, string) (account.Link, error) {
+	return account.Link{}, account.ErrLinkNotFound
+}
+
 func TestResolveCarriesTheEdgeClaimsIntoTheDomain(t *testing.T) {
 	svc := &stubService{
 		user: account.User{UUID: uuid.New()},

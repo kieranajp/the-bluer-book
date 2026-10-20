@@ -82,6 +82,23 @@ Locally there is no auth in front of the binary; it talks to a local Postgres. A
 `X-User` nobody has seen before is provisioned a home of its own, which the chat gate then
 refuses — set `FOUNDER_SUBJECT` to that subject, or `MCP_HOME_ID` to the home it landed in.
 
+### Link tokens
+
+Another app reads one home through `/link/v1/`, which sits outside the identity middleware.
+A request there carries `Authorization: Bearer <link token>`. The middleware hashes the
+token, finds the live link, and puts that link's home on the context, so row-level security
+binds every query to it. It reads no `X-User` or `X-Home`, and an unknown or revoked token
+gets a 401. The surface is read-only: `GET /link/v1/recipes` (the home's name and a compact
+index of its live recipes), `GET /link/v1/recipes/{id}` (one recipe, the same JSON as
+`/api/recipes/{id}`) and `GET /link/v1/meal-plan` (the planned recipes, newest first).
+
+The ingress routes only `/mcp` and `/api`, so only callers inside the cluster reach
+`/link`. `link_tokens` stores only each token's SHA-256 hash and sits outside row-level
+security, like `invitations`. The server's role may only read it. An operator issues a token
+with `issue-link --home <uuid>`, which prints the token alone on stdout and the link id on
+stderr, and revokes it with `revoke-link --id <uuid>`. Both run as the owning role, like
+`tag-recipes`.
+
 ## Homes, members and invitations
 
 `internal/application/api/account_handler.go` carries the five routes that move people
@@ -120,7 +137,7 @@ PostgreSQL enforces this, not the query layer. Nine tenant tables — `recipes`,
 with one `home_isolation` policy each, keyed on that same `app.home_id` setting
 (`migrations/00014_rls.sql`). No query carries a home predicate or a home parameter; the
 policy is the predicate. The identity tables — `users`, `homes`, `home_members`,
-`invitations` — stay outside it, because they're read to decide which home a request acts
+`invitations`, `link_tokens` — stay outside it, because they're read to decide which home a request acts
 on in the first place.
 
 FORCE does not bind a superuser or a role holding BYPASSRLS — and `DB_USER` is the postgres

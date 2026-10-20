@@ -32,6 +32,9 @@ type RecipeService interface {
 	RemoveFromMealPlan(ctx context.Context, recipeID uuid.UUID) error
 	ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error)
 
+	// RecipeIndex lists every non-archived recipe in the caller's home.
+	RecipeIndex(ctx context.Context) ([]recipe.IndexEntry, error)
+
 	// Label browsing
 	ListLabels(ctx context.Context) ([]recipe.LabelSummary, error)
 
@@ -167,6 +170,15 @@ func (s *recipeService) RemoveFromMealPlan(ctx context.Context, recipeID uuid.UU
 
 func (s *recipeService) ListMealPlanRecipes(ctx context.Context) ([]*recipe.Recipe, error) {
 	return s.repo.ListMealPlanRecipes(ctx)
+}
+
+func (s *recipeService) RecipeIndex(ctx context.Context) ([]recipe.IndexEntry, error) {
+	entries, err := s.repo.RecipeIndex(ctx)
+	if err != nil {
+		s.probe.RecipeError("index", err)
+		return nil, err
+	}
+	return entries, nil
 }
 
 func (s *recipeService) ListLabels(ctx context.Context) ([]recipe.LabelSummary, error) {

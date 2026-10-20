@@ -36,4 +36,8 @@ var (
 	// ErrInvitationUsed means the token has already been redeemed. An
 	// invitation is good once.
 	ErrInvitationUsed = errors.New("invitation already accepted")
+
+	// ErrLinkNotFound means no live link matches: the token or id is unknown,
+	// or the link was revoked.
+	ErrLinkNotFound = errors.New("link not found")
 )

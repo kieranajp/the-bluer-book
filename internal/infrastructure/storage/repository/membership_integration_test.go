@@ -66,7 +66,7 @@ func addMembership(t *testing.T, sqlDB *sql.DB, homeID, userID uuid.UUID, role a
 func invite(t *testing.T, repo account.Repository, homeID, inviterID uuid.UUID, role account.Role) (token string, inv account.Invitation) {
 	t.Helper()
 
-	token, hash, err := account.NewInvitationToken()
+	token, hash, err := account.NewToken()
 	if err != nil {
 		t.Fatalf("new invitation token: %v", err)
 	}
@@ -88,7 +88,7 @@ func invite(t *testing.T, repo account.Repository, homeID, inviterID uuid.UUID, 
 func expiredInvitation(t *testing.T, sqlDB *sql.DB, homeID uuid.UUID) (token string) {
 	t.Helper()
 
-	token, hash, err := account.NewInvitationToken()
+	token, hash, err := account.NewToken()
 	if err != nil {
 		t.Fatalf("new invitation token: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestMembershipInvitationTokenIsHashed(t *testing.T) {
 		if err := sqlDB.QueryRow(`SELECT token_hash FROM invitations WHERE uuid = $1`, inv.UUID).Scan(&stored); err != nil {
 			t.Fatalf("read token_hash: %v", err)
 		}
-		if want := account.HashInvitationToken(token); stored != want {
+		if want := account.HashToken(token); stored != want {
 			t.Errorf("token_hash is %q, want %q", stored, want)
 		}
 	})
@@ -236,7 +236,7 @@ func TestMembershipExpiredInvitationRefused(t *testing.T) {
 	invitee := membershipUser(t, sqlDB, "expired-invitee")
 	token := expiredInvitation(t, sqlDB, homeID)
 
-	_, _, err := repo.RedeemInvitation(context.Background(), account.HashInvitationToken(token), invitee.UUID)
+	_, _, err := repo.RedeemInvitation(context.Background(), account.HashToken(token), invitee.UUID)
 	if !errors.Is(err, account.ErrInvitationExpired) {
 		t.Errorf("RedeemInvitation on an expired token returned %v, want %v", err, account.ErrInvitationExpired)
 	}
@@ -259,7 +259,7 @@ func TestMembershipInvitationRedeemedOnce(t *testing.T) {
 	first := membershipUser(t, sqlDB, "once-first")
 	second := membershipUser(t, sqlDB, "once-second")
 	token, _ := invite(t, repo, homeID, inviter.UUID, account.RoleMember)
-	hash := account.HashInvitationToken(token)
+	hash := account.HashToken(token)
 
 	if _, _, err := repo.RedeemInvitation(context.Background(), hash, first.UUID); err != nil {
 		t.Fatalf("first RedeemInvitation: %v", err)
@@ -283,12 +283,12 @@ func TestMembershipUnknownTokenRefused(t *testing.T) {
 	repo := newAccountRepo(sqlDB)
 
 	invitee := membershipUser(t, sqlDB, "unknown-invitee")
-	token, _, err := account.NewInvitationToken()
+	token, _, err := account.NewToken()
 	if err != nil {
 		t.Fatalf("new invitation token: %v", err)
 	}
 
-	_, _, err = repo.RedeemInvitation(context.Background(), account.HashInvitationToken(token), invitee.UUID)
+	_, _, err = repo.RedeemInvitation(context.Background(), account.HashToken(token), invitee.UUID)
 	if !errors.Is(err, account.ErrInvitationNotFound) {
 		t.Errorf("RedeemInvitation on an unstored token returned %v, want %v", err, account.ErrInvitationNotFound)
 	}
@@ -307,7 +307,7 @@ func TestMembershipRedemptionIsAtomic(t *testing.T) {
 	invitee := membershipUser(t, sqlDB, "atomic-invitee")
 	token, inv := invite(t, repo, homeID, inviter.UUID, account.RoleMember)
 
-	if _, _, err := repo.RedeemInvitation(context.Background(), account.HashInvitationToken(token), invitee.UUID); err != nil {
+	if _, _, err := repo.RedeemInvitation(context.Background(), account.HashToken(token), invitee.UUID); err != nil {
 		t.Fatalf("RedeemInvitation: %v", err)
 	}
 
@@ -351,7 +351,7 @@ func TestMembershipConcurrentRedemption(t *testing.T) {
 	}
 
 	token, inv := invite(t, repo, homeID, inviter.UUID, account.RoleMember)
-	hash := account.HashInvitationToken(token)
+	hash := account.HashToken(token)
 
 	release := holdRowLock(t, sqlDB, `SELECT 1 FROM invitations WHERE uuid = $1 FOR UPDATE`, inv.UUID)
 

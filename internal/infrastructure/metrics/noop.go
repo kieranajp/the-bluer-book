@@ -38,4 +38,6 @@ type NoopAccountProbe struct{}
 func (NoopAccountProbe) UserProvisioned(string)              {}
 func (NoopAccountProbe) MembershipChanged(string, uuid.UUID) {}
 func (NoopAccountProbe) InvitationRefused(string)            {}
+func (NoopAccountProbe) LinkChanged(string, uuid.UUID)       {}
+func (NoopAccountProbe) LinkRefused()                        {}
 func (NoopAccountProbe) AccountError(string, error)          {}

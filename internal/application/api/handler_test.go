@@ -33,13 +33,20 @@ type stubRecipeService struct {
 	setMainPhotoErr error
 	mealPlanErr     error
 	setMainPhotos   int
+
+	index    []recipe.IndexEntry
+	mealPlan []*recipe.Recipe
+	recipes  map[uuid.UUID]*recipe.Recipe
 }
 
 func (s *stubRecipeService) CreateRecipe(_ context.Context, _ recipe.Recipe) (*recipe.Recipe, error) {
 	return nil, nil
 }
-func (s *stubRecipeService) GetRecipe(_ context.Context, _ uuid.UUID) (*recipe.Recipe, error) {
-	return nil, nil
+func (s *stubRecipeService) GetRecipe(_ context.Context, id uuid.UUID) (*recipe.Recipe, error) {
+	if rec, ok := s.recipes[id]; ok {
+		return rec, nil
+	}
+	return nil, recipe.RecipeNotFoundError{ID: id}
 }
 func (s *stubRecipeService) ListRecipes(_ context.Context, _, _ int, _ string, _ []string, _ string) ([]*recipe.Recipe, int, error) {
 	return nil, 0, nil
@@ -62,7 +69,11 @@ func (s *stubRecipeService) SetMainPhoto(_ context.Context, _ uuid.UUID, _ strin
 func (s *stubRecipeService) AddToMealPlan(_ context.Context, _ uuid.UUID) error      { return s.mealPlanErr }
 func (s *stubRecipeService) RemoveFromMealPlan(_ context.Context, _ uuid.UUID) error { return nil }
 func (s *stubRecipeService) ListMealPlanRecipes(_ context.Context) ([]*recipe.Recipe, error) {
-	return nil, nil
+	return s.mealPlan, nil
+}
+
+func (s *stubRecipeService) RecipeIndex(_ context.Context) ([]recipe.IndexEntry, error) {
+	return s.index, s.err
 }
 
 func (s *stubRecipeService) ListLabels(_ context.Context) ([]recipe.LabelSummary, error) {

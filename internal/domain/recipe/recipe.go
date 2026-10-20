@@ -102,6 +102,17 @@ type LabelSummary struct {
 	Uses int       `json:"uses"`
 }
 
+// IndexEntry is the compact form of a recipe, for browsing a whole home's book
+// in one read.
+type IndexEntry struct {
+	UUID         uuid.UUID
+	Name         string
+	Labels       []Label
+	MainPhotoURL string
+	Url          string
+	UpdatedAt    time.Time
+}
+
 // Photo is a value object representing a photo attached to a recipe or step.
 type Photo struct {
 	URL       string    `json:"url"`
